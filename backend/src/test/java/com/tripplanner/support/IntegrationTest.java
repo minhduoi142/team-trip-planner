@@ -43,6 +43,8 @@ public abstract class IntegrationTest {
 
     @BeforeEach
     void cleanDatabase() {
+        jdbc.update("DELETE FROM member_availabilities");
+        jdbc.update("DELETE FROM trip_days");
         jdbc.update("DELETE FROM trip_members");
         jdbc.update("DELETE FROM trips");
         jdbc.update("DELETE FROM users");

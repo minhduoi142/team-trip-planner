@@ -11,3 +11,5 @@ app:
     expiration-days: 7
   google:
     client-id: test-client-id.apps.googleusercontent.com
+  seed:
+    enabled: false

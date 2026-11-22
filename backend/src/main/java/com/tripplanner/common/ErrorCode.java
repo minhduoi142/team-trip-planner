@@ -10,6 +10,8 @@ public enum ErrorCode {
     INVALID_DATE_RANGE(HttpStatus.BAD_REQUEST, "Khoảng ngày không hợp lệ"),
     INVALID_ROLE(HttpStatus.BAD_REQUEST, "Quyền không hợp lệ"),
     INVALID_TRANSFER(HttpStatus.BAD_REQUEST, "Không thể chuyển quyền trưởng nhóm cho chính mình"),
+    DATE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "Có ngày nằm ngoài khoảng ngày dự kiến của chuyến đi"),
+    INVALID_TRIP_LENGTH(HttpStatus.BAD_REQUEST, "Số ngày đi phải từ 1 đến 14"),
 
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để tiếp tục"),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu"),
@@ -27,6 +29,10 @@ public enum ErrorCode {
     USERNAME_TAKEN(HttpStatus.CONFLICT, "Tên đăng nhập đã có người dùng"),
     OWNER_CANNOT_LEAVE(HttpStatus.CONFLICT, "Trưởng nhóm cần chuyển quyền cho người khác trước khi rời nhóm"),
     CANNOT_CHANGE_OWNER_ROLE(HttpStatus.CONFLICT, "Không thể đổi quyền của trưởng nhóm, hãy dùng chức năng chuyển quyền"),
+    NO_PLANNED_RANGE(HttpStatus.CONFLICT, "Chuyến đi chưa có khoảng ngày dự kiến"),
+    AVAILABILITY_LOCKED(HttpStatus.CONFLICT, "Chuyến đi đã chốt ngày, không sửa lịch rảnh được nữa"),
+    ALREADY_LOCKED(HttpStatus.CONFLICT, "Chuyến đi đã chốt ngày rồi, hãy mở lại khảo sát trước"),
+    NOT_LOCKED(HttpStatus.CONFLICT, "Chuyến đi chưa chốt ngày"),
 
     GOOGLE_LOGIN_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "Đăng nhập Google chưa được cấu hình trên máy chủ"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Có lỗi xảy ra, vui lòng thử lại sau");

@@ -1,6 +1,9 @@
 spring:
   application:
     name: trip-planner
+  config:
+    # Nạp biến từ backend/.env khi chạy local (không bắt buộc có). Biến môi trường thật vẫn được ưu tiên.
+    import: optional:file:.env[.properties]
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/tripplanner?createDatabaseIfNotExist=true}
     username: ${DB_USERNAME:root}
@@ -30,6 +33,9 @@ app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   timezone: Asia/Ho_Chi_Minh
+  seed:
+    # Chỉ bật ở local để tạo tài khoản + chuyến đi mẫu (DevDataSeeder). KHÔNG bật trên production.
+    enabled: ${APP_SEED_ENABLED:false}
 
 springdoc:
   swagger-ui:

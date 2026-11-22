@@ -14,6 +14,7 @@ import com.tripplanner.user.User;
 import com.tripplanner.user.UserService;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,8 @@ public class TripService {
     static final TripRole DEFAULT_JOIN_ROLE = TripRole.EDITOR;
     private static final int PREVIEW_MEMBERS = 5;
     private static final int INVITE_CODE_ATTEMPTS = 5;
+    /** Khoảng khảo sát lịch rảnh tối đa (Phase 2). */
+    static final int MAX_PLANNED_DAYS = 62;
 
     private final TripRepository tripRepository;
     private final TripMemberRepository memberRepository;
@@ -156,6 +159,10 @@ public class TripService {
         if (start != null && end.isBefore(start)) {
             throw new BusinessException(ErrorCode.INVALID_DATE_RANGE,
                     "Ngày kết thúc phải sau hoặc bằng ngày bắt đầu");
+        }
+        if (start != null && ChronoUnit.DAYS.between(start, end) + 1 > MAX_PLANNED_DAYS) {
+            throw new BusinessException(ErrorCode.INVALID_DATE_RANGE,
+                    "Khoảng ngày dự kiến tối đa " + MAX_PLANNED_DAYS + " ngày");
         }
         trip.setTitle(request.title().trim());
         trip.setDestination(blankToNull(request.destination()));

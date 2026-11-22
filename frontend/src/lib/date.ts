@@ -19,6 +19,33 @@ export function formatDateRange(start: IsoDate | null, end: IsoDate | null): str
   return `${left} – ${e.format('DD/MM/YYYY')}`
 }
 
+const WEEKDAY_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+
+/** "T6", "CN"… */
+export function weekdayShort(date: IsoDate): string {
+  return WEEKDAY_SHORT[dayjs(date).day()]
+}
+
+export function isWeekend(date: IsoDate): boolean {
+  const d = dayjs(date).day()
+  return d === 0 || d === 6
+}
+
+/** "04/01" */
+export function formatShortDate(date: IsoDate): string {
+  return dayjs(date).format('DD/MM')
+}
+
+/** "T6 04/01 – CN 06/01" */
+export function formatRangeWithWeekday(start: IsoDate, end: IsoDate): string {
+  const left = `${weekdayShort(start)} ${formatShortDate(start)}`
+  return start === end ? left : `${left} – ${weekdayShort(end)} ${formatShortDate(end)}`
+}
+
+export function daysBetweenInclusive(start: IsoDate, end: IsoDate): number {
+  return dayjs(end).diff(dayjs(start), 'day') + 1
+}
+
 export type CountdownTone = 'muted' | 'upcoming' | 'soon' | 'today' | 'ongoing' | 'done'
 
 export interface Countdown {

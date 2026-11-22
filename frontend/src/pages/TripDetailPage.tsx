@@ -2,6 +2,7 @@ import { ArrowLeft, CalendarDays, MapPin, MoreHorizontal, Pencil, Trash2 } from 
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
+import { AvailabilityTab } from '@/components/availability/AvailabilityTab'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CountdownLabel } from '@/components/CountdownLabel'
 import { InviteShare } from '@/components/InviteShare'
@@ -29,7 +30,6 @@ import type { TripRequest } from '@/types/trip'
 
 /** Các tab của phase sau: hiện trước để cả nhóm biết sắp có gì. */
 const UPCOMING_TABS = [
-  { value: 'availability', label: 'Lịch rảnh' },
   { value: 'itinerary', label: 'Lịch trình' },
   { value: 'expenses', label: 'Chi tiêu' },
   { value: 'album', label: 'Album' },
@@ -164,6 +164,7 @@ export function TripDetailPage() {
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <TabsList>
             <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+            <TabsTrigger value="availability">Lịch rảnh</TabsTrigger>
             {UPCOMING_TABS.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value} disabled className="gap-1.5">
                 {tab.label}
@@ -201,6 +202,17 @@ export function TripDetailPage() {
               />
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="availability" className="mt-4">
+          {user && (
+            <AvailabilityTab
+              tripId={data.id}
+              myUserId={user.id}
+              myRole={data.myRole}
+              onEditTrip={() => setEditOpen(true)}
+            />
+          )}
         </TabsContent>
       </Tabs>
 

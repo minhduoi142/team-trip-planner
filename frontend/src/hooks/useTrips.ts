@@ -6,6 +6,9 @@ export const tripKeys = {
   all: ['trips'] as const,
   list: () => [...tripKeys.all, 'list'] as const,
   detail: (tripId: number) => [...tripKeys.all, 'detail', tripId] as const,
+  /** Nằm dưới detail: invalidate detail là lịch rảnh / ngày đi cũng được làm mới */
+  availability: (tripId: number) => [...tripKeys.detail(tripId), 'availability'] as const,
+  days: (tripId: number) => [...tripKeys.detail(tripId), 'days'] as const,
   invite: (code: string) => ['invite', code.toUpperCase()] as const,
 }
 
@@ -30,12 +33,16 @@ export function useInvitePreview(code: string) {
 }
 
 /** Cập nhật cache chi tiết + làm mới danh sách sau mỗi thay đổi. */
-function useTripCacheSync() {
+export function useTripCacheSync() {
   const qc = useQueryClient()
   return {
     setDetail: (trip: TripDetailResponse) => {
       qc.setQueryData(tripKeys.detail(trip.id), trip)
-      return qc.invalidateQueries({ queryKey: tripKeys.list() })
+      return Promise.all([
+        qc.invalidateQueries({ queryKey: tripKeys.list() }),
+        qc.invalidateQueries({ queryKey: tripKeys.availability(trip.id) }),
+        qc.invalidateQueries({ queryKey: tripKeys.days(trip.id) }),
+      ])
     },
     refresh: (tripId: number) =>
       Promise.all([

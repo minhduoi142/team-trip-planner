@@ -51,7 +51,9 @@ CREATE TABLE trip_members (
     -- = trip_id khi role là OWNER, NULL khi khác: UNIQUE bảo đảm mỗi trip chỉ có 1 OWNER
     owner_trip_id  BIGINT GENERATED ALWAYS AS (CASE WHEN role = 'OWNER' THEN trip_id END) STORED,
     CONSTRAINT pk_trip_members PRIMARY KEY (trip_id, user_id),
-    CONSTRAINT fk_trip_members_trip FOREIGN KEY (trip_id) REFERENCES trips (id) ON DELETE CASCADE,
+    -- Không dùng ON DELETE CASCADE: MySQL cấm cascade trên cột nền của generated column (owner_trip_id).
+    -- Xóa trip thì ứng dụng xóa trip_members trước (TripService.delete).
+    CONSTRAINT fk_trip_members_trip FOREIGN KEY (trip_id) REFERENCES trips (id),
     CONSTRAINT fk_trip_members_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     CONSTRAINT chk_trip_members_role CHECK (role IN ('OWNER', 'EDITOR', 'VIEWER')),
     CONSTRAINT uq_trip_single_owner UNIQUE (owner_trip_id),

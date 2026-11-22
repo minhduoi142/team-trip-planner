@@ -61,6 +61,10 @@ public class Trip {
     @Column(name = "end_date")
     private LocalDate endDate;
 
+    /** Số ngày muốn đi (1–14) để tính gợi ý; null = dùng mặc định. */
+    @Column(name = "trip_length_days", columnDefinition = "TINYINT")
+    private Integer tripLengthDays;
+
     @Column(name = "drive_folder_url", length = 2000)
     private String driveFolderUrl;
 
@@ -88,5 +92,14 @@ public class Trip {
 
     public TripStatus statusOn(LocalDate today) {
         return TripStatus.of(startDate, endDate, today);
+    }
+
+    /** Đã chốt ngày chính thức (Phase 2). */
+    public boolean isLocked() {
+        return startDate != null;
+    }
+
+    public boolean hasPlannedRange() {
+        return plannedStartDate != null && plannedEndDate != null;
     }
 }
