@@ -1,4 +1,5 @@
 import { ArrowRight, Check, MoreVertical, Pencil, Plus, QrCode, Receipt, RotateCw, Trash2, X } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -21,6 +22,7 @@ import {
   useExpenses,
   useUpdateExpense,
 } from '@/hooks/useExpenses'
+import { tripKeys } from '@/hooks/useTrips'
 import { getErrorMessage } from '@/lib/api'
 import { formatDate } from '@/lib/date'
 import { expenseCategory, formatVnd } from '@/lib/tripContent'
@@ -49,6 +51,12 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
   const deleteSettlement = useDeleteSettlement(tripId)
 
   const [formFor, setFormFor] = useState<{ expense?: ExpenseResponse } | null>(null)
+  const qc = useQueryClient()
+  /** Mở form + lấy lại danh sách thành viên ngay (có thể vừa có người vào nhóm). */
+  const openForm = (expense?: ExpenseResponse) => {
+    setFormFor({ expense })
+    void qc.invalidateQueries({ queryKey: tripKeys.detail(tripId), exact: true })
+  }
   const [toDelete, setToDelete] = useState<ExpenseResponse | null>(null)
   const [qr, setQr] = useState<QrTransfer | null>(null)
 
@@ -227,7 +235,7 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
       {/* Danh sách khoản chi */}
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Khoản chi ({data.expenses.length})</h3>
-        <Button size="sm" onClick={() => setFormFor({})}>
+        <Button size="sm" onClick={() => openForm()}>
           <Plus />
           Thêm khoản chi
         </Button>
@@ -277,7 +285,7 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => setFormFor({ expense: e })}>
+                        <DropdownMenuItem onSelect={() => openForm(e)}>
                           <Pencil />
                           Sửa
                         </DropdownMenuItem>

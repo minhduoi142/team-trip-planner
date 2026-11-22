@@ -23,6 +23,8 @@ export function useUpdateMyAvailability(tripId: number) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: UpdateAvailabilityRequest) => availabilityApi.updateMine(tripId, body),
+    // Huỷ lần poll đang chạy: nó trả về dữ liệu CŨ và có thể ghi đè ma trận vừa lưu
+    onMutate: () => qc.cancelQueries({ queryKey: tripKeys.availability(tripId) }),
     onSuccess: (matrix: AvailabilityMatrixResponse) => qc.setQueryData(tripKeys.availability(tripId), matrix),
   })
 }

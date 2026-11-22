@@ -5,7 +5,7 @@ import type { BankAccountRequest } from '@/types/bank'
 
 /** Danh sách ngân hàng cố định ở backend → cache lâu. */
 export function useBanks() {
-  return useQuery({ queryKey: ['banks'], queryFn: bankApi.list, staleTime: Infinity })
+  return useQuery({ queryKey: ['banks'], queryFn: bankApi.list, staleTime: Infinity, refetchInterval: false })
 }
 
 export function useSetMyBank() {

@@ -62,9 +62,15 @@ function ExpenseForm({
   const [paidBy, setPaidBy] = useState(String(expense?.paidBy ?? myUserId))
   const [spentOn, setSpentOn] = useState(expense?.spentOn ?? dayjs().format('YYYY-MM-DD'))
   const [mode, setMode] = useState<SplitMode>(expense?.splitMode ?? 'EQUAL')
-  const [participants, setParticipants] = useState<number[]>(
-    expense ? expense.shares.map((s) => s.userId) : members.map((m) => m.userId),
+  // Khoản chi mới: mặc định chia cho MỌI thành viên, kể cả người vừa vào nhóm khi form đang mở
+  // (members được làm mới ở nền) → lưu danh sách người bị BỎ RA. Sửa khoản chi: giữ đúng người đã chia.
+  const [selection, setSelection] = useState<{ kind: 'exclude' | 'include'; ids: number[] }>(() =>
+    expense ? { kind: 'include', ids: expense.shares.map((s) => s.userId) } : { kind: 'exclude', ids: [] },
   )
+  const participants =
+    selection.kind === 'include'
+      ? selection.ids
+      : members.map((m) => m.userId).filter((id) => !selection.ids.includes(id))
   const [custom, setCustom] = useState<Record<number, string>>(() =>
     Object.fromEntries((expense?.shares ?? []).map((s) => [s.userId, String(s.amount)])),
   )
@@ -77,7 +83,10 @@ function ExpenseForm({
   const diff = total - customSum
 
   const toggleParticipant = (userId: number) =>
-    setParticipants((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]))
+    setSelection((prev) => ({
+      ...prev,
+      ids: prev.ids.includes(userId) ? prev.ids.filter((id) => id !== userId) : [...prev.ids, userId],
+    }))
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -229,7 +238,7 @@ function ExpenseForm({
               <button
                 type="button"
                 className="text-primary hover:underline"
-                onClick={() => setParticipants(members.map((m) => m.userId))}
+                onClick={() => setSelection({ kind: 'exclude', ids: [] })}
               >
                 Chọn tất cả
               </button>
