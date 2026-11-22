@@ -108,8 +108,10 @@ function ItemForm({ item, dayLabel, pending, onSubmit, onOpenChange }: ItemFormD
             aria-checked={form.category === c.value}
             onClick={() => set('category', c.value)}
             className={cn(
-              'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm ring-1 ring-border transition',
-              form.category === c.value ? 'bg-foreground text-background ring-foreground' : 'bg-background',
+              'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 border-2',
+              form.category === c.value
+                ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white border-rose-300 shadow-clay-btn-primary -translate-y-0.5'
+                : 'bg-card text-foreground border-white/70 shadow-clay-card hover:-translate-y-0.5 hover:shadow-clay-card-hover',
             )}
           >
             <c.icon className="size-4" />

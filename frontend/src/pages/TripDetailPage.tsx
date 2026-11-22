@@ -56,8 +56,8 @@ export function TripDetailPage() {
           : 'Không tải được chuyến đi'
     return (
       <div className="mx-auto max-w-md space-y-4 py-16 text-center">
-        <p className="text-5xl">🗺️</p>
-        <h1 className="text-xl font-semibold">{title}</h1>
+        <p className="text-5xl animate-float-slow">🗺️</p>
+        <h1 className="text-xl font-bold">{title}</h1>
         <p className="text-muted-foreground">
           {code === 'NOT_TRIP_MEMBER'
             ? 'Hãy xin link mời từ trưởng nhóm để tham gia.'
@@ -100,87 +100,98 @@ export function TripDetailPage() {
         coverImageUrl={data.coverImageUrl}
         seed={data.id}
         withOverlay
-        className="-mx-4 h-56 sm:mx-0 sm:h-64 sm:rounded-3xl"
+        className="-mx-4 h-60 sm:mx-0 sm:h-72 sm:rounded-[32px] shadow-clay-card border border-border/60"
       >
         <div className="flex h-full flex-col justify-between p-4 sm:p-6">
           <div className="flex items-center justify-between">
-            <Button asChild variant="secondary" size="icon" className="bg-white/80 backdrop-blur" aria-label="Quay lại">
-              <Link to="/trips">
-                <ArrowLeft />
-              </Link>
-            </Button>
-            {canEdit && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" size="icon" className="bg-white/80 backdrop-blur" aria-label="Tùy chọn">
-                    <MoreHorizontal />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => setEditOpen(true)}>
-                    <Pencil />
-                    Sửa thông tin
-                  </DropdownMenuItem>
-                  {isOwner && (
-                    <DropdownMenuItem variant="destructive" onSelect={() => setDeleteOpen(true)}>
-                      <Trash2 />
-                      Xóa chuyến đi
+              <Button
+                asChild
+                variant="secondary"
+                size="icon"
+                className="bg-white/90 hover:bg-white text-foreground shadow-clay-badge backdrop-blur-xs"
+                aria-label="Quay lại"
+              >
+                <Link to="/trips">
+                  <ArrowLeft />
+                </Link>
+              </Button>
+              {canEdit && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="bg-white/90 hover:bg-white text-foreground shadow-clay-badge backdrop-blur-xs"
+                        aria-label="Tùy chọn"
+                      >
+                        <MoreHorizontal />
+                      </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                      <Pencil />
+                      Sửa thông tin
                     </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                    {isOwner && (
+                      <DropdownMenuItem variant="destructive" onSelect={() => setDeleteOpen(true)}>
+                        <Trash2 />
+                        Xóa chuyến đi
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
           </div>
           <div className="space-y-2 text-white">
-            <StatusBadge status={data.status} className="shadow-sm" />
-            <h1 className="text-2xl leading-tight font-bold drop-shadow sm:text-3xl">{data.title}</h1>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/90">
-              {data.destination && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="size-4" />
-                  {data.destination}
-                </span>
+              <StatusBadge status={data.status} className="shadow-md" />
+              <h1 className="text-2xl leading-tight font-bold drop-shadow-md sm:text-3xl">{data.title}</h1>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/95 font-medium drop-shadow-sm">
+                {data.destination && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="size-4" />
+                      {data.destination}
+                    </span>
               )}
-              {(officialRange ?? plannedRange) && (
-                <span className="flex items-center gap-1">
-                  <CalendarDays className="size-4" />
-                  {officialRange ?? `Dự kiến ${plannedRange}`}
-                </span>
+                    {(officialRange ?? plannedRange) && (
+                        <span className="flex items-center gap-1.5">
+                          <CalendarDays className="size-4" />
+                          {officialRange ?? `Dự kiến: ${plannedRange}`}
+                        </span>
               )}
-            </div>
+                      </div>
           </div>
         </div>
-      </TripCover>
+            </TripCover>
 
-      <div className="flex justify-center">
-        <div className="rounded-full bg-card px-4 py-2 shadow-sm ring-1 ring-border">
-          <CountdownLabel trip={data} className="text-base" />
-        </div>
-      </div>
+            <div className="flex justify-center">
+                <div className="rounded-full bg-card/90 backdrop-blur-xs px-5 py-2 shadow-clay-card border border-border/70 hover:scale-105 transition-transform duration-200">
+                  <CountdownLabel trip={data} className="text-base" />
+                </div>
+              </div>
 
-      <Tabs defaultValue="overview">
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <TabsList>
-            <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-            <TabsTrigger value="availability">Lịch rảnh</TabsTrigger>
-            <TabsTrigger value="itinerary">Lịch trình</TabsTrigger>
-            <TabsTrigger value="polls">Bình chọn</TabsTrigger>
-            <TabsTrigger value="checklist">Chuẩn bị</TabsTrigger>
-            <TabsTrigger value="expenses">Chi tiêu</TabsTrigger>
-            <TabsTrigger value="rooms">Phòng</TabsTrigger>
-            <TabsTrigger value="album">Album</TabsTrigger>
-          </TabsList>
-        </div>
+              <Tabs defaultValue="overview">
+                    <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+                      <TabsList className="bg-card/90 backdrop-blur-md shadow-clay-dock border border-border/60 p-1.5 h-12">
+                        <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+                        <TabsTrigger value="availability">Lịch rảnh</TabsTrigger>
+                        <TabsTrigger value="itinerary">Lịch trình</TabsTrigger>
+                        <TabsTrigger value="polls">Bình chọn</TabsTrigger>
+                        <TabsTrigger value="checklist">Chuẩn bị</TabsTrigger>
+                        <TabsTrigger value="expenses">Chi tiêu</TabsTrigger>
+                        <TabsTrigger value="rooms">Phòng</TabsTrigger>
+                        <TabsTrigger value="album">Album</TabsTrigger>
+                      </TabsList>
+                    </div>
 
-        <TabsContent value="overview" className="mt-4 grid gap-4 md:grid-cols-5">
-          <div className="space-y-4 md:col-span-3">
-            {data.description && (
-              <Card>
+                        <TabsContent value="overview" className="mt-4 grid gap-6 md:grid-cols-5">
+                          <div className="space-y-6 md:col-span-3">
+                            {data.description && (
+              <Card className="rounded-[28px] shadow-clay-card border border-border/60 bg-card">
                 <CardHeader>
                   <CardTitle>Giới thiệu</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="whitespace-pre-line text-muted-foreground">{data.description}</p>
+                  <p className="whitespace-pre-line text-muted-foreground leading-relaxed">{data.description}</p>
                 </CardContent>
               </Card>
             )}
@@ -200,80 +211,88 @@ export function TripDetailPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="availability" className="mt-4">
-          {user && (
-            <AvailabilityTab
-              tripId={data.id}
-              myUserId={user.id}
-              myRole={data.myRole}
-              onEditTrip={() => setEditOpen(true)}
-            />
-          )}
-        </TabsContent>
+                        <TabsContent value="availability" className="mt-4">
+                          {user && (
+                            <AvailabilityTab
+                              tripId={data.id}
+                              myUserId={user.id}
+                              myRole={data.myRole}
+                              onEditTrip={() => setEditOpen(true)}
+                            />
+                          )}
+                        </TabsContent>
 
-        <TabsContent value="itinerary" className="mt-4">
-          <ItineraryTab tripId={data.id} canEdit={canEdit} />
-        </TabsContent>
+                        <TabsContent value="itinerary" className="mt-4">
+                          <ItineraryTab tripId={data.id} canEdit={canEdit} />
+                        </TabsContent>
 
-        <TabsContent value="polls" className="mt-4">
-          {user && <PollsTab tripId={data.id} myUserId={user.id} canCreate={canEdit} members={data.members} />}
-        </TabsContent>
+                        <TabsContent value="polls" className="mt-4">
+                          {user && <PollsTab tripId={data.id} myUserId={user.id} canCreate={canEdit} members={data.members} />}
+                        </TabsContent>
 
-        <TabsContent value="checklist" className="mt-4">
-          {user && <ChecklistTab tripId={data.id} myUserId={user.id} canEdit={canEdit} members={data.members} />}
-        </TabsContent>
+                        <TabsContent value="checklist" className="mt-4">
+                          {user && <ChecklistTab tripId={data.id} myUserId={user.id} canEdit={canEdit} members={data.members} />}
+                        </TabsContent>
 
-        <TabsContent value="expenses" className="mt-4">
-          {user && (
-            <ExpensesTab
-              tripId={data.id}
-              tripTitle={data.title}
-              myUserId={user.id}
-              isOwner={isOwner}
-              members={data.members}
-            />
-          )}
-        </TabsContent>
+                        <TabsContent value="expenses" className="mt-4">
+                          {user && (
+                            <ExpensesTab
+                              tripId={data.id}
+                              tripTitle={data.title}
+                              myUserId={user.id}
+                              isOwner={isOwner}
+                              members={data.members}
+                            />
+                          )}
+                        </TabsContent>
 
-        <TabsContent value="rooms" className="mt-4">
-          {user && <RoomsTab tripId={data.id} myUserId={user.id} canEdit={canEdit} />}
-        </TabsContent>
+                        <TabsContent value="rooms" className="mt-4">
+                          {user && <RoomsTab tripId={data.id} myUserId={user.id} canEdit={canEdit} />}
+                        </TabsContent>
 
-        <TabsContent value="album" className="mt-4">
-          <AlbumTab tripId={data.id} canEdit={canEdit} />
-        </TabsContent>
-      </Tabs>
+                        <TabsContent value="album" className="mt-4">
+                          <AlbumTab tripId={data.id} canEdit={canEdit} />
+                        </TabsContent>
+                      </Tabs>
 
-      <TripFormDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        trip={data}
-        pending={updateTrip.isPending}
-        onSubmit={handleUpdate}
-      />
-      <ConfirmDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        title="Xóa chuyến đi này?"
-        description={`"${data.title}" và toàn bộ thành viên sẽ bị xóa vĩnh viễn, không khôi phục được.`}
-        confirmLabel="Xóa vĩnh viễn"
-        destructive
-        pending={deleteTrip.isPending}
-        onConfirm={handleDelete}
-      />
-    </div>
-  )
+                      <TripFormDialog
+                        open={editOpen}
+                        onOpenChange={setEditOpen}
+                        trip={data}
+                        pending={updateTrip.isPending}
+                        onSubmit={handleUpdate}
+                      />
+
+                      <ConfirmDialog
+                        open={deleteOpen}
+                        onOpenChange={setDeleteOpen}
+                        title="Xóa chuyến đi này?"
+                        description={`"${data.title}" và toàn bộ thành viên sẽ bị xóa vĩnh viễn, không khôi phục được.`}
+                        confirmLabel="Xóa vĩnh viễn"
+                        destructive
+                        pending={deleteTrip.isPending}
+                        onConfirm={handleDelete}
+                      />
+                    </div>
+                    )
 }
 
-function TripDetailSkeleton() {
+                    function TripDetailSkeleton() {
   return (
-    <div className="space-y-6">
-      <Skeleton className="-mx-4 h-56 rounded-none sm:mx-0 sm:h-64 sm:rounded-3xl" />
-      <Skeleton className="mx-auto h-10 w-48 rounded-full" />
-      <div className="grid gap-4 md:grid-cols-5">
-        <Skeleton className="h-64 md:col-span-3" />
-        <Skeleton className="h-64 md:col-span-2" />
-      </div>
-    </div>
-  )
+                    <div className="space-y-6">
+                        <Skeleton className="-mx-4 h-60 sm:mx-0 sm:h-72 sm:rounded-[32px]" />
+                        <div className="flex justify-center">
+                          <Skeleton className="h-10 w-44 rounded-full" />
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-5">
+                          <div className="space-y-6 md:col-span-3">
+                            <Skeleton className="h-44 rounded-[28px]" />
+                            <Skeleton className="h-64 rounded-[28px]" />
+                          </div>
+                          <div className="md:col-span-2">
+                            <Skeleton className="h-56 rounded-[28px]" />
+                          </div>
+                        </div>
+                      </div>
+                      )
 }

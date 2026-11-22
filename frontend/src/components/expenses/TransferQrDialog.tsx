@@ -89,39 +89,46 @@ function QrContent({
 
       {bank ? (
         <>
-          <div className="mx-auto flex size-64 items-center justify-center rounded-2xl bg-white p-2 ring-1 ring-border">
-            {qr ? <img src={qr} alt="Mã VietQR chuyển khoản" className="size-full" /> : <p className="text-sm">Đang tạo mã…</p>}
-          </div>
-          <dl className="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-1.5 text-sm">
-            <dt className="text-muted-foreground">Số tiền</dt>
-            <dd className="text-lg font-bold text-primary">{formatVnd(transfer.amount)}</dd>
-            <dt className="text-muted-foreground">Ngân hàng</dt>
-            <dd className="font-medium">{bank.shortName}</dd>
-            <dt className="text-muted-foreground">Số TK</dt>
-            <dd className="flex items-center gap-1 font-mono font-medium">
-              {bank.accountNo}
-              <Button variant="ghost" size="icon-xs" aria-label="Copy số tài khoản" onClick={() => copy(bank.accountNo)}>
-                {copied ? <Check /> : <Copy />}
-              </Button>
-            </dd>
-            <dt className="text-muted-foreground">Chủ TK</dt>
-            <dd className="font-medium">{bank.accountName}</dd>
-            <dt className="text-muted-foreground">Nội dung</dt>
-            <dd className="font-mono">{content}</dd>
-          </dl>
-        </>
-      ) : (
-        <p className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">
-          {transfer.to.displayName} chưa thêm tài khoản nhận tiền. Nhắn bạn ấy thêm trong <b>Hồ sơ</b>, hoặc trả tiền mặt
-          rồi bấm "Tôi đã chuyển".
-        </p>
+            <div className="relative mx-auto flex size-64 sm:size-72 items-center justify-center rounded-[28px] border-4 border-white bg-white p-3 shadow-clay-card-hover ring-1 ring-black/5 transition-transform hover:scale-102">
+              {qr ? <img src={qr} alt="Mã VietQR chuyển khoản" className="size-full rounded-2xl" /> : <p className="text-sm font-medium text-muted-foreground">Đang tạo mã…</p>}
+            </div>
+
+              <dl className="grid grid-cols-[5.5rem_1fr] gap-x-3 gap-y-2 rounded-[22px] border border-white/80 bg-muted/40 p-4 text-xs sm:text-sm shadow-clay-sunken">
+                <dt className="text-muted-foreground font-medium">Số tiền</dt>
+                <dd className="text-lg font-bold text-primary">{formatVnd(transfer.amount)}</dd>
+                  <dt className="text-muted-foreground font-medium">Ngân hàng</dt>
+                  <dd className="font-bold text-foreground">{bank.shortName}</dd>
+                  <dt className="text-muted-foreground font-medium">Số TK</dt>
+                  <dd className="flex items-center gap-1.5 font-mono font-bold text-foreground">
+                    {bank.accountNo}
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Copy số tài khoản"
+                        onClick={() => copy(bank.accountNo)}
+                        className="rounded-full border border-white/80 bg-white/90 shadow-clay-badge hover:bg-white active:scale-95"
+                      >
+                        {copied ? <Check className="size-3 text-emerald-600 stroke-[3]" /> : <Copy className="size-3" />}
+                      </Button>
+                  </dd>
+                  <dt className="text-muted-foreground font-medium">Chủ TK</dt>
+                  <dd className="font-bold text-foreground uppercase">{bank.accountName}</dd>
+                  <dt className="text-muted-foreground font-medium">Nội dung</dt>
+                  <dd className="font-mono text-foreground font-semibold">{content}</dd>
+              </dl>
+            </>
+            ) : (
+              <p className="rounded-[22px] border-2 border-amber-300 bg-amber-50/90 p-4 text-sm font-medium text-amber-950 shadow-clay-card">
+                {transfer.to.displayName} chưa thêm tài khoản nhận tiền. Nhắn bạn ấy thêm trong <b>Hồ sơ</b>, hoặc trả tiền mặt
+                rồi bấm "Tôi đã chuyển".
+              </p>
       )}
 
-      <DialogFooter>
-        <Button className="w-full" onClick={onMarkSent} disabled={pending}>
-          {pending ? 'Đang ghi nhận…' : `Tôi đã chuyển ${formatVnd(transfer.amount)}`}
-        </Button>
-      </DialogFooter>
-    </div>
-  )
+              <DialogFooter>
+                  <Button className="w-full rounded-full shadow-clay-btn-primary font-bold h-11 text-base" onClick={onMarkSent} disabled={pending}>
+                    {pending ? 'Đang ghi nhận…' : `Tôi đã chuyển ${formatVnd(transfer.amount)}`}
+                  </Button>
+              </DialogFooter>
+          </div>
+          )
 }

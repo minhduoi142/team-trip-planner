@@ -93,91 +93,91 @@ function DressCodeForm({ day, dayLabel, pending, onSubmit, onOpenChange }: Dress
       </FormField>
 
       <div className="grid gap-2">
-        <p className="text-sm font-medium">
-          Tông màu{' '}
-          <span className="font-normal text-muted-foreground">
-            ({colors.length}/{MAX_DRESS_COLORS})
-          </span>
-        </p>
-        <div className="grid grid-cols-8 gap-2">
-          {DRESS_COLORS.map((c) => {
-            const selected = colors.includes(c.key)
-            return (
-              <button
-                key={c.key}
-                type="button"
-                aria-pressed={selected}
-                aria-label={c.label}
-                title={c.label}
-                onClick={() => toggleColor(c.key)}
-                className={cn(
-                  'relative aspect-square rounded-full ring-1 ring-border ring-offset-2 transition',
-                  selected && 'ring-2 ring-primary',
-                )}
-                style={{ backgroundColor: c.hex }}
-              >
-                {selected && (
-                  <Check className="absolute inset-0 m-auto size-4 text-white mix-blend-difference" strokeWidth={3} />
-                )}
-              </button>
-            )
-          })}
-        </div>
-        {errors.dressColors && <p className="text-sm text-destructive">{errors.dressColors}</p>}
-      </div>
+          <p className="text-sm font-semibold">
+            Tông màu{' '}
+            <span className="font-normal text-muted-foreground">
+              ({colors.length}/{MAX_DRESS_COLORS})
+            </span>
+          </p>
+            <div className="grid grid-cols-8 gap-2.5 p-2 rounded-2xl bg-muted/40 border border-white/60 shadow-clay-sunken">
+              {DRESS_COLORS.map((c) => {
+                const selected = colors.includes(c.key)
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    aria-pressed={selected}
+                    aria-label={c.label}
+                    title={c.label}
+                    onClick={() => toggleColor(c.key)}
+                    className={cn(
+                      'relative aspect-square rounded-full border-2 border-white shadow-clay-badge transition-all duration-200 hover:scale-110 active:scale-95',
+                      selected && 'ring-3 ring-primary ring-offset-2 scale-110 shadow-clay-btn-primary',
+                    )}
+                    style={{ backgroundColor: c.hex }}
+                  >
+                    {selected && (
+                  <Check className="absolute inset-0 m-auto size-4 text-white mix-blend-difference drop-shadow" strokeWidth={3} />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            {errors.dressColors && <p className="text-sm text-destructive">{errors.dressColors}</p>}
+          </div>
 
-      <FormField id="dress-image" label="Ảnh mẫu" optional error={errors.dressImageUrl}>
-        <div className="flex gap-2">
-          <Input
-            id="dress-image"
-            inputMode="url"
-            placeholder="Dán link (Pinterest…) hoặc tải ảnh"
-            className="min-w-0 flex-1"
-            value={imageUrl}
-            aria-invalid={Boolean(errors.dressImageUrl)}
-            onChange={(e) => setImageUrl(e.target.value)}
-          />
-          <ImageUploadButton purpose="DRESS_CODE" label="Tải ảnh" className="shrink-0" onUploaded={setImageUrl} />
-        </div>
-        {imageUrl && (
-          <img
-            src={imageUrl}
-            alt="Xem trước ảnh mẫu"
-            className="mt-1 h-28 w-28 rounded-2xl object-cover ring-1 ring-border"
-            referrerPolicy="no-referrer"
-          />
-        )}
-      </FormField>
+          <FormField id="dress-image" label="Ảnh mẫu" optional error={errors.dressImageUrl}>
+            <div className="flex gap-2">
+              <Input
+                id="dress-image"
+                inputMode="url"
+                placeholder="Dán link (Pinterest…) hoặc tải ảnh"
+                className="min-w-0 flex-1"
+                value={imageUrl}
+                aria-invalid={Boolean(errors.dressImageUrl)}
+                onChange={(e) => setImageUrl(e.target.value)}
+              />
+              <ImageUploadButton purpose="DRESS_CODE" label="Tải ảnh" className="shrink-0" onUploaded={setImageUrl} />
+            </div>
+            {imageUrl && (
+              <img
+                src={imageUrl}
+                alt="Xem trước ảnh mẫu"
+                className="mt-2 h-28 w-28 rounded-2xl object-cover border-2 border-white shadow-clay-card"
+                referrerPolicy="no-referrer"
+              />
+            )}
+          </FormField>
 
-      <FormField id="dress-note" label="Ghi chú trang phục" optional error={errors.dressNote}>
-        <Textarea
-          id="dress-note"
-          rows={2}
-          maxLength={500}
-          placeholder="VD: Váy trắng + mũ cói, giày bệt để leo dốc"
-          value={dressNote}
-          onChange={(e) => setDressNote(e.target.value)}
-        />
-      </FormField>
+          <FormField id="dress-note" label="Ghi chú trang phục" optional error={errors.dressNote}>
+            <Textarea
+              id="dress-note"
+              rows={2}
+              maxLength={500}
+              placeholder="VD: Váy trắng + mũ cói, giày bệt để leo dốc"
+              value={dressNote}
+              onChange={(e) => setDressNote(e.target.value)}
+            />
+          </FormField>
 
-      <FormField id="day-note" label="Ghi chú chung cho ngày" optional error={errors.note}>
-        <Input
-          id="day-note"
-          maxLength={500}
-          placeholder="VD: Tập trung sảnh 6:30"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-      </FormField>
+          <FormField id="day-note" label="Ghi chú chung cho ngày" optional error={errors.note}>
+            <Input
+              id="day-note"
+              maxLength={500}
+              placeholder="VD: Tập trung sảnh 6:30"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </FormField>
 
-      <DialogFooter>
-        <Button type="button" variant="outline" disabled={pending} onClick={() => onOpenChange(false)}>
-          Hủy
-        </Button>
-        <Button type="submit" disabled={pending}>
-          {pending ? 'Đang lưu…' : 'Lưu'}
-        </Button>
-      </DialogFooter>
-    </form>
-  )
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={pending} onClick={() => onOpenChange(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" disabled={pending}>
+              {pending ? 'Đang lưu…' : 'Lưu'}
+            </Button>
+          </DialogFooter>
+        </form>
+        )
 }

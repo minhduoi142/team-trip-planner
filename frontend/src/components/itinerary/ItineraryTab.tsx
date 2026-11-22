@@ -77,40 +77,40 @@ export function ItineraryTab({ tripId, canEdit }: ItineraryTabProps) {
   if (itinerary.isPending) {
     return (
       <div className="grid gap-3">
-        <Skeleton className="h-16 rounded-2xl" />
-        <Skeleton className="h-24 rounded-3xl" />
+        <Skeleton className="h-16 rounded-full" />
+        <Skeleton className="h-28 rounded-3xl" />
         <Skeleton className="h-48 rounded-3xl" />
       </div>
     )
   }
   if (itinerary.isError) {
     return (
-      <div className="rounded-3xl border border-dashed p-8 text-center">
-        <p className="text-muted-foreground">{getErrorMessage(itinerary.error)}</p>
-        <Button variant="outline" className="mt-4" onClick={() => itinerary.refetch()}>
-          <RotateCw />
-          Thử lại
-        </Button>
-      </div>
-    )
+        <div className="rounded-3xl border-2 border-dashed border-rose-200/80 bg-card/80 p-8 text-center shadow-clay-card">
+          <p className="text-muted-foreground">{getErrorMessage(itinerary.error)}</p>
+          <Button variant="outline" className="mt-4" onClick={() => itinerary.refetch()}>
+            <RotateCw />
+            Thử lại
+          </Button>
+        </div>
+        )
   }
 
-  const data = itinerary.data
-  if (data.days.length === 0) {
+        const data = itinerary.data
+        if (data.days.length === 0) {
     return (
-      <div className="rounded-3xl border-2 border-dashed border-rose-200 bg-white/60 px-6 py-12 text-center">
-        <CalendarCheck className="mx-auto size-12 text-rose-300" />
-        <h2 className="mt-4 text-lg font-semibold">Chưa có ngày đi</h2>
-        <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-          Chốt ngày ở tab <b>Lịch rảnh</b> để bắt đầu lên lịch trình cho từng ngày nhé.
-        </p>
-      </div>
-    )
+          <div className="rounded-3xl border-2 border-dashed border-rose-200 bg-card/60 px-6 py-12 text-center shadow-clay-card">
+            <CalendarCheck className="mx-auto size-12 text-rose-400" />
+            <h2 className="mt-4 text-lg font-bold">Chưa có ngày đi</h2>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+              Chốt ngày ở tab <b>Lịch rảnh</b> để bắt đầu lên lịch trình cho từng ngày nhé.
+            </p>
+          </div>
+          )
   }
 
   const day = data.days.find((d) => d.id === selectedId) ?? data.days[0]
   const otherDays = data.days.filter((d) => d.id !== day.id)
-  const label = dayLabel(day)
+          const label = dayLabel(day)
   const onError = (error: unknown) => toast.error(getErrorMessage(error))
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -118,101 +118,101 @@ export function ItineraryTab({ tripId, canEdit }: ItineraryTabProps) {
     setActiveItem(day.items.find((i) => i.id === id) ?? null)
   }
 
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    setActiveItem(null)
+          const handleDragEnd = ({active, over}: DragEndEvent) => {
+            setActiveItem(null)
     const itemId = parseItemDndId(active.id)
-    if (!over || itemId === null) return
+          if (!over || itemId === null) return
 
-    const targetDayId = parseDayDndId(over.id)
-    if (targetDayId !== null) {
+          const targetDayId = parseDayDndId(over.id)
+          if (targetDayId !== null) {
       if (targetDayId === day.id) return
       const target = data.days.find((d) => d.id === targetDayId)
-      moveItem.mutate(
-        { itemId, dayId: targetDayId },
-        {
-          onSuccess: () =>
-            toast.success(`Đã chuyển sang ${target ? dayLabel(target) : 'ngày khác'}`, {
-              action: { label: 'Xem', onClick: () => setSelectedId(targetDayId) },
+          moveItem.mutate(
+          {itemId, dayId: targetDayId },
+          {
+            onSuccess: () =>
+          toast.success(`Đã chuyển sang ${target ? dayLabel(target) : 'ngày khác'}`, {
+            action: {label: 'Xem', onClick: () => setSelectedId(targetDayId) },
             }),
           onError,
         },
-      )
-      return
+          )
+          return
     }
 
-    const overItemId = parseItemDndId(over.id)
-    if (overItemId === null || overItemId === itemId) return
+          const overItemId = parseItemDndId(over.id)
+          if (overItemId === null || overItemId === itemId) return
     const ids = day.items.map((i) => i.id)
-    const next = arrayMove(ids, ids.indexOf(itemId), ids.indexOf(overItemId))
-    reorder.mutate({ dayId: day.id, itemIds: next }, { onError })
+          const next = arrayMove(ids, ids.indexOf(itemId), ids.indexOf(overItemId))
+          reorder.mutate({dayId: day.id, itemIds: next }, {onError})
   }
 
   const submitItem = async (body: ItineraryItemRequest) => {
     if (itemDialog?.item) {
-      await updateItem.mutateAsync({ itemId: itemDialog.item.id, body })
+            await updateItem.mutateAsync({ itemId: itemDialog.item.id, body })
       toast.success('Đã lưu hoạt động')
     } else {
-      await addItem.mutateAsync({ dayId: day.id, body })
+            await addItem.mutateAsync({ dayId: day.id, body })
       toast.success('Đã thêm vào lịch trình')
     }
-    setItemDialog(null)
+          setItemDialog(null)
   }
 
-  return (
-    <div className="grid gap-4">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={collisionDetection}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={() => setActiveItem(null)}
-      >
-        <div className="sticky top-16 z-20 -mx-4 bg-background/90 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-2xl sm:px-2">
-          <DayPills days={data.days} selectedId={day.id} onSelect={setSelectedId} dragging={activeItem !== null} />
-        </div>
+          return (
+          <div className="grid gap-4">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={collisionDetection}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragCancel={() => setActiveItem(null)}
+            >
+                <div className="sticky top-16 z-20 -mx-4 bg-background/85 px-4 py-2.5 backdrop-blur-md sm:mx-0 sm:rounded-full sm:px-3 sm:border-2 sm:border-white/70 sm:shadow-clay-card">
+                  <DayPills days={data.days} selectedId={day.id} onSelect={setSelectedId} dragging={activeItem !== null} />
+                </div>
 
-        {day.overflow && (
-          <div className="flex items-start justify-between gap-3 rounded-2xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">
-            <p>
-              Ngày này nằm ngoài số ngày đã chốt. Kéo các hoạt động sang ngày khác (thả lên viên ngày phía trên), hoặc xóa
-              ngày này nếu không cần nữa.
-            </p>
-            {canEdit && (
-              <Button variant="destructive" size="sm" onClick={() => setDeleteDayOpen(true)}>
-                <Trash2 />
-                Xóa ngày
-              </Button>
-            )}
-          </div>
+                {day.overflow && (
+                    <div className="flex items-start justify-between gap-3 rounded-[24px] border-2 border-amber-300 bg-amber-50/90 p-4 text-sm text-amber-950 shadow-clay-card">
+                      <p>
+                        Ngày này nằm ngoài số ngày đã chốt. Kéo các hoạt động sang ngày khác (thả lên viên ngày phía trên), hoặc xóa
+                        ngày này nếu không cần nữa.
+                      </p>
+                      {canEdit && (
+                        <Button variant="destructive" size="sm" onClick={() => setDeleteDayOpen(true)}>
+                          <Trash2 />
+                          Xóa ngày
+                        </Button>
+                      )}
+                    </div>
         )}
 
-        <DressCodeCard day={day} canEdit={canEdit} onEdit={() => setDressOpen(true)} />
+                    <DressCodeCard day={day} canEdit={canEdit} onEdit={() => setDressOpen(true)} />
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold">{label}</h3>
-            {day.timeOrderBroken && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
-                <TriangleAlert className="size-3" />
-                Giờ chưa theo thứ tự
-              </span>
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-foreground text-lg">{label}</h3>
+                          {day.timeOrderBroken && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100/90 px-2.5 py-0.5 text-xs font-semibold text-amber-900 shadow-clay-badge">
+                                <TriangleAlert className="size-3 text-amber-600" />
+                                Giờ chưa theo thứ tự
+                              </span>
             )}
-          </div>
+                            </div>
           {canEdit && (
-            <Button size="sm" onClick={() => setItemDialog({})}>
-              <Plus />
-              Thêm hoạt động
-            </Button>
-          )}
-        </div>
+                            <Button size="sm" onClick={() => setItemDialog({})}>
+                              <Plus />
+                              Thêm hoạt động
+                            </Button>
+                          )}
+                        </div>
 
-        {day.items.length === 0 ? (
-          <p className="rounded-2xl bg-muted/50 px-4 py-8 text-center text-sm text-muted-foreground">
+                        {day.items.length === 0 ? (
+          <p className="rounded-[28px] border-2 border-dashed border-border/80 bg-card/60 px-4 py-10 text-center text-sm font-medium text-muted-foreground shadow-clay-card">
             {canEdit ? 'Ngày này chưa có hoạt động nào. Thêm hoạt động đầu tiên nhé!' : 'Ngày này chưa có hoạt động nào.'}
           </p>
         ) : (
           <SortableContext items={day.items.map((i) => itemDndId(i.id))} strategy={verticalListSortingStrategy}>
-            <ol className="grid gap-2">
+            <ol className="grid gap-2.5">
               {day.items.map((item) => (
                 <ItemCard
                   key={item.id}
@@ -240,12 +240,12 @@ export function ItineraryTab({ tripId, canEdit }: ItineraryTabProps) {
         <DragOverlay>{activeItem ? <ItemCardBody item={activeItem} floating /> : null}</DragOverlay>
       </DndContext>
 
-      <div className="flex flex-wrap justify-between gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-100">
+      <div className="flex flex-wrap justify-between items-center gap-2 rounded-[24px] border-2 border-emerald-200/80 bg-gradient-to-r from-emerald-50/90 via-teal-50/90 to-sky-50/90 px-5 py-3.5 text-sm font-semibold text-emerald-950 shadow-clay-card">
         <span>
-          Chi phí ngày này: <b>{formatVnd(day.totalCost)}</b>
+          Chi phí ngày này: <b className="font-bold text-emerald-700">{formatVnd(day.totalCost)}</b>
         </span>
         <span>
-          Cả chuyến: <b>{formatVnd(data.totalCost)}</b> / người
+          Cả chuyến: <b className="font-bold text-emerald-700">{formatVnd(data.totalCost)}</b> / người
         </span>
       </div>
 
@@ -308,5 +308,5 @@ export function ItineraryTab({ tripId, canEdit }: ItineraryTabProps) {
         }
       />
     </div>
-  )
+                        )
 }

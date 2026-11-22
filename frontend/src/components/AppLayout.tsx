@@ -14,15 +14,17 @@ import { useAuth } from '@/auth/useAuth'
 import { BrandLogo } from './BrandLogo'
 import { ProfileDialog } from './ProfileDialog'
 import { UserAvatar } from './UserAvatar'
+import { FloatingBackground } from '@/components/ui/FloatingBackground'
 
-/** Khung chung cho các trang đã đăng nhập: header + nội dung. */
+/** Khung chung cho các trang đã đăng nhập: header + nội dung + background bay bổng. */
 export function AppLayout() {
   const { user, signOut } = useAuth()
   const [profileOpen, setProfileOpen] = useState(false)
 
   return (
-    <div className="min-h-svh bg-gradient-to-b from-rose-50/70 via-background to-background">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur">
+    <div className="relative min-h-svh bg-background/50 overflow-x-hidden">
+      <FloatingBackground />
+      <header className="sticky top-0 z-30 border-b border-white/70 bg-background/75 backdrop-blur-md shadow-clay-badge">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
           <Link to="/trips" aria-label="Về trang chủ">
             <BrandLogo />
@@ -52,7 +54,7 @@ export function AppLayout() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 pt-6 pb-16">
+      <main className="relative z-10 mx-auto max-w-5xl px-4 pt-6 pb-16">
         <Outlet />
       </main>
 

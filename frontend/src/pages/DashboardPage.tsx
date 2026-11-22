@@ -32,80 +32,91 @@ export function DashboardPage() {
   return (
     <div className="space-y-8">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">Xin chào {user?.displayName} 👋</p>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Chuyến đi của bạn</h1>
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex">
-          <Button variant="outline" size="lg" onClick={() => setJoinOpen(true)}>
-            <KeyRound />
-            Nhập mã mời
-          </Button>
-          <Button size="lg" onClick={() => setCreateOpen(true)}>
-            <Plus />
-            Tạo chuyến đi
-          </Button>
-        </div>
-      </section>
-
-      {trips.isPending && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2].map((i) => (
-            <TripCardSkeleton key={i} />
-          ))}
-        </div>
-      )}
-
-      {trips.isError && (
-        <div className="rounded-3xl border border-dashed p-8 text-center">
-          <p className="text-muted-foreground">{getErrorMessage(trips.error)}</p>
-          <Button variant="outline" className="mt-4" onClick={() => trips.refetch()}>
-            <RotateCw />
-            Thử lại
-          </Button>
-        </div>
-      )}
-
-      {trips.isSuccess && trips.data.length === 0 && (
-        <div className="rounded-3xl border-2 border-dashed border-rose-200 bg-white/60 px-6 py-12 text-center">
-          <p className="text-5xl">🧳</p>
-          <h2 className="mt-4 text-lg font-semibold">Chưa có chuyến đi nào</h2>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-            Tạo chuyến đi đầu tiên rồi rủ hội bạn vào, hoặc nhập mã mời nếu ai đó đã tạo sẵn.
-          </p>
-          <Button size="lg" className="mt-6" onClick={() => setCreateOpen(true)}>
-            <Plus />
-            Tạo chuyến đi đầu tiên
-          </Button>
-        </div>
-      )}
-
-      {active.length > 0 && (
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {active.map((trip) => (
-            <TripCard key={trip.id} trip={trip} />
-          ))}
-        </section>
-      )}
-
-      {completed.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-muted-foreground">Kỷ niệm đã qua</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {completed.map((trip) => (
-              <TripCard key={trip.id} trip={trip} />
-            ))}
+          <div className="space-y-1">
+            <p className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+              Xin chào {user?.displayName} <span className="animate-pulse-gentle">👋</span>
+            </p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              Chuyến đi của bạn
+            </h1>
           </div>
-        </section>
+            <div className="grid grid-cols-2 gap-3 sm:flex">
+              <Button variant="outline" size="lg" onClick={() => setJoinOpen(true)}>
+                <KeyRound />
+                Nhập mã mời
+              </Button>
+              <Button size="lg" onClick={() => setCreateOpen(true)}>
+                <Plus />
+                Tạo chuyến đi
+              </Button>
+            </div>
+          </section>
+
+          {trips.isPending && (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {[0, 1, 2].map((i) => (
+                  <TripCardSkeleton key={i} />
+                ))}
+              </div>
       )}
 
-      <TripFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        pending={createTrip.isPending}
-        onSubmit={handleCreate}
-      />
-      <JoinCodeDialog open={joinOpen} onOpenChange={setJoinOpen} />
-    </div>
-  )
+              {trips.isError && (
+                  <div className="rounded-[32px] border-2 border-dashed border-destructive/40 bg-card/80 p-8 text-center shadow-clay-card">
+                    <p className="text-muted-foreground">{getErrorMessage(trips.error)}</p>
+                    <Button variant="outline" className="mt-4" onClick={() => trips.refetch()}>
+                      <RotateCw />
+                      Thử lại
+                    </Button>
+                  </div>
+      )}
+
+                  {trips.isSuccess && trips.data.length === 0 && (
+                        <div className="rounded-[32px] border-2 border-dashed border-rose-300/80 bg-card/90 backdrop-blur-xs px-6 py-14 text-center shadow-clay-card transition-all">
+                          <div className="inline-flex size-20 items-center justify-center rounded-full bg-rose-100 shadow-clay-badge animate-float-slow text-4xl mb-4">
+                            🧳
+                          </div>
+                          <h2 className="text-xl font-bold text-foreground">Chưa có chuyến đi nào</h2>
+                          <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground leading-relaxed">
+                            Tạo chuyến đi đầu tiên rồi rủ hội bạn vào, hoặc nhập mã mời nếu ai đó đã tạo sẵn.
+                          </p>
+                          <Button size="lg" className="mt-6" onClick={() => setCreateOpen(true)}>
+                            <Plus />
+                            Tạo chuyến đi đầu tiên
+                          </Button>
+                        </div>
+      )}
+
+                        {active.length > 0 && (
+                            <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                              {active.map((trip) => (
+                                <TripCard key={trip.id} trip={trip} />
+                              ))}
+                            </section>
+      )}
+
+                            {completed.length > 0 && (
+                                  <section className="space-y-4 pt-4">
+                                    <div className="flex items-center gap-2">
+                                      <h2 className="text-lg font-bold text-muted-foreground">Kỷ niệm đã qua</h2>
+                                      <span className="rounded-full bg-muted/80 px-2.5 py-0.5 text-xs font-semibold text-muted-foreground shadow-clay-badge">
+                                        {completed.length}
+                                      </span>
+                                    </div>
+                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                                      {completed.map((trip) => (
+                                        <TripCard key={trip.id} trip={trip} />
+                                      ))}
+                                    </div>
+                                  </section>
+      )}
+
+                                  <TripFormDialog
+                                    open={createOpen}
+                                    onOpenChange={setCreateOpen}
+                                    pending={createTrip.isPending}
+                                    onSubmit={handleCreate}
+                                  />
+                                  <JoinCodeDialog open={joinOpen} onOpenChange={setJoinOpen} />
+                                </div>
+                                )
 }
