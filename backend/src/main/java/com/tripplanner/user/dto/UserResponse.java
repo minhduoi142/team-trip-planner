@@ -1,5 +1,6 @@
 package com.tripplanner.user.dto;
 
+import com.tripplanner.bank.BankAccountResponse;
 import com.tripplanner.user.User;
 
 public record UserResponse(
@@ -9,7 +10,8 @@ public record UserResponse(
         String email,
         String avatarUrl,
         boolean hasGoogle,
-        boolean hasPassword) {
+        boolean hasPassword,
+        BankAccountResponse bank) {
 
     public static UserResponse from(User user) {
         return new UserResponse(
@@ -19,6 +21,7 @@ public record UserResponse(
                 user.getEmail(),
                 user.getAvatarUrl(),
                 user.getGoogleSub() != null,
-                user.getPasswordHash() != null);
+                user.getPasswordHash() != null,
+                BankAccountResponse.of(user));
     }
 }

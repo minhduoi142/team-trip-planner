@@ -9,6 +9,10 @@ export const tripKeys = {
   /** Nằm dưới detail: invalidate detail là lịch rảnh / ngày đi cũng được làm mới */
   availability: (tripId: number) => [...tripKeys.detail(tripId), 'availability'] as const,
   days: (tripId: number) => [...tripKeys.detail(tripId), 'days'] as const,
+  itinerary: (tripId: number) => [...tripKeys.detail(tripId), 'itinerary'] as const,
+  checklist: (tripId: number) => [...tripKeys.detail(tripId), 'checklist'] as const,
+  polls: (tripId: number) => [...tripKeys.detail(tripId), 'polls'] as const,
+  expenses: (tripId: number) => [...tripKeys.detail(tripId), 'expenses'] as const,
   invite: (code: string) => ['invite', code.toUpperCase()] as const,
 }
 
@@ -37,11 +41,12 @@ export function useTripCacheSync() {
   const qc = useQueryClient()
   return {
     setDetail: (trip: TripDetailResponse) => {
-      qc.setQueryData(tripKeys.detail(trip.id), trip)
+      const detailKey = tripKeys.detail(trip.id)
+      qc.setQueryData(detailKey, trip)
       return Promise.all([
         qc.invalidateQueries({ queryKey: tripKeys.list() }),
-        qc.invalidateQueries({ queryKey: tripKeys.availability(trip.id) }),
-        qc.invalidateQueries({ queryKey: tripKeys.days(trip.id) }),
+        // Mọi dữ liệu con của trip (lịch rảnh, ngày đi, lịch trình, checklist), trừ chính detail
+        qc.invalidateQueries({ queryKey: detailKey, predicate: (q) => q.queryKey.length > detailKey.length }),
       ])
     },
     refresh: (tripId: number) =>

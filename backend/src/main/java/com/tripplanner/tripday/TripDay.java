@@ -17,7 +17,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** Một ngày của chuyến đi đã chốt. Chỉ được tạo/xóa bởi thao tác chốt / mở lại ngày. */
+/**
+ * "Ngày N" của chuyến đi. Ngày thực KHÔNG lưu (Phase 3): = trips.start_date + (dayIndex - 1) khi đã
+ * chốt, null khi chưa chốt. Ngày có dayIndex vượt số ngày đã chốt là "ngày thừa" (overflow).
+ */
 @Entity
 @Table(name = "trip_days")
 @Getter
@@ -38,9 +41,37 @@ public class TripDay {
     @Column(name = "day_index", nullable = false, columnDefinition = "SMALLINT")
     private Integer dayIndex;
 
-    @Column(name = "actual_date", nullable = false)
-    private LocalDate actualDate;
-
     @Column(name = "note", length = 500)
     private String note;
+
+    @Column(name = "dress_theme", length = 100)
+    private String dressTheme;
+
+    @Column(name = "dress_note", length = 500)
+    private String dressNote;
+
+    @Column(name = "dress_image_url", length = 2000)
+    private String dressImageUrl;
+
+    /** Số ngày của chuyến đã chốt; null nếu chưa chốt. */
+    public static Integer lockedLength(Trip trip) {
+        if (!trip.isLocked()) {
+            return null;
+        }
+        return (int) (trip.getEndDate().toEpochDay() - trip.getStartDate().toEpochDay()) + 1;
+    }
+
+    public boolean isOverflow(Trip trip) {
+        Integer length = lockedLength(trip);
+        return length != null && dayIndex > length;
+    }
+
+    /** Ngày thực; null nếu chưa chốt hoặc là ngày thừa. */
+    public LocalDate dateIn(Trip trip) {
+        return !trip.isLocked() || isOverflow(trip) ? null : trip.getStartDate().plusDays(dayIndex - 1L);
+    }
+
+    public boolean hasOwnFields() {
+        return note != null || dressTheme != null || dressNote != null || dressImageUrl != null;
+    }
 }

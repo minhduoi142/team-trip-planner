@@ -60,7 +60,7 @@ Kết thúc Phase 1, thành viên có thể:
 | Lưu token FE | `localStorage` | Đơn giản. Đổi lại rủi ro XSS (chấp nhận ở MVP) |
 | State FE | **TanStack Query** cho dữ liệu từ server, Context cho phiên đăng nhập | Ít boilerplate, tự cache và refetch |
 | UI FE | Tailwind v4 (`@tailwindcss/vite`), **Shadcn UI**, `lucide-react` (icon), `dayjs` (ngày/đếm ngược), `@react-oauth/google`, `sonner` (toast) | Nhanh, nhẹ, theo AGENT_RULE |
-| Ảnh bìa | **Dán URL ảnh** hoặc chọn 1 trong 6 gradient mặc định, lưu dạng `preset:<key>` (vd `preset:sunset`) và FE tự vẽ. Không upload | Server không lưu file (zero-storage), không phụ thuộc ảnh bên ngoài |
+| Ảnh bìa | **Dán URL ảnh** hoặc chọn 1 trong 6 gradient mặc định, lưu dạng `preset:<key>` (vd `preset:sunset`) và FE tự vẽ. ~~Không upload~~ → **Đã thay bằng `docs/sdd-media-upload.md`:** có thêm upload từ máy vào MinIO (áp dụng cả avatar) | Ban đầu: server không lưu file (zero-storage). Nay: lưu ảnh nhỏ đã nén ở MinIO, ảnh/video lớn vẫn để Drive |
 | Trạng thái chuyến đi | **Tính ra** từ ngày, không lưu thành cột | Tránh dữ liệu dư thừa (BCNF) |
 
 ---

@@ -1,4 +1,5 @@
 import type { IsoInstant } from './api'
+import type { BankAccountResponse } from './bank'
 
 /** com.tripplanner.user.dto.UserResponse */
 export interface UserResponse {
@@ -9,6 +10,8 @@ export interface UserResponse {
   avatarUrl: string | null
   hasGoogle: boolean
   hasPassword: boolean
+  /** Tài khoản nhận tiền (VietQR); null nếu chưa khai báo */
+  bank: BankAccountResponse | null
 }
 
 /** com.tripplanner.auth.dto.AuthResponse */

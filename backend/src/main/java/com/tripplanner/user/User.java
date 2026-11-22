@@ -45,6 +45,17 @@ public class User {
     @Column(name = "avatar_url", length = 1000)
     private String avatarUrl;
 
+    /** Tài khoản nhận tiền (VietQR): 3 trường cùng có hoặc cùng null (CHECK ở DB). Tên ngân hàng suy ra từ BIN. */
+    @Column(name = "bank_bin", columnDefinition = "CHAR(6)")
+    private String bankBin;
+
+    @Column(name = "bank_account_no", length = 19)
+    private String bankAccountNo;
+
+    /** In hoa, không dấu (chuẩn QR/ngân hàng). */
+    @Column(name = "bank_account_name", length = 50)
+    private String bankAccountName;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

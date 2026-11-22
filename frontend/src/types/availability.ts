@@ -80,10 +80,11 @@ export interface LockDateRequest {
   endDate: IsoDate
 }
 
-/** com.tripplanner.tripday.dto.TripDayResponse */
+/** com.tripplanner.tripday.dto.TripDayResponse — date null khi chưa chốt hoặc là ngày thừa */
 export interface TripDayResponse {
   id: number
   dayIndex: number
-  date: IsoDate
+  date: IsoDate | null
   note: string | null
+  overflow: boolean
 }

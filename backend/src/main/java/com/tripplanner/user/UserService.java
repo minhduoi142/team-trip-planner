@@ -1,6 +1,9 @@
 package com.tripplanner.user;
 
+import com.tripplanner.bank.BankAccountRequest;
+import com.tripplanner.bank.BankDirectory;
 import com.tripplanner.common.BusinessException;
+import com.tripplanner.common.TextNormalizer;
 import com.tripplanner.common.ErrorCode;
 import com.tripplanner.user.dto.UpdateProfileRequest;
 import com.tripplanner.user.dto.UserResponse;
@@ -24,6 +27,38 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserResponse me(Long userId) {
         return UserResponse.from(getRequired(userId));
+    }
+
+    /** Lưu tài khoản nhận tiền; tên chủ TK chuẩn hóa in hoa không dấu (chuẩn VietQR). */
+    @Transactional
+    public UserResponse setBankAccount(Long userId, BankAccountRequest request) {
+        String bin = request.bankBin().trim();
+        String accountNo = request.accountNo().replaceAll("\\s+", "");
+        String accountName = TextNormalizer.toUpperAscii(request.accountName());
+        if (BankDirectory.find(bin).isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_BANK_ACCOUNT, "Ngân hàng không có trong danh sách");
+        }
+        if (!accountNo.matches("\\d{6,19}")) {
+            throw new BusinessException(ErrorCode.INVALID_BANK_ACCOUNT, "Số tài khoản gồm 6–19 chữ số");
+        }
+        if (!accountName.matches("[A-Z ]{1,50}")) {
+            throw new BusinessException(ErrorCode.INVALID_BANK_ACCOUNT,
+                    "Tên chủ tài khoản chỉ gồm chữ cái, tối đa 50 ký tự");
+        }
+        User user = getRequired(userId);
+        user.setBankBin(bin);
+        user.setBankAccountNo(accountNo);
+        user.setBankAccountName(accountName);
+        return UserResponse.from(user);
+    }
+
+    @Transactional
+    public UserResponse clearBankAccount(Long userId) {
+        User user = getRequired(userId);
+        user.setBankBin(null);
+        user.setBankAccountNo(null);
+        user.setBankAccountName(null);
+        return UserResponse.from(user);
     }
 
     @Transactional

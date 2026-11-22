@@ -1,7 +1,10 @@
 package com.tripplanner.trip;
 
+import com.tripplanner.checklist.ChecklistRepository;
 import com.tripplanner.common.BusinessException;
 import com.tripplanner.common.ErrorCode;
+import com.tripplanner.expense.ExpenseRepository;
+import com.tripplanner.expense.SettlementRepository;
 import com.tripplanner.trip.dto.InviteCodeResponse;
 import com.tripplanner.trip.dto.InvitePreviewResponse;
 import com.tripplanner.trip.dto.JoinTripResponse;
@@ -36,6 +39,9 @@ public class TripService {
 
     private final TripRepository tripRepository;
     private final TripMemberRepository memberRepository;
+    private final ChecklistRepository checklistRepository;
+    private final ExpenseRepository expenseRepository;
+    private final SettlementRepository settlementRepository;
     private final TripAccessService accessService;
     private final InviteCodeGenerator inviteCodeGenerator;
     private final UserService userService;
@@ -97,6 +103,12 @@ public class TripService {
     public void delete(Long tripId, Long userId) {
         TripMember me = accessService.require(tripId, userId, TripRole.OWNER);
         Trip trip = me.getTrip();
+        // Các bảng có FK tổ hợp tới trip_members (không CASCADE) → xóa trước thành viên:
+        // settlements, expenses (shares tự xóa theo), checklist. Polls/options/votes, trip_days → lịch trình/màu
+        // và lịch rảnh tự xóa theo bằng CASCADE ở DB.
+        settlementRepository.deleteAllByTripId(tripId);
+        expenseRepository.deleteAllByTripId(tripId);
+        checklistRepository.deleteAllByTripId(tripId);
         memberRepository.deleteAllByTripId(tripId);
         tripRepository.deleteById(trip.getId());
     }

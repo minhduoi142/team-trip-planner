@@ -50,13 +50,15 @@ export function LockedBanner({ tripId, startDate, endDate, canUnlock }: LockedBa
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {days.isPending
             ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-16 w-20 shrink-0 rounded-2xl" />)
-            : days.data?.map((day) => (
-                <div key={day.id} className="w-20 shrink-0 rounded-2xl bg-background px-3 py-2 text-center ring-1 ring-border">
-                  <p className="text-xs font-semibold text-primary">Ngày {day.dayIndex}</p>
-                  <p className="text-sm font-medium">{weekdayShort(day.date)}</p>
-                  <p className="text-xs text-muted-foreground">{formatShortDate(day.date)}</p>
-                </div>
-              ))}
+            : days.data
+                ?.filter((day) => !day.overflow && day.date)
+                .map((day) => (
+                  <div key={day.id} className="w-20 shrink-0 rounded-2xl bg-background px-3 py-2 text-center ring-1 ring-border">
+                    <p className="text-xs font-semibold text-primary">Ngày {day.dayIndex}</p>
+                    <p className="text-sm font-medium">{day.date && weekdayShort(day.date)}</p>
+                    <p className="text-xs text-muted-foreground">{day.date && formatShortDate(day.date)}</p>
+                  </div>
+                ))}
         </div>
       </CardContent>
 
@@ -64,7 +66,7 @@ export function LockedBanner({ tripId, startDate, endDate, canUnlock }: LockedBa
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Mở lại khảo sát lịch rảnh?"
-        description="Ngày chính thức và danh sách ngày đi sẽ bị xóa. Lịch rảnh mọi người đã khai vẫn được giữ nguyên."
+        description="Ngày chính thức sẽ bị bỏ để chốt lại. Lịch rảnh, lịch trình và dress code của từng 'Ngày 1, 2…' vẫn được giữ nguyên."
         confirmLabel="Mở lại"
         destructive
         pending={unlock.isPending}

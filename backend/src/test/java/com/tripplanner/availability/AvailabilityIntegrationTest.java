@@ -184,13 +184,15 @@ class AvailabilityIntegrationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.locked").value(true))
                 .andExpect(jsonPath("$.suggestionNote").value("LOCKED"));
 
-        // Mở lại: xóa trip_days, giữ lịch rảnh
+        // Mở lại (Phase 3): GIỮ "Ngày 1..N" nhưng chưa có ngày thực; giữ lịch rảnh
         mvc.perform(auth(delete("/api/v1/trips/" + tripId + "/lock-date"), ownerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PLANNING"))
                 .andExpect(jsonPath("$.startDate").value(nullValue()));
         mvc.perform(auth(get("/api/v1/trips/" + tripId + "/days"), ownerToken))
-                .andExpect(jsonPath("$", hasSize(0)));
+                .andExpect(jsonPath("$", hasSize(3)))
+                .andExpect(jsonPath("$[0].date").value(nullValue()))
+                .andExpect(jsonPath("$[0].overflow").value(false));
         mvc.perform(auth(get("/api/v1/trips/" + tripId + "/availabilities"), ownerToken))
                 .andExpect(jsonPath("$.entries", hasSize(6)));
         mvc.perform(auth(delete("/api/v1/trips/" + tripId + "/lock-date"), ownerToken))

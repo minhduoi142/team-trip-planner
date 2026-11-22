@@ -3,6 +3,10 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { AvailabilityTab } from '@/components/availability/AvailabilityTab'
+import { ChecklistTab } from '@/components/checklist/ChecklistTab'
+import { ExpensesTab } from '@/components/expenses/ExpensesTab'
+import { PollsTab } from '@/components/polls/PollsTab'
+import { ItineraryTab } from '@/components/itinerary/ItineraryTab'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CountdownLabel } from '@/components/CountdownLabel'
 import { InviteShare } from '@/components/InviteShare'
@@ -30,8 +34,6 @@ import type { TripRequest } from '@/types/trip'
 
 /** Các tab của phase sau: hiện trước để cả nhóm biết sắp có gì. */
 const UPCOMING_TABS = [
-  { value: 'itinerary', label: 'Lịch trình' },
-  { value: 'expenses', label: 'Chi tiêu' },
   { value: 'album', label: 'Album' },
 ]
 
@@ -165,6 +167,10 @@ export function TripDetailPage() {
           <TabsList>
             <TabsTrigger value="overview">Tổng quan</TabsTrigger>
             <TabsTrigger value="availability">Lịch rảnh</TabsTrigger>
+            <TabsTrigger value="itinerary">Lịch trình</TabsTrigger>
+            <TabsTrigger value="polls">Bình chọn</TabsTrigger>
+            <TabsTrigger value="checklist">Chuẩn bị</TabsTrigger>
+            <TabsTrigger value="expenses">Chi tiêu</TabsTrigger>
             {UPCOMING_TABS.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value} disabled className="gap-1.5">
                 {tab.label}
@@ -211,6 +217,30 @@ export function TripDetailPage() {
               myUserId={user.id}
               myRole={data.myRole}
               onEditTrip={() => setEditOpen(true)}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="itinerary" className="mt-4">
+          <ItineraryTab tripId={data.id} canEdit={canEdit} />
+        </TabsContent>
+
+        <TabsContent value="polls" className="mt-4">
+          {user && <PollsTab tripId={data.id} myUserId={user.id} canCreate={canEdit} members={data.members} />}
+        </TabsContent>
+
+        <TabsContent value="checklist" className="mt-4">
+          {user && <ChecklistTab tripId={data.id} myUserId={user.id} canEdit={canEdit} members={data.members} />}
+        </TabsContent>
+
+        <TabsContent value="expenses" className="mt-4">
+          {user && (
+            <ExpensesTab
+              tripId={data.id}
+              tripTitle={data.title}
+              myUserId={user.id}
+              isEditor={canEdit}
+              members={data.members}
             />
           )}
         </TabsContent>

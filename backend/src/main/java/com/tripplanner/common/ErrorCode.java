@@ -12,6 +12,13 @@ public enum ErrorCode {
     INVALID_TRANSFER(HttpStatus.BAD_REQUEST, "Không thể chuyển quyền trưởng nhóm cho chính mình"),
     DATE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "Có ngày nằm ngoài khoảng ngày dự kiến của chuyến đi"),
     INVALID_TRIP_LENGTH(HttpStatus.BAD_REQUEST, "Số ngày đi phải từ 1 đến 14"),
+    INVALID_ORDER(HttpStatus.BAD_REQUEST, "Thứ tự hoạt động không hợp lệ, hãy tải lại trang"),
+    INVALID_DRESS_COLOR(HttpStatus.BAD_REQUEST, "Màu không hợp lệ hoặc chọn quá 4 màu"),
+    ASSIGNEE_NOT_MEMBER(HttpStatus.BAD_REQUEST, "Người được giao không ở trong nhóm"),
+    INVALID_SPLIT(HttpStatus.BAD_REQUEST, "Cách chia tiền không hợp lệ"),
+    NOT_A_MEMBER(HttpStatus.BAD_REQUEST, "Có người không ở trong nhóm"),
+    INVALID_BANK_ACCOUNT(HttpStatus.BAD_REQUEST, "Thông tin tài khoản ngân hàng không hợp lệ"),
+    INVALID_SETTLEMENT(HttpStatus.BAD_REQUEST, "Thao tác thanh toán không hợp lệ"),
 
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để tiếp tục"),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu"),
@@ -24,6 +31,13 @@ public enum ErrorCode {
     TRIP_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy chuyến đi"),
     INVITE_NOT_FOUND(HttpStatus.NOT_FOUND, "Mã mời không tồn tại hoặc đã được thay đổi"),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy thành viên trong chuyến đi"),
+    DAY_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy ngày đi"),
+    ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy hoạt động"),
+    CHECKLIST_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy món trong danh sách chuẩn bị"),
+    POLL_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy bình chọn"),
+    OPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy lựa chọn"),
+    EXPENSE_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy khoản chi"),
+    SETTLEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy giao dịch thanh toán"),
 
     CONFLICT(HttpStatus.CONFLICT, "Dữ liệu bị trùng hoặc xung đột, vui lòng thử lại"),
     USERNAME_TAKEN(HttpStatus.CONFLICT, "Tên đăng nhập đã có người dùng"),
@@ -33,7 +47,15 @@ public enum ErrorCode {
     AVAILABILITY_LOCKED(HttpStatus.CONFLICT, "Chuyến đi đã chốt ngày, không sửa lịch rảnh được nữa"),
     ALREADY_LOCKED(HttpStatus.CONFLICT, "Chuyến đi đã chốt ngày rồi, hãy mở lại khảo sát trước"),
     NOT_LOCKED(HttpStatus.CONFLICT, "Chuyến đi chưa chốt ngày"),
+    ALREADY_CLAIMED(HttpStatus.CONFLICT, "Món này đã có người nhận mang rồi"),
+    DAY_NOT_OVERFLOW(HttpStatus.CONFLICT, "Chỉ xóa được các ngày nằm ngoài số ngày đã chốt"),
+    POLL_CLOSED(HttpStatus.CONFLICT, "Bình chọn đã chốt, không thay đổi được nữa"),
+    DUPLICATE_OPTION(HttpStatus.CONFLICT, "Lựa chọn này đã có trong bình chọn"),
+    MEMBER_HAS_EXPENSES(HttpStatus.CONFLICT, "Thành viên còn khoản chi hoặc thanh toán trong chuyến, hãy xử lý xong trước"),
 
+    FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "Ảnh quá lớn, tối đa 10 MB"),
+    UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Chỉ hỗ trợ ảnh JPG, PNG hoặc WebP"),
+    STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Kho lưu ảnh đang không hoạt động, thử lại sau"),
     GOOGLE_LOGIN_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "Đăng nhập Google chưa được cấu hình trên máy chủ"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Có lỗi xảy ra, vui lòng thử lại sau");
 

@@ -259,3 +259,4 @@ com.tripplanner.tripday/
 - `PATCH /trip-length` khi đã chốt ngày trả `AVAILABILITY_LOCKED`.
 - Mã lỗi `DATE_OUT_OF_RANGE` và `INVALID_TRIP_LENGTH` có HTTP 400. Các mã còn lại của bảng 4.3 có HTTP 409.
 - FE gửi PUT lịch rảnh **tuần tự** (`useAvailabilityEditor`): không gửi PUT mới khi PUT trước chưa xong, để response cũ không ghi đè dữ liệu mới.
+- **Phase 3 thay đổi:** mở lại khảo sát **không** xóa `trip_days` nữa. Cột `actual_date` bị bỏ ở V3: ngày thực được suy ra từ `start_date`. Xem `docs/sdd-phase-3.md` mục 2.

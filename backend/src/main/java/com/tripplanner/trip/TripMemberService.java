@@ -1,7 +1,12 @@
 package com.tripplanner.trip;
 
+import com.tripplanner.checklist.ChecklistRepository;
 import com.tripplanner.common.BusinessException;
 import com.tripplanner.common.ErrorCode;
+import com.tripplanner.expense.ExpenseRepository;
+import com.tripplanner.expense.ExpenseShareRepository;
+import com.tripplanner.expense.SettlementRepository;
+import com.tripplanner.poll.PollVoteRepository;
 import com.tripplanner.trip.dto.TripMemberResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,6 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class TripMemberService {
 
     private final TripMemberRepository memberRepository;
+    private final ChecklistRepository checklistRepository;
+    private final ExpenseRepository expenseRepository;
+    private final ExpenseShareRepository shareRepository;
+    private final SettlementRepository settlementRepository;
+    private final PollVoteRepository pollVoteRepository;
     private final TripAccessService accessService;
 
     /** Chỉ OWNER; không gán OWNER và không đổi quyền của OWNER qua đây. */
@@ -56,13 +66,30 @@ public class TripMemberService {
             if (actor.getRole() == TripRole.OWNER) {
                 throw new BusinessException(ErrorCode.OWNER_CANNOT_LEAVE);
             }
-            memberRepository.delete(actor);
+            removeMembership(actor);
             return;
         }
         if (actor.getRole() != TripRole.OWNER) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
-        memberRepository.delete(findTarget(tripId, targetUserId));
+        removeMembership(findTarget(tripId, targetUserId));
+    }
+
+    /**
+     * Chặn nếu còn dính tiền (số dư sẽ sai). Xóa phiếu bầu, bỏ giao món checklist (FK tổ hợp không CASCADE);
+     * lịch rảnh tự xóa theo (CASCADE).
+     */
+    private void removeMembership(TripMember member) {
+        Long tripId = member.getId().getTripId();
+        Long userId = member.getId().getUserId();
+        if (expenseRepository.existsPaidBy(tripId, userId)
+                || shareRepository.existsForMember(tripId, userId)
+                || settlementRepository.existsForMember(tripId, userId)) {
+            throw new BusinessException(ErrorCode.MEMBER_HAS_EXPENSES);
+        }
+        pollVoteRepository.deleteAllForMemberInTrip(tripId, userId);
+        checklistRepository.unassignAllForMember(tripId, userId);
+        memberRepository.delete(member);
     }
 
     private TripMember findTarget(Long tripId, Long userId) {

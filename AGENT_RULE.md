@@ -1,8 +1,8 @@
 # AGENT_RULE.md — Team Trip Planner Monorepo
 
 ## 1. Project Context & Architecture
-- **Project:** Team Trip Planner (Quản lý lịch trình du lịch nhóm, khảo sát lịch rảnh, lưu khoảnh khắc qua Google Drive).
-- **Structure:** Monorepo gồm `backend/` (Java 21, Spring Boot 3, Spring Security, Spring Data JPA, Flyway, MySQL 8.0) và `frontend/` (React, Vite, TypeScript, Tailwind CSS, Shadcn UI).
+- **Project:** Team Trip Planner (Quản lý lịch trình du lịch nhóm, khảo sát lịch rảnh, lưu khoảnh khắc qua Google Drive; ảnh bìa/avatar/dress code upload vào MinIO).
+- **Structure:** Monorepo gồm `backend/` (Java 21, Spring Boot 3, Spring Security, Spring Data JPA, Flyway, MySQL 8.0, MinIO/S3) và `frontend/` (React, Vite, TypeScript, Tailwind CSS, Shadcn UI). Hạ tầng local (MinIO) chạy bằng `docker-compose.yml` ở thư mục gốc.
 - **Documentation:** Mọi thiết kế chi tiết nằm tại `docs/sdd-phase-*.md`.
 
 ---

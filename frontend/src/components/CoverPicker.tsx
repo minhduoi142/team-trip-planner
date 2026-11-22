@@ -2,6 +2,7 @@ import { Check, Link2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { COVER_PRESETS, presetValue, resolveCover } from '@/lib/covers'
 import { cn } from '@/lib/utils'
+import { ImageUploadButton } from './ImageUploadButton'
 import { TripCover } from './TripCover'
 
 interface CoverPickerProps {
@@ -43,17 +44,20 @@ export function CoverPicker({ value, onChange, error }: CoverPickerProps) {
         })}
       </div>
 
-      <div className="relative">
-        <Link2 className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          id="coverImageUrl"
-          inputMode="url"
-          placeholder="Hoặc dán link ảnh (https://…)"
-          className="pl-9"
-          value={isUrl ? value : ''}
-          aria-invalid={Boolean(error)}
-          onChange={(e) => onChange(e.target.value.trim())}
-        />
+      <div className="flex gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Link2 className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="coverImageUrl"
+            inputMode="url"
+            placeholder="Hoặc dán link ảnh (https://…)"
+            className="pl-9"
+            value={isUrl ? value : ''}
+            aria-invalid={Boolean(error)}
+            onChange={(e) => onChange(e.target.value.trim())}
+          />
+        </div>
+        <ImageUploadButton purpose="TRIP_COVER" label="Tải ảnh" onUploaded={onChange} className="shrink-0" />
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

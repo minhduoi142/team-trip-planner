@@ -13,7 +13,9 @@ import { Input } from '@/components/ui/input'
 import { useUpdateProfile } from '@/hooks/useAuthMutations'
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import type { UserResponse } from '@/types/auth'
+import { BankAccountSection } from './BankAccountSection'
 import { FormField } from './FormField'
+import { ImageUploadButton } from './ImageUploadButton'
 import { UserAvatar } from './UserAvatar'
 
 interface ProfileDialogProps {
@@ -25,8 +27,14 @@ interface ProfileDialogProps {
 export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        {open && <ProfileForm user={user} onDone={() => onOpenChange(false)} />}
+      <DialogContent className="max-h-[92svh] overflow-y-auto sm:max-w-md">
+        {open && (
+          <>
+            <ProfileForm user={user} onDone={() => onOpenChange(false)} />
+            {/* Form riêng (không lồng trong form hồ sơ) */}
+            <BankAccountSection user={user} />
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -67,8 +75,9 @@ function ProfileForm({ user, onDone }: { user: UserResponse; onDone: () => void 
         <DialogDescription>Tên và ảnh này sẽ hiện với cả nhóm.</DialogDescription>
       </DialogHeader>
 
-      <div className="flex justify-center">
+      <div className="flex flex-col items-center gap-3">
         <UserAvatar userId={user.id} name={displayName || '?'} avatarUrl={avatarUrl || null} className="size-20 text-2xl" />
+        <ImageUploadButton purpose="AVATAR" label="Đổi ảnh đại diện" size="sm" onUploaded={setAvatarUrl} />
       </div>
 
       <FormField id="displayName" label="Tên hiển thị" error={errors.displayName}>

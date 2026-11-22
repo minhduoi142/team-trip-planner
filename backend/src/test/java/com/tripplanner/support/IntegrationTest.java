@@ -43,6 +43,13 @@ public abstract class IntegrationTest {
 
     @BeforeEach
     void cleanDatabase() {
+        jdbc.update("DELETE FROM settlements");
+        jdbc.update("DELETE FROM expenses");   // expense_shares CASCADE
+        jdbc.update("DELETE FROM polls");      // poll_options, poll_votes CASCADE
+        jdbc.update("DELETE FROM media_files");
+        jdbc.update("DELETE FROM trip_checklists");
+        jdbc.update("DELETE FROM itinerary_items");
+        jdbc.update("DELETE FROM trip_day_dress_colors");
         jdbc.update("DELETE FROM member_availabilities");
         jdbc.update("DELETE FROM trip_days");
         jdbc.update("DELETE FROM trip_members");
