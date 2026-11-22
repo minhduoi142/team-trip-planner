@@ -14,4 +14,7 @@ export const authApi = {
   google: (body: GoogleLoginRequest) => api.post<AuthResponse>('/auth/google', body).then((r) => r.data),
   me: () => api.get<UserResponse>('/users/me').then((r) => r.data),
   updateMe: (body: UpdateProfileRequest) => api.patch<UserResponse>('/users/me', body).then((r) => r.data),
+  /** Gắn Google vào tài khoản đang đăng nhập (cùng body với đăng nhập Google) */
+  linkGoogle: (body: GoogleLoginRequest) => api.put<UserResponse>('/users/me/google', body).then((r) => r.data),
+  unlinkGoogle: () => api.delete<UserResponse>('/users/me/google').then((r) => r.data),
 }

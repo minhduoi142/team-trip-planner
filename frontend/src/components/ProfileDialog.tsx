@@ -14,6 +14,7 @@ import { useUpdateProfile } from '@/hooks/useAuthMutations'
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import type { UserResponse } from '@/types/auth'
 import { BankAccountSection } from './BankAccountSection'
+import { GoogleLinkSection } from './GoogleLinkSection'
 import { FormField } from './FormField'
 import { ImageUploadButton } from './ImageUploadButton'
 import { UserAvatar } from './UserAvatar'
@@ -33,6 +34,7 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
             <ProfileForm user={user} onDone={() => onOpenChange(false)} />
             {/* Form riêng (không lồng trong form hồ sơ) */}
             <BankAccountSection user={user} />
+            <GoogleLinkSection user={user} />
           </>
         )}
       </DialogContent>

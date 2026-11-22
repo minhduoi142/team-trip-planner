@@ -1,6 +1,7 @@
 package com.tripplanner.user;
 
 import com.tripplanner.auth.CurrentUser;
+import com.tripplanner.auth.dto.GoogleLoginRequest;
 import com.tripplanner.config.OpenApiConfig;
 import com.tripplanner.user.dto.UpdateProfileRequest;
 import com.tripplanner.user.dto.UserResponse;
@@ -51,5 +52,17 @@ public class UserController {
     @Operation(summary = "Sửa tên hiển thị / avatar")
     public UserResponse updateMe(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UpdateProfileRequest request) {
         return userService.updateProfile(CurrentUser.id(jwt), request);
+    }
+
+    @PutMapping("/me/google")
+    @Operation(summary = "Liên kết tài khoản Google vào tài khoản hiện tại (gửi Google ID token)")
+    public UserResponse linkGoogle(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody GoogleLoginRequest request) {
+        return userService.linkGoogle(CurrentUser.id(jwt), request.idToken());
+    }
+
+    @DeleteMapping("/me/google")
+    @Operation(summary = "Hủy liên kết Google (chỉ khi tài khoản còn mật khẩu)")
+    public UserResponse unlinkGoogle(@AuthenticationPrincipal Jwt jwt) {
+        return userService.unlinkGoogle(CurrentUser.id(jwt));
     }
 }

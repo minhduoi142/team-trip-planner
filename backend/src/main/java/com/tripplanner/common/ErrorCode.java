@@ -58,6 +58,8 @@ public enum ErrorCode {
     ROOM_FULL(HttpStatus.CONFLICT, "Phòng đã đủ người"),
     DUPLICATE_ROOM(HttpStatus.CONFLICT, "Đã có phòng trùng tên trong chuyến"),
     PROPOSAL_ALREADY_SCHEDULED(HttpStatus.CONFLICT, "Đề xuất này đã được đưa vào lịch trình"),
+    GOOGLE_ALREADY_LINKED(HttpStatus.CONFLICT, "Tài khoản Google này đã gắn với một tài khoản khác trong hệ thống"),
+    GOOGLE_UNLINK_NOT_ALLOWED(HttpStatus.CONFLICT, "Tài khoản chỉ đăng nhập bằng Google nên không hủy liên kết được"),
     MEMBER_HAS_EXPENSES(HttpStatus.CONFLICT, "Thành viên còn khoản chi hoặc thanh toán trong chuyến, hãy xử lý xong trước"),
 
     FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "Ảnh quá lớn, tối đa 10 MB"),

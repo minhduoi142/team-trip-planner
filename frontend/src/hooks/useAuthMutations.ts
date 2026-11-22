@@ -22,3 +22,13 @@ export function useUpdateProfile() {
   const { setUser } = useAuth()
   return useMutation({ mutationFn: (body: UpdateProfileRequest) => authApi.updateMe(body), onSuccess: setUser })
 }
+
+export function useLinkGoogle() {
+  const { setUser } = useAuth()
+  return useMutation({ mutationFn: (idToken: string) => authApi.linkGoogle({ idToken }), onSuccess: setUser })
+}
+
+export function useUnlinkGoogle() {
+  const { setUser } = useAuth()
+  return useMutation({ mutationFn: () => authApi.unlinkGoogle(), onSuccess: setUser })
+}

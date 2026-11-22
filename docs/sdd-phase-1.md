@@ -428,10 +428,29 @@ VITE_GOOGLE_CLIENT_ID=xxxxxxxx.apps.googleusercontent.com
 ### 9.3 Việc cần làm trên Google Cloud (người dùng tự làm)
 1. Vào Google Cloud Console, tạo project.
 2. Cấu hình **OAuth consent screen** ở chế độ *External*, chỉ chọn scope `openid`, `email`, `profile`.
-3. Vào Credentials, tạo **OAuth Client ID** loại *Web application*. Ở mục *Authorized JavaScript origins*, thêm `http://localhost:5173` (và domain Vercel khi deploy).
-4. Dán Client ID vào cả hai file `.env`.
+3. Vào Credentials, tạo **OAuth Client ID** loại *Web application*. Ở mục *Authorized JavaScript origins*, thêm **cả** `http://localhost` và `http://localhost:5173` (Google yêu cầu cả hai khi chạy local), và `PUBLIC_URL` khi deploy. Không cần *Authorized redirect URIs*.
+4. Dán **cùng một** Client ID vào `backend/.env` (`GOOGLE_CLIENT_ID`) và `frontend/.env.local` (`VITE_GOOGLE_CLIENT_ID`), rồi khởi động lại cả backend lẫn `npm run dev` (Vite chỉ đọc `.env` lúc khởi động).
+5. Khi consent screen còn ở chế độ *Testing*, chỉ các email trong danh sách *Test users* đăng nhập được. Muốn ai cũng dùng được thì bấm *Publish app* (chỉ dùng scope cơ bản nên không cần Google duyệt).
 
 Không cần Client Secret, vì backend chỉ verify ID token.
+
+### 9.4 Bổ sung: liên kết / hủy liên kết Google trong Hồ sơ
+Tài khoản tạo bằng username/mật khẩu **không có email**, nên lần đầu bấm "Tiếp tục với Google" sẽ tạo một tài khoản **mới, tách biệt**. Để tránh việc này, phần Hồ sơ có mục **"Đăng nhập bằng Google"**.
+
+| Method | Endpoint | Ghi chú |
+|---|---|---|
+| PUT | `/api/v1/users/me/google` | Body `{ idToken }` giống `/auth/google` → trả `UserResponse` |
+| DELETE | `/api/v1/users/me/google` | Chỉ khi tài khoản còn mật khẩu → trả `UserResponse` |
+
+**Liên kết** (`PUT`):
+- Idempotent nếu đã gắn đúng tài khoản Google đó.
+- Đã gắn một Google khác → 409 `GOOGLE_ALREADY_LINKED` (phải hủy trước).
+- Google đó đã thuộc tài khoản khác → 409 `GOOGLE_ALREADY_LINKED`. **Không tự gộp** 2 tài khoản, vì gộp sẽ làm mất dữ liệu chuyến đi.
+- Gắn email nếu chưa có user nào dùng; điền avatar nếu đang trống; **không** ghi đè tên hiển thị.
+
+**Hủy liên kết** (`DELETE`):
+- Tài khoản chỉ có Google → 409 `GOOGLE_UNLINK_NOT_ALLOWED`.
+- Xóa `google_sub` **và** `email`, vì email chỉ đến từ Google. Nếu giữ email thì lần đăng nhập Google sau sẽ tự liên kết lại theo email.
 
 ---
 
