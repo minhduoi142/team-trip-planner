@@ -7,6 +7,7 @@ import com.tripplanner.expense.ExpenseRepository;
 import com.tripplanner.expense.ExpenseShareRepository;
 import com.tripplanner.expense.SettlementRepository;
 import com.tripplanner.poll.PollVoteRepository;
+import com.tripplanner.proposal.ProposalVoteRepository;
 import com.tripplanner.room.RoomAssignmentRepository;
 import com.tripplanner.trip.dto.TripMemberResponse;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class TripMemberService {
     private final ExpenseShareRepository shareRepository;
     private final SettlementRepository settlementRepository;
     private final PollVoteRepository pollVoteRepository;
+    private final ProposalVoteRepository proposalVoteRepository;
     private final RoomAssignmentRepository roomAssignmentRepository;
     private final TripAccessService accessService;
 
@@ -78,7 +80,7 @@ public class TripMemberService {
     }
 
     /**
-     * Chặn nếu còn dính tiền (số dư sẽ sai). Xóa phiếu bầu, bỏ giao món checklist (FK tổ hợp không CASCADE);
+     * Chặn nếu còn dính tiền (số dư sẽ sai). Xóa phiếu bầu + tim đề xuất, bỏ giao món checklist (FK tổ hợp không CASCADE);
      * lịch rảnh tự xóa theo (CASCADE).
      */
     private void removeMembership(TripMember member) {
@@ -90,6 +92,7 @@ public class TripMemberService {
             throw new BusinessException(ErrorCode.MEMBER_HAS_EXPENSES);
         }
         pollVoteRepository.deleteAllForMemberInTrip(tripId, userId);
+        proposalVoteRepository.deleteAllForMemberInTrip(tripId, userId);   // đề xuất họ tạo vẫn giữ
         roomAssignmentRepository.deleteAllForMemberInTrip(tripId, userId);
         checklistRepository.unassignAllForMember(tripId, userId);
         memberRepository.delete(member);

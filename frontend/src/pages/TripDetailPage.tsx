@@ -6,10 +6,10 @@ import { AlbumTab } from '@/components/album/AlbumTab'
 import { AvailabilityTab } from '@/components/availability/AvailabilityTab'
 import { ChecklistTab } from '@/components/checklist/ChecklistTab'
 import { ExpensesTab } from '@/components/expenses/ExpensesTab'
-import { PollsTab } from '@/components/polls/PollsTab'
 import { RoomsTab } from '@/components/rooms/RoomsTab'
 import { ItineraryTab } from '@/components/itinerary/ItineraryTab'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { IdeasTab } from '@/components/IdeasTab'
 import { CountdownLabel } from '@/components/CountdownLabel'
 import { InviteShare } from '@/components/InviteShare'
 import { MemberList } from '@/components/MemberList'
@@ -175,7 +175,7 @@ export function TripDetailPage() {
                         <TabsTrigger value="overview">Tổng quan</TabsTrigger>
                         <TabsTrigger value="availability">Lịch rảnh</TabsTrigger>
                         <TabsTrigger value="itinerary">Lịch trình</TabsTrigger>
-                        <TabsTrigger value="polls">Bình chọn</TabsTrigger>
+                        <TabsTrigger value="polls">Ý tưởng</TabsTrigger>
                         <TabsTrigger value="checklist">Chuẩn bị</TabsTrigger>
                         <TabsTrigger value="expenses">Chi tiêu</TabsTrigger>
                         <TabsTrigger value="rooms">Phòng</TabsTrigger>
@@ -227,7 +227,7 @@ export function TripDetailPage() {
                         </TabsContent>
 
                         <TabsContent value="polls" className="mt-4">
-                          {user && <PollsTab tripId={data.id} myUserId={user.id} canCreate={canEdit} members={data.members} />}
+                          {user && <IdeasTab tripId={data.id} myUserId={user.id} canCreatePoll={canEdit} members={data.members} />}
                         </TabsContent>
 
                         <TabsContent value="checklist" className="mt-4">

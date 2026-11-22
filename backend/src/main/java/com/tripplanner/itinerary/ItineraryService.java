@@ -53,6 +53,16 @@ public class ItineraryService {
 
     @Transactional
     public ItineraryResponse addItem(Long dayId, Long userId, ItineraryItemRequest request) {
+        ItineraryItem item = createItem(dayId, userId, request);
+        return build(item.getTripDay().getTrip().getId());
+    }
+
+    /**
+     * Tạo hoạt động (EDITOR+), tự chèn theo giờ. Trả entity để nơi khác (vd đưa đề xuất vào lịch trình)
+     * gắn tham chiếu trong CÙNG transaction.
+     */
+    @Transactional
+    public ItineraryItem createItem(Long dayId, Long userId, ItineraryItemRequest request) {
         TripDay day = requireDay(dayId, userId, TripRole.EDITOR);
         ItineraryItem item = ItineraryItem.builder()
                 .tripDay(day)
@@ -64,7 +74,7 @@ public class ItineraryService {
         List<ItineraryItem> current = itemRepository.findAllByDayId(dayId);
         current.remove(item);
         renumber(ItineraryOrdering.place(current, item, ItineraryItem::getStartTime, false));
-        return build(day.getTrip().getId());
+        return item;
     }
 
     @Transactional

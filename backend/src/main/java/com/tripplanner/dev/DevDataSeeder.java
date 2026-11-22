@@ -18,6 +18,10 @@ import com.tripplanner.poll.PollOptionRepository;
 import com.tripplanner.poll.PollRepository;
 import com.tripplanner.poll.PollVote;
 import com.tripplanner.poll.PollVoteRepository;
+import com.tripplanner.proposal.ProposalVote;
+import com.tripplanner.proposal.ProposalVoteRepository;
+import com.tripplanner.proposal.TripProposal;
+import com.tripplanner.proposal.TripProposalRepository;
 import com.tripplanner.room.RoomAssignment;
 import com.tripplanner.room.RoomAssignmentRepository;
 import com.tripplanner.room.TripRoom;
@@ -84,6 +88,8 @@ public class DevDataSeeder implements ApplicationRunner {
     private final SettlementRepository settlementRepository;
     private final TripRoomRepository tripRoomRepository;
     private final RoomAssignmentRepository roomAssignmentRepository;
+    private final TripProposalRepository proposalRepository;
+    private final ProposalVoteRepository proposalVoteRepository;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
@@ -103,6 +109,7 @@ public class DevDataSeeder implements ApplicationRunner {
         seedDalatPoll();
         seedPhuQuocExpenses();
         seedPhuQuocRooms();
+        seedDalatProposals();
     }
 
     /** Phase 4: tài khoản nhận tiền MẪU (số tài khoản giả) để thử VietQR. */
@@ -146,6 +153,41 @@ public class DevDataSeeder implements ApplicationRunner {
             }
         });
         log.info("Đã tạo bình chọn mẫu cho Đà Lạt");
+    }
+
+    /** Wishlist mẫu cho Đà Lạt (docs/sdd-proposals.md): vài đề xuất + tim, chưa lên lịch. */
+    private void seedDalatProposals() {
+        Trip trip = tripRepository.findByInviteCode("DALAT2027").orElse(null);
+        if (trip == null || !proposalRepository.findAllByTripId(trip.getId()).isEmpty()) {
+            return;
+        }
+        Map<String, User> users = membersByUsername(trip);
+        record Sample(String title, ItineraryCategory category, String mapsUrl, String referenceUrl, Long cost,
+                      String note, String author, List<String> voters) {
+        }
+        List<Sample> samples = List.of(
+                new Sample("Quán cà phê Túi Mơ To", ItineraryCategory.FOOD,
+                        "https://maps.app.goo.gl/example-tuimoto", "https://www.tiktok.com/@dalat/video/1",
+                        60_000L, "View đồi thông, nên đi lúc hoàng hôn", "mai", List.of("linh", "mai", "lan")),
+                new Sample("Homestay The Wilder-nest", ItineraryCategory.STAY, null, null, 900_000L,
+                        "Giá / phòng / đêm, phòng 4 người", "lan", List.of("lan", "ngoc")),
+                new Sample("Đồi chè Cầu Đất", ItineraryCategory.SIGHTSEEING, null,
+                        "https://www.facebook.com/example/posts/1", null, "Đi sớm săn mây", "linh", List.of("linh")),
+                new Sample("Chợ đêm Đà Lạt", ItineraryCategory.SHOPPING, null, null, 150_000L, null, "ngoc",
+                        List.of()));
+        for (Sample sample : samples) {
+            TripProposal proposal = proposalRepository.save(TripProposal.builder()
+                    .trip(trip).title(sample.title()).category(sample.category()).mapsUrl(sample.mapsUrl())
+                    .referenceUrl(sample.referenceUrl()).estimatedCost(sample.cost()).note(sample.note())
+                    .createdBy(users.get(sample.author())).build());
+            for (String username : sample.voters()) {
+                User voter = users.get(username);
+                if (voter != null) {
+                    proposalVoteRepository.save(new ProposalVote(proposal.getId(), voter.getId()));
+                }
+            }
+        }
+        log.info("Đã tạo wishlist đề xuất mẫu cho Đà Lạt");
     }
 
     /** Phase 4: chi tiêu mẫu cho Phú Quốc (mai OWNER, linh, thao) + 1 thanh toán đang chờ xác nhận. */

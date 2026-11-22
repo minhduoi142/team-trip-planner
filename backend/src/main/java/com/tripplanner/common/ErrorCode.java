@@ -41,6 +41,7 @@ public enum ErrorCode {
     SETTLEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy giao dịch thanh toán"),
     PHOTO_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy ảnh trong album"),
     ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy phòng"),
+    PROPOSAL_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy đề xuất"),
 
     CONFLICT(HttpStatus.CONFLICT, "Dữ liệu bị trùng hoặc xung đột, vui lòng thử lại"),
     USERNAME_TAKEN(HttpStatus.CONFLICT, "Tên đăng nhập đã có người dùng"),
@@ -56,6 +57,7 @@ public enum ErrorCode {
     DUPLICATE_OPTION(HttpStatus.CONFLICT, "Lựa chọn này đã có trong bình chọn"),
     ROOM_FULL(HttpStatus.CONFLICT, "Phòng đã đủ người"),
     DUPLICATE_ROOM(HttpStatus.CONFLICT, "Đã có phòng trùng tên trong chuyến"),
+    PROPOSAL_ALREADY_SCHEDULED(HttpStatus.CONFLICT, "Đề xuất này đã được đưa vào lịch trình"),
     MEMBER_HAS_EXPENSES(HttpStatus.CONFLICT, "Thành viên còn khoản chi hoặc thanh toán trong chuyến, hãy xử lý xong trước"),
 
     FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "Ảnh quá lớn, tối đa 10 MB"),
