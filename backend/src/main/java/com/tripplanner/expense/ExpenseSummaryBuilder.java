@@ -33,7 +33,7 @@ class ExpenseSummaryBuilder {
 
     ExpenseSummaryResponse build(Long tripId, TripMember me) {
         Long myId = me.getId().getUserId();
-        boolean isEditor = me.getRole().atLeast(TripRole.EDITOR);
+        boolean isOwner = me.getRole() == TripRole.OWNER;
 
         List<TripMember> members = memberRepository.findAllWithUserByTripId(tripId);
         List<Expense> expenses = expenseRepository.findAllByTripId(tripId);
@@ -75,7 +75,7 @@ class ExpenseSummaryBuilder {
                 .map(e -> new ExpenseResponse(e.getId(), e.getTitle(), e.getCategory(), e.getAmount(),
                         e.getPaidBy().getId(), e.getSpentOn(), e.getSplitMode(), e.getNote(), e.getReceiptUrl(),
                         e.getCreatedBy() == null ? null : e.getCreatedBy().getDisplayName(),
-                        canEdit(e, myId, isEditor),
+                        canEdit(e, myId, isOwner),
                         sharesByExpense.getOrDefault(e.getId(), List.of()).stream()
                                 .sorted(Comparator.comparing(s -> s.getId().getUserId()))
                                 .map(s -> new ShareResponse(s.getId().getUserId(), s.getAmount()))
@@ -99,8 +99,9 @@ class ExpenseSummaryBuilder {
                 expenseRows);
     }
 
-    static boolean canEdit(Expense e, Long userId, boolean isEditor) {
-        return isEditor
+    /** Sửa/xóa khoản chi: người tạo, người trả hoặc Trưởng nhóm (OWNER). EDITOR thường không sửa được khoản người khác. */
+    static boolean canEdit(Expense e, Long userId, boolean isOwner) {
+        return isOwner
                 || e.getPaidBy().getId().equals(userId)
                 || (e.getCreatedBy() != null && e.getCreatedBy().getId().equals(userId));
     }

@@ -34,11 +34,12 @@ interface ExpensesTabProps {
   tripId: number
   tripTitle: string
   myUserId: number
-  isEditor: boolean
+  /** Chỉ Trưởng nhóm được ghi hộ người khác (chọn người trả khác mình) */
+  isOwner: boolean
   members: TripMemberResponse[]
 }
 
-export function ExpensesTab({ tripId, tripTitle, myUserId, isEditor, members }: ExpensesTabProps) {
+export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: ExpensesTabProps) {
   const summary = useExpenses(tripId)
   const create = useCreateExpense(tripId)
   const update = useUpdateExpense(tripId)
@@ -330,7 +331,7 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isEditor, members }: 
         expense={formFor?.expense}
         members={members}
         myUserId={myUserId}
-        canChoosePayer={isEditor}
+        canChoosePayer={isOwner}
         pending={create.isPending || update.isPending}
         onSubmit={submitExpense}
       />

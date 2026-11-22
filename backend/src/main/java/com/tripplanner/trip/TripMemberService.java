@@ -7,6 +7,7 @@ import com.tripplanner.expense.ExpenseRepository;
 import com.tripplanner.expense.ExpenseShareRepository;
 import com.tripplanner.expense.SettlementRepository;
 import com.tripplanner.poll.PollVoteRepository;
+import com.tripplanner.room.RoomAssignmentRepository;
 import com.tripplanner.trip.dto.TripMemberResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ public class TripMemberService {
     private final ExpenseShareRepository shareRepository;
     private final SettlementRepository settlementRepository;
     private final PollVoteRepository pollVoteRepository;
+    private final RoomAssignmentRepository roomAssignmentRepository;
     private final TripAccessService accessService;
 
     /** Chỉ OWNER; không gán OWNER và không đổi quyền của OWNER qua đây. */
@@ -88,6 +90,7 @@ public class TripMemberService {
             throw new BusinessException(ErrorCode.MEMBER_HAS_EXPENSES);
         }
         pollVoteRepository.deleteAllForMemberInTrip(tripId, userId);
+        roomAssignmentRepository.deleteAllForMemberInTrip(tripId, userId);
         checklistRepository.unassignAllForMember(tripId, userId);
         memberRepository.delete(member);
     }

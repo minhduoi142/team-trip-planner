@@ -13,6 +13,8 @@ export const tripKeys = {
   checklist: (tripId: number) => [...tripKeys.detail(tripId), 'checklist'] as const,
   polls: (tripId: number) => [...tripKeys.detail(tripId), 'polls'] as const,
   expenses: (tripId: number) => [...tripKeys.detail(tripId), 'expenses'] as const,
+  album: (tripId: number) => [...tripKeys.detail(tripId), 'album'] as const,
+  rooms: (tripId: number) => [...tripKeys.detail(tripId), 'rooms'] as const,
   invite: (code: string) => ['invite', code.toUpperCase()] as const,
 }
 

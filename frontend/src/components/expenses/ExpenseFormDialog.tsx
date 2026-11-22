@@ -28,7 +28,7 @@ interface ExpenseFormDialogProps {
   expense?: ExpenseResponse
   members: TripMemberResponse[]
   myUserId: number
-  /** EDITOR+ được chọn người trả khác mình */
+  /** Chỉ Trưởng nhóm được chọn người trả khác mình (ghi hộ) */
   canChoosePayer: boolean
   pending: boolean
   onSubmit: (body: ExpenseRequest) => Promise<unknown>

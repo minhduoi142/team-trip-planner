@@ -1,0 +1,37 @@
+# Reverse proxy + HTTPS tự động (Let's Encrypt) cho toàn bộ app trên 1 tên miền.
+# SITE_ADDRESS: "trip.example.com" (HTTPS tự động) hoặc ":80" (chỉ HTTP, vd khi chưa có tên miền / chạy thử).
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# Giới hạn upload ảnh (backend cũng tự chặn 10 MB)
+	request_body {
+		max_size 12MB
+	}
+
+	# Backend: API, trang share có ảnh xem trước, health check
+	@backend path /api/* /share/* /actuator/health
+	handle @backend {
+		reverse_proxy backend:8080
+	}
+
+	# Ảnh upload (bucket MinIO đọc công khai, tên file UUID). Chỉ cho phép đọc.
+	@images {
+		path /{$MINIO_BUCKET}/*
+		method GET HEAD
+	}
+	handle @images {
+		reverse_proxy minio:9000
+	}
+
+	# Còn lại: frontend (SPA)
+	handle {
+		reverse_proxy frontend:80
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}

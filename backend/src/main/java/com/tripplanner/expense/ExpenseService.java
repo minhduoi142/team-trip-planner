@@ -24,8 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /**
- * Quyền: mọi thành viên ghi được khoản MÌNH trả; ghi/sửa với người trả khác cần EDITOR+.
- * Sửa/xóa: người tạo, người trả hoặc EDITOR+. Bất biến: tổng phần chia = số tiền.
+ * Quyền: mọi thành viên ghi được khoản MÌNH trả; ghi hộ (người trả khác mình) chỉ Trưởng nhóm (OWNER).
+ * Sửa/xóa: người tạo, người trả hoặc OWNER; khi sửa, giữ nguyên người trả cũ thì không cần OWNER.
+ * Bất biến: tổng phần chia = số tiền.
  */
 @Service
 @RequiredArgsConstructor
@@ -64,7 +65,10 @@ public class ExpenseService {
     @Transactional
     public ExpenseSummaryResponse update(Long expenseId, Long userId, ExpenseRequest request) {
         Access access = requireEditable(expenseId, userId);
-        requireCanSetPayer(access.me(), request.paidBy());
+        // Đổi người trả sang người khác = ghi hộ → cần OWNER; giữ nguyên người trả cũ thì được
+        if (!access.expense().getPaidBy().getId().equals(request.paidBy())) {
+            requireCanSetPayer(access.me(), request.paidBy());
+        }
         Map<Long, Long> shares = computeShares(request, memberIds(access.tripId()));
         apply(access.expense(), request);
         // flush thay đổi của expense, xóa phần chia cũ (và clear context) rồi ghi phần chia mới
@@ -132,8 +136,9 @@ public class ExpenseService {
     }
 
     private static void requireCanSetPayer(TripMember me, Long paidBy) {
-        if (!me.getId().getUserId().equals(paidBy) && !me.getRole().atLeast(TripRole.EDITOR)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "Bạn chỉ ghi được khoản do chính mình trả");
+        if (!me.getId().getUserId().equals(paidBy) && me.getRole() != TripRole.OWNER) {
+            throw new BusinessException(ErrorCode.FORBIDDEN,
+                    "Bạn chỉ ghi được khoản do chính mình trả (ghi hộ người khác cần Trưởng nhóm)");
         }
     }
 
@@ -157,8 +162,9 @@ public class ExpenseService {
         TripMember me = accessService.require(tripId, userId, TripRole.VIEWER);
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.EXPENSE_NOT_FOUND));
-        if (!ExpenseSummaryBuilder.canEdit(expense, userId, me.getRole().atLeast(TripRole.EDITOR))) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!ExpenseSummaryBuilder.canEdit(expense, userId, me.getRole() == TripRole.OWNER)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN,
+                    "Chỉ người ghi, người trả hoặc Trưởng nhóm mới sửa/xóa được khoản chi này");
         }
         return new Access(expense, tripId, me);
     }

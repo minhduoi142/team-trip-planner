@@ -56,6 +56,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/google").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/trips/invite/*").permitAll()
+                        // Trang xem trước khi share link (Open Graph) + ảnh bìa: public
+                        .requestMatchers(HttpMethod.GET, "/share/**").permitAll()
                         .requestMatchers("/actuator/health", "/swagger-ui.html", "/swagger-ui/**",
                                 "/v3/api-docs/**", "/error").permitAll()
                         .anyRequest().authenticated())

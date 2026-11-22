@@ -2,10 +2,12 @@ import { ArrowLeft, CalendarDays, MapPin, MoreHorizontal, Pencil, Trash2 } from 
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
+import { AlbumTab } from '@/components/album/AlbumTab'
 import { AvailabilityTab } from '@/components/availability/AvailabilityTab'
 import { ChecklistTab } from '@/components/checklist/ChecklistTab'
 import { ExpensesTab } from '@/components/expenses/ExpensesTab'
 import { PollsTab } from '@/components/polls/PollsTab'
+import { RoomsTab } from '@/components/rooms/RoomsTab'
 import { ItineraryTab } from '@/components/itinerary/ItineraryTab'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CountdownLabel } from '@/components/CountdownLabel'
@@ -14,7 +16,6 @@ import { MemberList } from '@/components/MemberList'
 import { StatusBadge } from '@/components/StatusBadge'
 import { TripCover } from '@/components/TripCover'
 import { TripFormDialog } from '@/components/TripFormDialog'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -31,11 +32,6 @@ import { getErrorCode, getErrorMessage } from '@/lib/api'
 import { formatDateRange } from '@/lib/date'
 import { roleAtLeast } from '@/lib/labels'
 import type { TripRequest } from '@/types/trip'
-
-/** Các tab của phase sau: hiện trước để cả nhóm biết sắp có gì. */
-const UPCOMING_TABS = [
-  { value: 'album', label: 'Album' },
-]
 
 export function TripDetailPage() {
   const { tripId: tripIdParam } = useParams()
@@ -171,14 +167,8 @@ export function TripDetailPage() {
             <TabsTrigger value="polls">Bình chọn</TabsTrigger>
             <TabsTrigger value="checklist">Chuẩn bị</TabsTrigger>
             <TabsTrigger value="expenses">Chi tiêu</TabsTrigger>
-            {UPCOMING_TABS.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} disabled className="gap-1.5">
-                {tab.label}
-                <Badge variant="secondary" className="px-1.5 text-[10px]">
-                  Sắp có
-                </Badge>
-              </TabsTrigger>
-            ))}
+            <TabsTrigger value="rooms">Phòng</TabsTrigger>
+            <TabsTrigger value="album">Album</TabsTrigger>
           </TabsList>
         </div>
 
@@ -239,10 +229,18 @@ export function TripDetailPage() {
               tripId={data.id}
               tripTitle={data.title}
               myUserId={user.id}
-              isEditor={canEdit}
+              isOwner={isOwner}
               members={data.members}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="rooms" className="mt-4">
+          {user && <RoomsTab tripId={data.id} myUserId={user.id} canEdit={canEdit} />}
+        </TabsContent>
+
+        <TabsContent value="album" className="mt-4">
+          <AlbumTab tripId={data.id} canEdit={canEdit} />
         </TabsContent>
       </Tabs>
 

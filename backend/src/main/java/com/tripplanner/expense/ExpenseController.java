@@ -42,21 +42,21 @@ public class ExpenseController {
 
     @PostMapping("/trips/{tripId}/expenses")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Ghi khoản chi (mình trả: mọi thành viên; ghi hộ người khác: EDITOR+)")
+    @Operation(summary = "Ghi khoản chi (mình trả: mọi thành viên; ghi hộ người khác: chỉ OWNER)")
     public ExpenseSummaryResponse create(@AuthenticationPrincipal Jwt jwt, @PathVariable Long tripId,
                                          @Valid @RequestBody ExpenseRequest request) {
         return expenseService.create(tripId, CurrentUser.id(jwt), request);
     }
 
     @PutMapping("/expenses/{expenseId}")
-    @Operation(summary = "Sửa khoản chi (người tạo / người trả / EDITOR+)")
+    @Operation(summary = "Sửa khoản chi (người tạo / người trả / OWNER)")
     public ExpenseSummaryResponse update(@AuthenticationPrincipal Jwt jwt, @PathVariable Long expenseId,
                                          @Valid @RequestBody ExpenseRequest request) {
         return expenseService.update(expenseId, CurrentUser.id(jwt), request);
     }
 
     @DeleteMapping("/expenses/{expenseId}")
-    @Operation(summary = "Xóa khoản chi (người tạo / người trả / EDITOR+)")
+    @Operation(summary = "Xóa khoản chi (người tạo / người trả / OWNER)")
     public ExpenseSummaryResponse delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long expenseId) {
         return expenseService.delete(expenseId, CurrentUser.id(jwt));
     }

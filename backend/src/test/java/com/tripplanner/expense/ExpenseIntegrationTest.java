@@ -81,15 +81,25 @@ class ExpenseIntegrationTest extends IntegrationTest {
 
     @Test
     void permissionsAndMembership() throws Exception {
-        // VIEWER ghi khoản mình trả được, ghi hộ người khác thì không
-        send(post("/api/v1/trips/" + tripId + "/expenses"), ngocToken,
+        // Mọi thành viên ghi khoản mình trả được; ghi hộ người khác chỉ OWNER
+        JsonNode cafe = send(post("/api/v1/trips/" + tripId + "/expenses"), ngocToken,
                 equal("Cafe", 90_000, ngoc, List.of(ngoc, linh)), 201);
+        long cafeId = expense(cafe, e -> e.get("title").asText().equals("Cafe")).get("id").asLong();
         send(post("/api/v1/trips/" + tripId + "/expenses"), ngocToken,
                 equal("Ghi hộ", 90_000, linh, List.of(ngoc, linh)), 403);
-        // EDITOR ghi hộ được
-        JsonNode summary = send(post("/api/v1/trips/" + tripId + "/expenses"), maiToken,
-                equal("Taxi", 120_000, linh, List.of(linh, mai)), 201);
+        send(post("/api/v1/trips/" + tripId + "/expenses"), maiToken,
+                equal("Ghi hộ", 90_000, linh, List.of(mai, linh)), 403); // EDITOR cũng không ghi hộ
+        JsonNode summary = send(post("/api/v1/trips/" + tripId + "/expenses"), linhToken,
+                equal("Taxi", 120_000, mai, List.of(linh, mai)), 201);  // OWNER ghi hộ Mai
         long taxiId = expense(summary, e -> e.get("title").asText().equals("Taxi")).get("id").asLong();
+
+        // Lỗi người dùng báo: EDITOR (mai) KHÔNG được sửa/xóa khoản do người khác ghi & trả (cafe của ngọc)
+        JsonNode asMai = read(mvc.perform(auth(get("/api/v1/trips/" + tripId + "/expenses"), maiToken))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(expense(asMai, e -> e.get("id").asLong() == cafeId).get("canEdit").asBoolean()).isFalse();
+        assertThat(expense(asMai, e -> e.get("id").asLong() == taxiId).get("canEdit").asBoolean()).isTrue(); // mai là người trả
+        send(put("/api/v1/expenses/" + cafeId), maiToken, equal("Cafe", 1, ngoc, List.of(ngoc)), 403);
+        send(delete("/api/v1/expenses/" + cafeId), maiToken, null, 403);
 
         // Người tham gia ngoài nhóm → NOT_A_MEMBER
         long stranger = userId(register("nguoila", "Người lạ"));
@@ -99,15 +109,20 @@ class ExpenseIntegrationTest extends IntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("NOT_A_MEMBER"));
 
-        // VIEWER không sửa được khoản không phải của mình; người trả (linh) sửa được
-        send(put("/api/v1/expenses/" + taxiId), ngocToken, equal("Taxi", 1, linh, List.of(linh)), 403);
-        JsonNode edited = send(put("/api/v1/expenses/" + taxiId), linhToken,
-                equal("Taxi sân bay", 150_000, linh, List.of(linh, mai, ngoc)), 200);
+        // Người trả (mai, EDITOR) sửa được khoản do OWNER ghi hộ, giữ nguyên người trả;
+        // nhưng đổi người trả sang người khác (= ghi hộ) thì không
+        send(put("/api/v1/expenses/" + taxiId), ngocToken, equal("Taxi", 1, mai, List.of(mai)), 403);
+        JsonNode edited = send(put("/api/v1/expenses/" + taxiId), maiToken,
+                equal("Taxi sân bay", 150_000, mai, List.of(linh, mai, ngoc)), 200);
         JsonNode taxi = expense(edited, e -> e.get("id").asLong() == taxiId);
         assertThat(taxi.get("title").asText()).isEqualTo("Taxi sân bay");
         assertThat(taxi.get("shares")).hasSize(3);
+        send(put("/api/v1/expenses/" + taxiId), maiToken, equal("Taxi sân bay", 150_000, ngoc, List.of(ngoc)), 403);
 
-        send(delete("/api/v1/expenses/" + taxiId), maiToken, null, 200);
+        // OWNER sửa/xóa được mọi khoản; người tạo (ngọc) xóa được khoản của mình
+        send(put("/api/v1/expenses/" + cafeId), linhToken, equal("Cafe sữa", 95_000, ngoc, List.of(ngoc, linh)), 200);
+        send(delete("/api/v1/expenses/" + taxiId), linhToken, null, 200);
+        send(delete("/api/v1/expenses/" + cafeId), ngocToken, null, 200);
     }
 
     @Test

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useRegenerateInviteCode } from '@/hooks/useTrips'
 import { getErrorMessage } from '@/lib/api'
+import { SHARE_BASE_URL } from '@/lib/config'
 import { ConfirmDialog } from './ConfirmDialog'
 
 interface InviteShareProps {
@@ -18,7 +19,8 @@ export function InviteShare({ tripId, tripTitle, inviteCode, canRegenerate }: In
   const [copied, setCopied] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const regenerate = useRegenerateInviteCode(tripId)
-  const link = `${window.location.origin}/join/${inviteCode}`
+  // Link /share/{code} do backend phục vụ: có ảnh + tiêu đề xem trước khi dán vào Zalo/Messenger
+  const link = `${SHARE_BASE_URL}/share/${inviteCode}`
   const canShare = typeof navigator.share === 'function'
 
   const copy = async () => {
@@ -79,6 +81,9 @@ export function InviteShare({ tripId, tripTitle, inviteCode, canRegenerate }: In
         </div>
         <p className="truncate rounded-xl bg-background/70 px-3 py-2 text-sm text-muted-foreground" title={link}>
           {link}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Dán vào Zalo/Messenger sẽ hiện ảnh bìa + tên chuyến (khi app đã đưa lên mạng).
         </p>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" size="lg" onClick={copy} className={canShare ? '' : 'col-span-2'}>

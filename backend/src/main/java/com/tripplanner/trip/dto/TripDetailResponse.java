@@ -22,5 +22,7 @@ public record TripDetailResponse(
         TripRole myRole,
         int memberCount,
         Instant createdAt,
+        /** Link thư mục Google Drive chung (Phase 5); null nếu chưa gắn */
+        String driveFolderUrl,
         List<TripMemberResponse> members) {
 }

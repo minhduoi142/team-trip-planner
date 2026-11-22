@@ -158,7 +158,7 @@ public class TripService {
                 trip.getId(), trip.getTitle(), trip.getDestination(), trip.getDescription(), trip.getCoverImageUrl(),
                 trip.statusOn(today()), trip.getPlannedStartDate(), trip.getPlannedEndDate(),
                 trip.getStartDate(), trip.getEndDate(), inviteCode, myRole, members.size(), trip.getCreatedAt(),
-                members);
+                trip.getDriveFolderUrl(), members);
     }
 
     private void applyRequest(Trip trip, TripRequest request) {

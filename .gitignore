@@ -1,4 +1,5 @@
-# Bí mật local (docker-compose). Mẫu: .env.example
+# Bí mật local + production. Mẫu: .env.example, .env.prod.example
 .env
 .env.*
 !.env.example
+!.env.prod.example

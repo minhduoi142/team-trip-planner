@@ -18,6 +18,10 @@ import com.tripplanner.poll.PollOptionRepository;
 import com.tripplanner.poll.PollRepository;
 import com.tripplanner.poll.PollVote;
 import com.tripplanner.poll.PollVoteRepository;
+import com.tripplanner.room.RoomAssignment;
+import com.tripplanner.room.RoomAssignmentRepository;
+import com.tripplanner.room.TripRoom;
+import com.tripplanner.room.TripRoomRepository;
 import com.tripplanner.itinerary.ItineraryCategory;
 import com.tripplanner.itinerary.ItineraryItem;
 import com.tripplanner.itinerary.ItineraryItemRepository;
@@ -78,6 +82,8 @@ public class DevDataSeeder implements ApplicationRunner {
     private final ExpenseRepository expenseRepository;
     private final ExpenseShareRepository expenseShareRepository;
     private final SettlementRepository settlementRepository;
+    private final TripRoomRepository tripRoomRepository;
+    private final RoomAssignmentRepository roomAssignmentRepository;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
@@ -96,6 +102,7 @@ public class DevDataSeeder implements ApplicationRunner {
         seedBankAccounts();
         seedDalatPoll();
         seedPhuQuocExpenses();
+        seedPhuQuocRooms();
     }
 
     /** Phase 4: tài khoản nhận tiền MẪU (số tài khoản giả) để thử VietQR. */
@@ -174,6 +181,25 @@ public class DevDataSeeder implements ApplicationRunner {
                 .trip(trip).fromUser(thao).toUser(mai).amount(1_000_000L)
                 .status(ExpenseEnums.SettlementStatus.PENDING).build());
         log.info("Đã tạo chi tiêu mẫu cho Phú Quốc");
+    }
+
+    /** Phase 5: 2 phòng cho Phú Quốc, phòng 1 đã đủ người (mai + linh). Album để trống (cần link Drive thật). */
+    private void seedPhuQuocRooms() {
+        Trip trip = tripRepository.findByInviteCode("PHUQUOC27").orElse(null);
+        if (trip == null || !tripRoomRepository.findAllByTripId(trip.getId()).isEmpty()) {
+            return;
+        }
+        Map<String, User> u = membersByUsername(trip);
+        TripRoom room1 = tripRoomRepository.save(TripRoom.builder()
+                .trip(trip).name("Phòng 1 – giường đôi").capacity(2).note("View biển, tầng 2").build());
+        tripRoomRepository.save(TripRoom.builder().trip(trip).name("Phòng 2").capacity(2).build());
+        for (String username : List.of("mai", "linh")) {
+            User user = u.get(username);
+            if (user != null) {
+                roomAssignmentRepository.save(new RoomAssignment(room1.getId(), user.getId()));
+            }
+        }
+        log.info("Đã tạo phòng mẫu cho Phú Quốc");
     }
 
     private void expense(Trip trip, String title, ExpenseEnums.Category category, long amount, User payer,

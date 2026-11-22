@@ -219,9 +219,9 @@ Mọi thao tác ghi đều trả lại toàn bộ `PollListResponse`.
 | Method | Path | Quyền | Mô tả |
 |---|---|---|---|
 | GET | `/trips/{id}/expenses` | thành viên | Tổng hợp: khoản chi, số dư, gợi ý chuyển khoản, settlements, thông tin ngân hàng của thành viên |
-| POST | `/trips/{id}/expenses` | thành viên | Ai cũng ghi được khoản **mình trả**. EDITOR+ ghi hộ người khác được |
-| PUT | `/expenses/{id}` | người tạo / người trả / EDITOR+ | Sửa |
-| DELETE | `/expenses/{id}` | người tạo / người trả / EDITOR+ | Xóa |
+| POST | `/trips/{id}/expenses` | thành viên | Ai cũng ghi được khoản **mình trả**. **Chỉ OWNER** ghi hộ người khác |
+| PUT | `/expenses/{id}` | người tạo / người trả / **OWNER** | Sửa. Đổi người trả sang người khác cần OWNER |
+| DELETE | `/expenses/{id}` | người tạo / người trả / **OWNER** | Xóa |
 | POST | `/trips/{id}/settlements` | người chuyển hoặc người nhận | `{ fromUserId, toUserId, amount }`. Mình là người chuyển → `PENDING`. Mình là người nhận → `CONFIRMED` luôn (vd nhận tiền mặt) |
 | POST | `/settlements/{id}/confirm` | người nhận | `PENDING` → `CONFIRMED` |
 | DELETE | `/settlements/{id}` | người chuyển (khi PENDING) / người nhận | Hủy hoặc từ chối |
@@ -323,7 +323,11 @@ expense/     Expense, ExpenseShare(+Id), Settlement, ExpenseCategory, SplitMode,
 
 ## 9. Ghi chú contract đã chốt khi triển khai
 - **CUSTOM:** phần **0đ bị bỏ qua** (coi như người đó không tham gia). Cần ít nhất 1 phần > 0, và tổng phải bằng số tiền khoản chi.
-- **VIEWER sửa giá trị `paidBy`:** chỉ được đặt chính mình. Đặt người khác thì trả 403 (`FORBIDDEN`, kèm `detail` riêng).
+- **Quyền khoản chi (sửa sau phản hồi của người dùng).** Ban đầu EDITOR+ sửa/xóa được mọi khoản chi. Vì người vào qua link mời mặc định là EDITOR, gần như cả nhóm sửa/xóa được tiền của nhau. Quy tắc mới:
+  - Sửa/xóa: chỉ **người tạo, người trả hoặc OWNER**.
+  - Ghi hộ (`paidBy` khác mình): chỉ **OWNER**.
+  - Khi sửa, giữ nguyên người trả cũ thì không cần OWNER. Đổi người trả sang người khác thì cần OWNER.
+  - Vi phạm trả 403 `FORBIDDEN`, kèm `detail` riêng.
 - **Bình chọn:** lỗi trùng tên được bắt từ UNIQUE của DB (collation `_ai_ci`), nên "Lẩu gà" và "LAU GA" bị coi là trùng. Tạo bình chọn kèm danh sách lựa chọn ban đầu mà có trùng tên thì rollback cả bình chọn.
 - **Chốt bình chọn có `addToItinerary`:** gọi `ItineraryService.addItem` (kiểm tra quyền EDITOR+ trên ngày đó). Hoạt động được tạo với: tên = tên lựa chọn, `locationName` = tên lựa chọn, `mapsUrl` và `note` lấy từ lựa chọn. `dayId` thuộc trip khác thì trả `DAY_NOT_FOUND`.
 - Settlement của **người nhận** có thể bị chính người nhận xóa cả khi đã `CONFIRMED` (hoàn tác khi xác nhận nhầm).

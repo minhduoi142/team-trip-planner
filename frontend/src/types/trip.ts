@@ -66,6 +66,8 @@ export interface TripDetailResponse {
   myRole: TripRole
   memberCount: number
   createdAt: IsoInstant
+  /** Link thư mục Google Drive chung; null nếu chưa gắn */
+  driveFolderUrl: string | null
   members: TripMemberResponse[]
 }
 
