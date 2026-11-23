@@ -15,6 +15,7 @@ import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import type { UserResponse } from '@/types/auth'
 import { BankAccountSection } from './BankAccountSection'
 import { GoogleLinkSection } from './GoogleLinkSection'
+import { NotificationSection } from './NotificationSection'
 import { SessionSecuritySection } from './SessionSecuritySection'
 import { FormField } from './FormField'
 import { ImageUploadButton } from './ImageUploadButton'
@@ -35,6 +36,7 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
             <ProfileForm user={user} onDone={() => onOpenChange(false)} />
             {/* Form riêng (không lồng trong form hồ sơ) */}
             <BankAccountSection user={user} />
+            <NotificationSection />
             <GoogleLinkSection user={user} />
             <SessionSecuritySection />
           </>

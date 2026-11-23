@@ -1,0 +1,21 @@
+[(${tripTitle})]
+[(${headline})]
+
+[(${dateRange})][# th:if="${destination != null}"]
+Điểm đến: [(${destination})][/]
+[# th:if="${!day1Items.isEmpty()}"]
+NGÀY 1
+[# th:each="item : ${day1Items}"]- [(${item.time() != null ? item.time() + ' ' : ''})][(${item.title()})][# th:if="${item.location() != null}"] ([(${item.location()})])[/]
+[/][# th:if="${day1More > 0}"]  và [(${day1More})] hoạt động khác
+[/][/][# th:if="${hasDress}"]
+DRESS CODE NGÀY 1
+[# th:if="${dressTheme != null}"][(${dressTheme})]
+[/][# th:if="${!dressColors.isEmpty()}"]Màu: [# th:each="c, stat : ${dressColors}"][(${c.label()})][# th:unless="${stat.last}"], [/][/]
+[/][# th:if="${dressNote != null}"][(${dressNote})]
+[/][/][# th:if="${!myChecklist.isEmpty()}"]
+BẠN NHẬN MANG
+[# th:each="line : ${myChecklist}"]- [(${line.itemName()})][# th:if="${line.quantity() > 1}"] × [(${line.quantity()})][/]
+[/][# th:if="${myChecklistMore > 0}"]  và [(${myChecklistMore})] món khác
+[/][# th:if="${checklistUrl != null}"]Danh sách chuẩn bị: [(${checklistUrl})]
+[/][/][# th:if="${buttonUrl != null}"]
+Xem lịch trình: [(${buttonUrl})][/]

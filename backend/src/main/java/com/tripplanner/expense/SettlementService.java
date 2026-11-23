@@ -11,7 +11,9 @@ import com.tripplanner.trip.TripMemberRepository;
 import com.tripplanner.trip.TripRole;
 import com.tripplanner.user.UserRepository;
 import java.time.Instant;
+import com.tripplanner.notification.event.SettlementChanged;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ public class SettlementService {
     private final SettlementRepository settlementRepository;
     private final UserRepository userRepository;
     private final ExpenseSummaryBuilder summaryBuilder;
+    private final ApplicationEventPublisher events;
 
     @Transactional
     public ExpenseSummaryResponse create(Long tripId, Long userId, SettlementRequest request) {
@@ -44,7 +47,7 @@ public class SettlementService {
             throw new BusinessException(ErrorCode.NOT_A_MEMBER);
         }
         boolean receiverRecords = userId.equals(to);
-        settlementRepository.save(Settlement.builder()
+        Settlement saved = settlementRepository.save(Settlement.builder()
                 .trip(me.getTrip())
                 .fromUser(userRepository.getReferenceById(from))
                 .toUser(userRepository.getReferenceById(to))
@@ -53,6 +56,8 @@ public class SettlementService {
                 .confirmedAt(receiverRecords ? Instant.now() : null)
                 .build());
         settlementRepository.flush();
+        publish(tripId, saved, receiverRecords
+                ? SettlementChanged.Kind.CONFIRMED : SettlementChanged.Kind.PENDING_CREATED);
         return summaryBuilder.build(tripId, me);
     }
 
@@ -65,6 +70,7 @@ public class SettlementService {
         }
         s.setStatus(SettlementStatus.CONFIRMED);
         s.setConfirmedAt(Instant.now());
+        publish(access.tripId(), s, SettlementChanged.Kind.CONFIRMED);
         return summaryBuilder.build(access.tripId(), access.me());
     }
 
@@ -78,9 +84,18 @@ public class SettlementService {
             throw new BusinessException(ErrorCode.INVALID_SETTLEMENT,
                     "Chỉ người nhận, hoặc người chuyển khi còn đang chờ, mới hủy được");
         }
+        publish(access.tripId(), s, senderCancelsPending ? SettlementChanged.Kind.CANCELLED_BY_SENDER
+                : s.getStatus() == SettlementStatus.PENDING ? SettlementChanged.Kind.REJECTED
+                : SettlementChanged.Kind.CONFIRMED_DELETED);
         settlementRepository.delete(s);
         settlementRepository.flush();
         return summaryBuilder.build(access.tripId(), access.me());
+    }
+
+    /** Email thông báo (docs/sdd-email-notifications.md §6): listener ghi outbox lúc commit. */
+    private void publish(Long tripId, Settlement s, SettlementChanged.Kind kind) {
+        events.publishEvent(new SettlementChanged(tripId, s.getId(), kind, s.getFromUser().getId(),
+                s.getToUser().getId(), s.getAmount()));
     }
 
     private record Access(Settlement settlement, Long tripId, TripMember me) {

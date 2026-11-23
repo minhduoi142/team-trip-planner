@@ -97,6 +97,9 @@ public class UserService {
         if (email != null && userRepository.findByEmail(email).isEmpty()) {
             user.setEmail(email);
         }
+        if (email != null && user.getNotifyEmail() == null) {
+            user.setNotifyEmail(email);   // email nhận thông báo: Google đã xác minh
+        }
         if (user.getAvatarUrl() == null && profile.pictureUrl() != null) {
             user.setAvatarUrl(profile.pictureUrl());
         }
@@ -105,7 +108,7 @@ public class UserService {
 
     /**
      * Gỡ Google; chỉ khi còn đăng nhập được bằng mật khẩu. Xóa luôn email (email chỉ đến từ Google), nếu
-     * không lần đăng nhập Google sau sẽ tự liên kết lại theo email.
+     * không lần đăng nhập Google sau sẽ tự liên kết lại theo email. {@code notify_email} giữ nguyên.
      */
     @Transactional
     public UserResponse unlinkGoogle(Long userId) {

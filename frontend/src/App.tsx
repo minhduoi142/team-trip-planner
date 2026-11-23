@@ -9,6 +9,8 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ShareRedirectPage } from '@/pages/ShareRedirectPage'
 import { TripDetailPage } from '@/pages/TripDetailPage'
+import { UnsubscribePage } from '@/pages/UnsubscribePage'
+import { VerifyEmailPage } from '@/pages/VerifyEmailPage'
 
 const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
@@ -23,6 +25,9 @@ const router = createBrowserRouter([
   { path: '/join/:code', element: <JoinPage /> },
   // Phòng khi proxy chưa chuyển /share/ sang backend (xem ShareRedirectPage)
   { path: '/share/:code/*', element: <ShareRedirectPage /> },
+  // Mở từ link trong email (có thể chưa đăng nhập trên thiết bị đó)
+  { path: '/verify-email', element: <VerifyEmailPage /> },
+  { path: '/unsubscribe', element: <UnsubscribePage /> },
   {
     element: <ProtectedRoute />,
     children: [

@@ -1,96 +1,108 @@
-# Deploy production trên 1 VPS: Caddy (HTTPS) → frontend (nginx) / backend (Spring Boot) / MinIO (ảnh); MySQL.
-# Hướng dẫn đầy đủ: docs/deploy-vps.md
+# Production trên 1 VPS, reverse proxy là NGINX CỦA MÁY CHỦ (không chạy Caddy trong Docker).
+# Mọi cổng chỉ mở trên 127.0.0.1; nginx máy chủ proxy:
+#   /api/, /share/   → 127.0.0.1:8080 (backend)
+#   /trip-planner/   → 127.0.0.1:9000 (MinIO, ảnh upload)
+#   /                → 127.0.0.1:3000 (frontend)
 #
-#   cp .env.prod.example .env.prod   # rồi điền giá trị
+# Chạy (thư mục gốc repo):
+#   cp .env.prod.example .env.prod   # rồi điền giá trị (lần đầu)
 #   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 #
-# Chỉ Caddy mở cổng ra ngoài (80/443). MySQL, MinIO, backend chỉ nằm trong mạng nội bộ của compose.
-# LƯU Ý MinIO: không còn image công khai → VPS phải có sẵn image (docker save/load, xem docs/deploy-vps.md).
+# Biến môi trường của backend dùng ĐÚNG tên mà application.yml đọc (DB_URL, JWT_SECRET, MAIL_HOST...).
 
 name: tripplanner
 
 services:
-  caddy:
-    image: caddy:2.10-alpine
-    restart: unless-stopped
-    ports:
-      - "${HTTP_PORT:-80}:80"
-      - "${HTTPS_PORT:-443}:443"
-      - "${HTTPS_PORT:-443}:443/udp"
-    environment:
-      SITE_ADDRESS: ${SITE_ADDRESS:?Thiếu SITE_ADDRESS (tên miền, vd trip.example.com)}
-      MINIO_BUCKET: ${MINIO_BUCKET:-trip-planner}
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - frontend
-      - backend
-      - minio
-
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: /api/v1
-        VITE_SHARE_BASE_URL: ${PUBLIC_URL}
+        # Biến VITE_* nướng vào bundle lúc build → đổi giá trị phải build lại (--build)
         VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+        VITE_SHARE_BASE_URL: ${PUBLIC_URL:-https://minhduoipro.ddns.net}
         VITE_CONTACT_ZALO: ${CONTACT_ZALO:-}
         VITE_CONTACT_EMAIL: ${CONTACT_EMAIL:-}
     image: tripplanner-frontend:latest
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+    mem_limit: 128m
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     image: tripplanner-backend:latest
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+      # Database
+      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-tripplanner}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8
+      DB_USERNAME: ${MYSQL_USER:-tripplanner}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?Thiếu MYSQL_PASSWORD}
+      # Đăng nhập
+      JWT_SECRET: ${JWT_SECRET:?Thiếu JWT_SECRET (>= 32 ký tự)}
+      JWT_ACCESS_TTL_MINUTES: ${JWT_ACCESS_TTL_MINUTES:-15}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      # Địa chỉ công khai (FE và BE cùng tên miền qua nginx máy chủ)
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_URL:-https://minhduoipro.ddns.net}
+      FRONTEND_URL: ${PUBLIC_URL:-https://minhduoipro.ddns.net}
+      # og:image của link share + link "Huỷ đăng ký" 1 chạm trong email
+      PUBLIC_BASE_URL: ${PUBLIC_URL:-https://minhduoipro.ddns.net}
+      # Ảnh upload (MinIO trong cùng compose)
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_PUBLIC_URL: ${PUBLIC_URL:-https://minhduoipro.ddns.net}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?Thiếu MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Thiếu MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET:-trip-planner}
+      # Email thông báo (Gmail SMTP + App Password). MAIL_HOST trống = tắt gửi email.
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-true}
+      MAIL_STARTTLS: ${MAIL_STARTTLS:-true}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Trip Planner}
+      NOTIFY_DAILY_LIMIT: ${NOTIFY_DAILY_LIMIT:-400}
+      JAVA_OPTS: ${JAVA_OPTS:--Xmx384m -XX:+UseSerialGC}
     depends_on:
       mysql:
         condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
-    environment:
-      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-tripplanner}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
-      DB_USERNAME: ${MYSQL_USER:-tripplanner}
-      DB_PASSWORD: ${MYSQL_PASSWORD:?Thiếu MYSQL_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET:?Thiếu JWT_SECRET (>= 32 ký tự)}
-      JWT_ACCESS_TTL_MINUTES: ${JWT_ACCESS_TTL_MINUTES:-15}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      CORS_ALLOWED_ORIGINS: ${PUBLIC_URL:?Thiếu PUBLIC_URL (vd https://trip.example.com)}
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-      MINIO_BUCKET: ${MINIO_BUCKET:-trip-planner}
-      MINIO_PUBLIC_URL: ${PUBLIC_URL}
-      FRONTEND_URL: ${PUBLIC_URL}
-      PUBLIC_BASE_URL: ${PUBLIC_URL}
-      APP_SEED_ENABLED: "false"
-      SPRINGDOC_API_DOCS_ENABLED: "false"
-      SPRINGDOC_SWAGGER_UI_ENABLED: "false"
-      JAVA_OPTS: ${JAVA_OPTS:--Xmx512m -XX:+UseSerialGC}
+      minio:
+        condition: service_started
+    mem_limit: 512m
 
   mysql:
     image: mysql:8.0
     restart: unless-stopped
-    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    command:
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_0900_ai_ci"
+      - "--innodb-buffer-pool-size=128M"
+      - "--performance-schema=OFF"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Thiếu MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-tripplanner}
       MYSQL_USER: ${MYSQL_USER:-tripplanner}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      TZ: UTC
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Thiếu MYSQL_PASSWORD}
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
       interval: 5s
       timeout: 5s
       retries: 30
+    mem_limit: 300m
 
   minio:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
-    pull_policy: never
+    image: pgsty/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -98,14 +110,13 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Thiếu MINIO_ROOT_PASSWORD}
     volumes:
       - minio-data:/data
-    # Console 9001 KHÔNG mở ra ngoài; truy cập qua SSH tunnel (xem docs/deploy-vps.md)
     ports:
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
       - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    mem_limit: 150m
 
-  # Chạy 1 lần: tạo bucket + cho phép đọc công khai (tên file UUID)
   minio-init:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
-    pull_policy: never
+    image: pgsty/minio:latest
     depends_on:
       - minio
     environment:
@@ -124,5 +135,3 @@ services:
 volumes:
   mysql-data:
   minio-data:
-  caddy-data:
-  caddy-config:

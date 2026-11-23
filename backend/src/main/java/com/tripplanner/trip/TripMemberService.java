@@ -6,11 +6,13 @@ import com.tripplanner.common.ErrorCode;
 import com.tripplanner.expense.ExpenseRepository;
 import com.tripplanner.expense.ExpenseShareRepository;
 import com.tripplanner.expense.SettlementRepository;
+import com.tripplanner.notification.event.MemberLeft;
 import com.tripplanner.poll.PollVoteRepository;
 import com.tripplanner.proposal.ProposalVoteRepository;
 import com.tripplanner.room.RoomAssignmentRepository;
 import com.tripplanner.trip.dto.TripMemberResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,7 @@ public class TripMemberService {
     private final ProposalVoteRepository proposalVoteRepository;
     private final RoomAssignmentRepository roomAssignmentRepository;
     private final TripAccessService accessService;
+    private final ApplicationEventPublisher events;
 
     /** Chỉ OWNER; không gán OWNER và không đổi quyền của OWNER qua đây. */
     @Transactional
@@ -71,12 +74,14 @@ public class TripMemberService {
                 throw new BusinessException(ErrorCode.OWNER_CANNOT_LEAVE);
             }
             removeMembership(actor);
+            events.publishEvent(new MemberLeft(tripId, actorId, null));
             return;
         }
         if (actor.getRole() != TripRole.OWNER) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         removeMembership(findTarget(tripId, targetUserId));
+        events.publishEvent(new MemberLeft(tripId, targetUserId, actorId));
     }
 
     /**

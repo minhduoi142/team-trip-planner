@@ -1,4 +1,7 @@
 spring:
+  mail:
+    # Không gửi mail thật trong test (MailGateway được mock khi cần)
+    host: ""
   datasource:
     url: ${TEST_DB_URL:jdbc:mysql://localhost:3306/tripplanner_test?createDatabaseIfNotExist=true}
     username: ${TEST_DB_USERNAME:root}
@@ -19,3 +22,8 @@ app:
     client-id: test-client-id.apps.googleusercontent.com
   seed:
     enabled: false
+  notifications:
+    # Test gọi trực tiếp NotificationDispatcher.runOnce(), không để job nền chạy chen vào
+    scheduler-enabled: false
+  mail:
+    from: trip@test.local

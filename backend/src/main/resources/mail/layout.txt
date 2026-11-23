@@ -1,0 +1,7 @@
+[(${bodyText})]
+
+--
+Trip Planner
+[# th:if="${footerNote}"][(${footerNote})]
+[/][# th:each="link : ${links}"][(${link.label()})]: [(${link.url()})]
+[/]

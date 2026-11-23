@@ -33,6 +33,13 @@ public class User {
     @Column(name = "email", unique = true)
     private String email;
 
+    /**
+     * Email nhận thông báo, luôn ĐÃ XÁC MINH (Google hoặc link xác minh). Tách khỏi {@code email} (email đăng
+     * nhập Google): gỡ Google không xoá cột này. Xem docs/sdd-email-notifications.md.
+     */
+    @Column(name = "notify_email", length = 254)
+    private String notifyEmail;
+
     @Column(name = "username", unique = true, length = 30)
     private String username;
 

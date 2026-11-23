@@ -1,4 +1,4 @@
-# Hạ tầng local cho dev: MinIO (lưu ảnh upload). Chạy:  docker compose up -d
+# Hạ tầng local cho dev: MinIO (lưu ảnh upload) + Mailpit (xem email thông báo). Chạy:  docker compose up -d
 # Console quản lý: http://localhost:9001 (đăng nhập bằng MINIO_ROOT_USER / MINIO_ROOT_PASSWORD trong .env ở thư mục gốc)
 #
 # LƯU Ý: MinIO đã ngừng phát hành image Docker công khai (Docker Hub gỡ minio/minio, quay.io yêu cầu đăng nhập).
@@ -38,6 +38,15 @@ services:
       echo "Bucket $$MINIO_BUCKET sẵn sàng (đọc công khai)"
       '
     restart: "no"
+
+  # Hộp thư giả để xem email thông báo khi dev (không gửi ra ngoài). Giao diện: http://localhost:8025
+  # backend/.env: MAIL_HOST=localhost, MAIL_PORT=1025, MAIL_SMTP_AUTH=false, MAIL_STARTTLS=false
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Giao diện web
+    restart: unless-stopped
 
 volumes:
   minio-data:

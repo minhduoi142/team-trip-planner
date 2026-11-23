@@ -20,6 +20,9 @@ public enum ErrorCode {
     INVALID_BANK_ACCOUNT(HttpStatus.BAD_REQUEST, "Thông tin tài khoản ngân hàng không hợp lệ"),
     INVALID_SETTLEMENT(HttpStatus.BAD_REQUEST, "Thao tác thanh toán không hợp lệ"),
     INVALID_DRIVE_LINK(HttpStatus.BAD_REQUEST, "Link không phải link Google Drive hợp lệ"),
+    INVALID_EMAIL_VERIFICATION(HttpStatus.BAD_REQUEST, "Liên kết xác minh không hợp lệ hoặc đã hết hạn"),
+    NOTIFY_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "Bạn chưa có email nhận thông báo đã xác minh"),
+    INVALID_UNSUBSCRIBE_TOKEN(HttpStatus.BAD_REQUEST, "Liên kết huỷ nhận không hợp lệ"),
 
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để tiếp tục"),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu"),
@@ -65,10 +68,17 @@ public enum ErrorCode {
     GOOGLE_UNLINK_NOT_ALLOWED(HttpStatus.CONFLICT, "Tài khoản chỉ đăng nhập bằng Google nên không hủy liên kết được"),
     MEMBER_HAS_EXPENSES(HttpStatus.CONFLICT, "Thành viên còn khoản chi hoặc thanh toán trong chuyến, hãy xử lý xong trước"),
 
+    EMAIL_VERIFICATION_COOLDOWN(HttpStatus.TOO_MANY_REQUESTS, "Vui lòng đợi 1 phút trước khi gửi lại email xác minh"),
+    EMAIL_VERIFICATION_LIMIT(HttpStatus.TOO_MANY_REQUESTS,
+            "Bạn đã gửi quá nhiều email xác minh hôm nay, hãy thử lại vào ngày mai"),
+    TEST_EMAIL_COOLDOWN(HttpStatus.TOO_MANY_REQUESTS, "Vui lòng đợi 1 phút trước khi gửi thử lại"),
+
     FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "Ảnh quá lớn, tối đa 10 MB"),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Chỉ hỗ trợ ảnh JPG, PNG hoặc WebP"),
     STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Kho lưu ảnh đang không hoạt động, thử lại sau"),
     GOOGLE_LOGIN_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "Đăng nhập Google chưa được cấu hình trên máy chủ"),
+    MAIL_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "Máy chủ chưa cấu hình gửi email"),
+    MAIL_SEND_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "Không gửi được email, vui lòng thử lại sau"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Có lỗi xảy ra, vui lòng thử lại sau");
 
     private final HttpStatus status;

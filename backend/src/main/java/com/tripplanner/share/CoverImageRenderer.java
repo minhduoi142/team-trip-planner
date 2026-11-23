@@ -75,6 +75,13 @@ public class CoverImageRenderer {
         return PRESETS.get(presetKey)[index];
     }
 
+    /** Màu gradient (hex "#rrggbb") của ảnh bìa preset, dùng cho email đếm ngược. */
+    public static List<String> presetHexColors(String coverValue, long tripId) {
+        return java.util.Arrays.stream(PRESETS.get(presetKey(coverValue, tripId)))
+                .map(c -> String.format("#%06x", c.getRGB() & 0xFFFFFF))
+                .toList();
+    }
+
     private static Color[] colors(int... rgb) {
         Color[] result = new Color[rgb.length];
         for (int i = 0; i < rgb.length; i++) {

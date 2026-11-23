@@ -6,6 +6,8 @@ import com.tripplanner.expense.ExpenseEnums.SplitMode;
 import com.tripplanner.expense.dto.ExpenseDtos.ExpenseRequest;
 import com.tripplanner.expense.dto.ExpenseDtos.ExpenseSummaryResponse;
 import com.tripplanner.expense.dto.ExpenseDtos.ShareInput;
+import com.tripplanner.notification.event.ExpenseChanged;
+import com.tripplanner.notification.event.ExpenseChanged.Kind;
 import com.tripplanner.trip.TripAccessService;
 import com.tripplanner.trip.TripMember;
 import com.tripplanner.trip.TripMemberRepository;
@@ -19,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -38,6 +41,7 @@ public class ExpenseService {
     private final ExpenseShareRepository shareRepository;
     private final UserRepository userRepository;
     private final ExpenseSummaryBuilder summaryBuilder;
+    private final ApplicationEventPublisher events;
 
     @Transactional(readOnly = true)
     public ExpenseSummaryResponse summary(Long tripId, Long userId) {
@@ -59,6 +63,7 @@ public class ExpenseService {
         apply(expense, request);
         expenseRepository.saveAndFlush(expense);
         saveShares(expense.getId(), shares);
+        publish(tripId, expense, userId, Kind.CREATED, Map.of(), shares);
         return summaryBuilder.build(tripId, me);
     }
 
@@ -70,7 +75,9 @@ public class ExpenseService {
             requireCanSetPayer(access.me(), request.paidBy());
         }
         Map<Long, Long> shares = computeShares(request, memberIds(access.tripId()));
+        Map<Long, Long> oldShares = currentShares(expenseId);
         apply(access.expense(), request);
+        publish(access.tripId(), access.expense(), userId, Kind.UPDATED, oldShares, shares);
         // flush thay đổi của expense, xóa phần chia cũ (và clear context) rồi ghi phần chia mới
         shareRepository.deleteAllByExpenseId(expenseId);
         saveShares(expenseId, shares);
@@ -80,6 +87,7 @@ public class ExpenseService {
     @Transactional
     public ExpenseSummaryResponse delete(Long expenseId, Long userId) {
         Access access = requireEditable(expenseId, userId);
+        publish(access.tripId(), access.expense(), userId, Kind.DELETED, currentShares(expenseId), Map.of());
         expenseRepository.delete(access.expense());
         expenseRepository.flush();
         return summaryBuilder.build(access.tripId(), access.me());
@@ -116,6 +124,19 @@ public class ExpenseService {
                 .filter(s -> s.amount() > 0) // phần 0đ coi như không tham gia
                 .forEach(s -> result.put(s.userId(), s.amount()));
         return result;
+    }
+
+    /** userId -> phần chia hiện có trong DB (đọc trước khi sửa/xoá để email so sánh cũ/mới). */
+    private Map<Long, Long> currentShares(Long expenseId) {
+        return shareRepository.findAllByExpenseIds(List.of(expenseId)).stream()
+                .collect(Collectors.toMap(s -> s.getId().getUserId(), ExpenseShare::getAmount));
+    }
+
+    /** Email thông báo (docs/sdd-email-notifications.md §6): listener ghi outbox lúc commit. */
+    private void publish(Long tripId, Expense expense, Long actorId, Kind kind, Map<Long, Long> oldShares,
+                         Map<Long, Long> newShares) {
+        events.publishEvent(new ExpenseChanged(tripId, expense.getId(), actorId, kind, expense.getTitle(),
+                expense.getAmount(), expense.getPaidBy().getId(), oldShares, newShares));
     }
 
     private void saveShares(Long expenseId, Map<Long, Long> shares) {

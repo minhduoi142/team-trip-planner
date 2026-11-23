@@ -74,19 +74,23 @@ public class AuthService {
 
         User user = userRepository.findByGoogleSub(profile.subject())
                 .or(() -> email == null ? Optional.empty() : userRepository.findByEmail(email))
-                .map(existing -> linkGoogle(existing, profile))
+                .map(existing -> linkGoogle(existing, profile, email))
                 .orElseGet(() -> userRepository.save(User.builder()
                         .googleSub(profile.subject())
                         .email(email)
+                        .notifyEmail(email)   // Google đã xác minh email này
                         .displayName(displayNameFrom(profile, email))
                         .avatarUrl(profile.pictureUrl())
                         .build()));
         return newSession(user, userAgent);
     }
 
-    private User linkGoogle(User user, GoogleProfile profile) {
+    private User linkGoogle(User user, GoogleProfile profile, String email) {
         if (user.getGoogleSub() == null) {
             user.setGoogleSub(profile.subject());
+        }
+        if (user.getNotifyEmail() == null && email != null) {
+            user.setNotifyEmail(email);
         }
         if (user.getAvatarUrl() == null && profile.pictureUrl() != null) {
             user.setAvatarUrl(profile.pictureUrl());

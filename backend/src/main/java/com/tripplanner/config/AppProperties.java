@@ -9,7 +9,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * {@code publicBaseUrl}: địa chỉ công khai của backend, dùng cho URL tuyệt đối trong thẻ og:image.
  */
 public record AppProperties(Jwt jwt, Auth auth, Google google, Cors cors, String timezone, Storage storage,
-                            String frontendUrl, String publicBaseUrl) {
+                            String frontendUrl, String publicBaseUrl, Mail mail, Notifications notifications) {
+
+    /** Người gửi email. {@code from} trống thì dùng {@code spring.mail.username}. */
+    public record Mail(String from, String fromName) {
+    }
+
+    /**
+     * Thông báo email (docs/sdd-email-notifications.md). {@code schedulerEnabled=false} (profile test) tắt mọi
+     * job @Scheduled của thông báo; test gọi trực tiếp {@code runOnce()}.
+     */
+    public record Notifications(boolean schedulerEnabled, long dispatchIntervalMs, int batchSize, int dailyLimit,
+                         List<Integer> countdownDays, String countdownCron) {
+    }
 
     /** Kho ảnh chuẩn S3. {@code publicUrl}: địa chỉ trình duyệt dùng để tải ảnh (mặc định = endpoint). */
     public record Storage(String endpoint, String accessKey, String secretKey, String bucket, String publicUrl) {

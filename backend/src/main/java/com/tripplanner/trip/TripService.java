@@ -5,6 +5,7 @@ import com.tripplanner.common.BusinessException;
 import com.tripplanner.common.ErrorCode;
 import com.tripplanner.expense.ExpenseRepository;
 import com.tripplanner.expense.SettlementRepository;
+import com.tripplanner.notification.event.MemberJoined;
 import com.tripplanner.trip.dto.InviteCodeResponse;
 import com.tripplanner.trip.dto.InvitePreviewResponse;
 import com.tripplanner.trip.dto.JoinTripResponse;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -46,6 +48,7 @@ public class TripService {
     private final InviteCodeGenerator inviteCodeGenerator;
     private final UserService userService;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
     @Transactional
     public TripDetailResponse create(Long userId, TripRequest request) {
@@ -138,6 +141,7 @@ public class TripService {
                 .orElseGet(() -> {
                     User user = userService.getRequired(userId);
                     memberRepository.save(new TripMember(trip, user, DEFAULT_JOIN_ROLE));
+                    events.publishEvent(new MemberJoined(trip.getId(), userId));   // email cho cả nhóm
                     return new JoinTripResponse(trip.getId(), DEFAULT_JOIN_ROLE, false);
                 });
     }

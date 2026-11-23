@@ -1,0 +1,8 @@
+[(${tripTitle})]
+[(${heading})]
+[# th:each="section : ${sections}"]
+[(${section.title()})]
+[# th:each="item : ${section.items()}"]- [(${item.text()})][# th:if="${item.detail() != null}"]
+  [(${item.detail()})][/]
+[/][/]
+[# th:if="${buttonUrl != null}"][(${buttonLabel})]: [(${buttonUrl})][/]

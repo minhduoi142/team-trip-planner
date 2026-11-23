@@ -56,7 +56,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/google",
                                 // Đọc refresh token từ cookie HttpOnly, không cần access token
-                                "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
+                                "/api/v1/auth/refresh", "/api/v1/auth/logout",
+                                // Mở từ link trong email, có thể chưa đăng nhập (token trong body/query tự xác thực)
+                                "/api/v1/notifications/verify-email", "/api/v1/notifications/unsubscribe",
+                                "/api/v1/notifications/unsubscribe/one-click").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/trips/invite/*").permitAll()
                         // Trang xem trước khi share link (Open Graph) + ảnh bìa: public
                         .requestMatchers(HttpMethod.GET, "/share/**").permitAll()

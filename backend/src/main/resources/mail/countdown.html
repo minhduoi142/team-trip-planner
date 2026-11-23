@@ -1,0 +1,78 @@
+<!--/* Ảnh bìa: ảnh thật, hoặc dải màu preset (background-color dự phòng cho hộp thư không hỗ trợ gradient) */-->
+<div th:if="${coverImageUrl != null}" style="margin:-28px -24px 20px -24px;">
+  <img th:src="${coverImageUrl}" alt="" width="600"
+       style="display:block;width:100%;max-height:200px;object-fit:cover;border-radius:24px 24px 0 0;">
+</div>
+<div th:unless="${coverImageUrl != null}"
+     th:style="'margin:-28px -24px 20px -24px;height:72px;border-radius:24px 24px 0 0;background-color:' + ${coverColor} + ';background-image:' + ${coverGradient} + ';'"></div>
+
+<p style="margin:0 0 4px 0;color:#8a7380;" th:text="${tripTitle}">Chuyến đi</p>
+<h1 style="margin:0 0 16px 0;font-size:22px;line-height:1.3;color:#3a2430;" th:text="${headline}">Còn 3 ngày</h1>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;">
+  <tr>
+    <td align="center" style="padding:20px;border-radius:20px;background:#fdeef2;">
+      <div style="font-size:48px;font-weight:800;line-height:1;color:#e25c72;"
+           th:text="${daysLeft == 0 ? 'Hôm nay' : daysLeft}">3</div>
+      <div style="margin-top:6px;font-weight:600;" th:if="${daysLeft > 0}">ngày nữa</div>
+      <div style="margin-top:10px;font-size:14px;color:#8a7380;" th:text="${dateRange}">05/12 – 08/12/2026</div>
+      <div style="font-size:14px;color:#8a7380;" th:if="${destination != null}" th:text="'📍 ' + ${destination}">Đà Lạt</div>
+    </td>
+  </tr>
+</table>
+
+<!--/* Ngày 1 */-->
+<th:block th:if="${!day1Items.isEmpty()}">
+  <p style="margin:0 0 8px 0;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#e25c72;">Ngày 1</p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;">
+    <tr th:each="item : ${day1Items}">
+      <td width="56" valign="top" style="padding:8px 8px 8px 0;font-weight:700;color:#e25c72;white-space:nowrap;"
+          th:text="${item.time() != null ? item.time() : '•'}">07:30</td>
+      <td valign="top" style="padding:8px 0;border-bottom:1px solid #f3e3ea;">
+        <div style="font-weight:600;" th:text="${item.title()}">Bay VJ321</div>
+        <div style="font-size:13px;color:#8a7380;" th:if="${item.location() != null}" th:text="${item.location()}">Tân Sơn Nhất</div>
+      </td>
+    </tr>
+    <tr th:if="${day1More > 0}">
+      <td></td>
+      <td style="padding:8px 0;font-size:13px;color:#8a7380;" th:text="'và ' + ${day1More} + ' hoạt động khác'">và 2 hoạt động khác</td>
+    </tr>
+  </table>
+</th:block>
+
+<!--/* Dress code ngày 1 */-->
+<th:block th:if="${hasDress}">
+  <p style="margin:0 0 8px 0;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#e25c72;">Dress code ngày 1</p>
+  <div style="margin:0 0 20px 0;padding:12px;border-radius:14px;background:#fcf7f9;">
+    <div style="font-weight:600;" th:if="${dressTheme != null}" th:text="${dressTheme}">Biển xanh</div>
+    <div style="margin:6px 0 0 0;" th:if="${!dressColors.isEmpty()}">
+      <span th:each="c : ${dressColors}"
+            style="display:inline-block;margin:0 10px 4px 0;font-size:13px;color:#3a2430;white-space:nowrap;"><span
+          th:style="'display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:4px;border:1px solid #e5d5dc;background:' + ${c.hex()} + ';'"></span><span
+          th:text="${c.label()}">Trắng</span></span>
+    </div>
+    <div style="margin-top:6px;font-size:13px;color:#8a7380;" th:if="${dressNote != null}" th:text="${dressNote}">Ghi chú</div>
+  </div>
+</th:block>
+
+<!--/* Việc của bạn */-->
+<th:block th:if="${!myChecklist.isEmpty()}">
+  <p style="margin:0 0 8px 0;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#e25c72;">Bạn nhận mang</p>
+  <ul style="margin:0 0 8px 0;padding-left:20px;">
+    <li th:each="line : ${myChecklist}" style="margin:0 0 4px 0;">
+      <span th:text="${line.itemName()}">Kem chống nắng</span><span th:if="${line.quantity() > 1}"
+          style="color:#8a7380;" th:text="' × ' + ${line.quantity()}"> × 2</span>
+    </li>
+  </ul>
+  <p style="margin:0 0 20px 0;font-size:13px;color:#8a7380;">
+    <span th:if="${myChecklistMore > 0}" th:text="'và ' + ${myChecklistMore} + ' món khác · '">và 3 món khác · </span>
+    <a th:if="${checklistUrl != null}" th:href="${checklistUrl}" style="color:#e25c72;">Mở danh sách chuẩn bị</a>
+  </p>
+</th:block>
+
+<p style="margin:0;" th:if="${buttonUrl != null}">
+  <a th:href="${buttonUrl}"
+     style="display:inline-block;background:#e25c72;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 24px;border-radius:999px;">
+    Xem lịch trình
+  </a>
+</p>

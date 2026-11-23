@@ -22,6 +22,20 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  mail:
+    # Trống = tắt gửi email (thông báo bị bỏ qua, nút gửi mail báo "chưa cấu hình").
+    # Local: Mailpit (localhost:1025, không auth/TLS). Thật: smtp.gmail.com:587 + Gmail App Password.
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:true}
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
   servlet:
     multipart:
       max-file-size: 10MB
@@ -55,6 +69,19 @@ app:
     secret-key: ${MINIO_SECRET_KEY:}
     bucket: ${MINIO_BUCKET:trip-planner}
     public-url: ${MINIO_PUBLIC_URL:}
+  mail:
+    # Gmail: phải trùng MAIL_USERNAME, nếu không Gmail tự thay bằng địa chỉ đăng nhập
+    from: ${MAIL_FROM:}
+    from-name: ${MAIL_FROM_NAME:Trip Planner}
+  # Tên "notifications" (không phải "notify": trùng Object.notify() trong record AppProperties)
+  notifications:
+    scheduler-enabled: ${NOTIFY_SCHEDULER_ENABLED:true}
+    dispatch-interval-ms: ${NOTIFY_DISPATCH_INTERVAL_MS:30000}
+    batch-size: 50
+    # Gmail cá nhân ~500 người nhận/ngày (vượt bị khoá gửi 24h) → chừa biên
+    daily-limit: ${NOTIFY_DAILY_LIMIT:400}
+    countdown-days: ${NOTIFY_COUNTDOWN_DAYS:7,3,1,0}
+    countdown-cron: ${NOTIFY_COUNTDOWN_CRON:0 0 8 * * *}
   seed:
     # Chỉ bật ở local để tạo tài khoản + chuyến đi mẫu (DevDataSeeder). KHÔNG bật trên production.
     enabled: ${APP_SEED_ENABLED:false}
@@ -66,6 +93,10 @@ springdoc:
     path: /v3/api-docs
 
 management:
+  health:
+    # Không để /actuator/health phụ thuộc kết nối SMTP (Gmail chậm/đứt → health DOWN)
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:

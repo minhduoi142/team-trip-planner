@@ -1,6 +1,6 @@
-import { ArrowLeft, CalendarDays, MapPin, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { ArrowLeft, Bell, BellOff, CalendarDays, MapPin, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { AlbumTab } from '@/components/album/AlbumTab'
 import { AvailabilityTab } from '@/components/availability/AvailabilityTab'
@@ -27,11 +27,15 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/auth/useAuth'
+import { useSetTripMute, useTripMute } from '@/hooks/useNotificationSettings'
 import { useDeleteTrip, useTrip, useUpdateTrip } from '@/hooks/useTrips'
 import { getErrorCode, getErrorMessage } from '@/lib/api'
 import { formatDateRange } from '@/lib/date'
 import { roleAtLeast } from '@/lib/labels'
 import type { TripRequest } from '@/types/trip'
+
+/** Giá trị tab hợp lệ cho ?tab= (link trong email mở thẳng đúng tab). */
+const TAB_VALUES = ['overview', 'availability', 'itinerary', 'polls', 'checklist', 'expenses', 'rooms', 'album']
 
 export function TripDetailPage() {
   const { tripId: tripIdParam } = useParams()
@@ -43,6 +47,19 @@ export function TripDetailPage() {
   const deleteTrip = useDeleteTrip(tripId)
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [params, setParams] = useSearchParams()
+  const tabParam = params.get('tab')
+  const tab = tabParam && TAB_VALUES.includes(tabParam) ? tabParam : 'overview'
+  const changeTab = (value: string) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (value === 'overview') next.delete('tab')
+        else next.set('tab', value)
+        return next
+      },
+      { replace: true },
+    )
 
   if (trip.isPending) return <TripDetailSkeleton />
 
@@ -115,8 +132,7 @@ export function TripDetailPage() {
                   <ArrowLeft />
                 </Link>
               </Button>
-              {canEdit && (
-                <DropdownMenu>
+              <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                       <Button
                         variant="secondary"
@@ -128,10 +144,13 @@ export function TripDetailPage() {
                       </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => setEditOpen(true)}>
-                      <Pencil />
-                      Sửa thông tin
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                        <Pencil />
+                        Sửa thông tin
+                      </DropdownMenuItem>
+                    )}
+                    <TripMuteMenuItem tripId={data.id} />
                     {isOwner && (
                       <DropdownMenuItem variant="destructive" onSelect={() => setDeleteOpen(true)}>
                         <Trash2 />
@@ -140,7 +159,6 @@ export function TripDetailPage() {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-              )}
           </div>
           <div className="space-y-2 text-white">
               <StatusBadge status={data.status} className="shadow-md" />
@@ -169,7 +187,7 @@ export function TripDetailPage() {
                 </div>
               </div>
 
-              <Tabs defaultValue="overview">
+              <Tabs value={tab} onValueChange={changeTab}>
                     <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
                       <TabsList className="bg-card/90 backdrop-blur-md shadow-clay-dock border border-border/60 p-1.5 h-12">
                         <TabsTrigger value="overview">Tổng quan</TabsTrigger>
@@ -295,4 +313,27 @@ export function TripDetailPage() {
                         </div>
                       </div>
                       )
+}
+
+/** Tắt/bật mọi email của chuyến này cho riêng mình (kể cả đếm ngược). */
+function TripMuteMenuItem({ tripId }: { tripId: number }) {
+  const mute = useTripMute(tripId)
+  const setMute = useSetTripMute(tripId)
+  const muted = mute.data?.muted ?? false
+
+  return (
+    <DropdownMenuItem
+      disabled={mute.isPending || setMute.isPending}
+      onSelect={() =>
+        setMute.mutate(!muted, {
+          onSuccess: (result) =>
+            toast.success(result.muted ? 'Đã tắt email của chuyến này' : 'Đã bật lại email của chuyến này'),
+          onError: (error) => toast.error(getErrorMessage(error)),
+        })
+      }
+    >
+      {muted ? <Bell /> : <BellOff />}
+      {muted ? 'Bật email chuyến này' : 'Tắt email chuyến này'}
+    </DropdownMenuItem>
+  )
 }

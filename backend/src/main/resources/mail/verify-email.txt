@@ -1,0 +1,8 @@
+Chào [(${displayName})],
+
+Bạn vừa đặt [(${email})] làm email nhận thông báo của Trip Planner.
+Mở liên kết dưới đây để xác nhận đây đúng là hộp thư của bạn:
+
+[(${link})]
+
+Liên kết có hiệu lực trong [(${hours})] giờ. Nếu không phải bạn yêu cầu, cứ bỏ qua email này.

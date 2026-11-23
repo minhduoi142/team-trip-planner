@@ -1,0 +1,9 @@
+Chào [(${displayName})],
+
+Gửi thử thành công! Nếu bạn đọc được dòng này thì Trip Planner đã gửi email tới hộp thư của bạn bình thường.
+Từ giờ bạn sẽ nhận được:
+- Nhắc đếm ngược trước ngày đi (còn 7, 3, 1 ngày và ngày khởi hành)
+- Tin thành viên vào hoặc rời nhóm
+- Khoản chi và chuyển khoản liên quan đến bạn
+
+Bật/tắt từng loại trong Hồ sơ → Thông báo.
