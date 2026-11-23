@@ -87,7 +87,7 @@ export function DashboardPage() {
       )}
 
                         {active.length > 0 && (
-                            <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-list">
                               {active.map((trip) => (
                                 <TripCard key={trip.id} trip={trip} />
                               ))}
@@ -102,7 +102,7 @@ export function DashboardPage() {
                                         {completed.length}
                                       </span>
                                     </div>
-                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-list">
                                       {completed.map((trip) => (
                                         <TripCard key={trip.id} trip={trip} />
                                       ))}

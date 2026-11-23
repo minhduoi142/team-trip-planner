@@ -25,7 +25,7 @@ export function IdeasTab({ tripId, myUserId, canCreatePoll, members }: IdeasTabP
   const [view, setView] = useState<View>('wishlist')
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 animate-cascade">
       <div
         role="tablist"
         aria-label="Ý tưởng"
@@ -51,11 +51,13 @@ export function IdeasTab({ tripId, myUserId, canCreatePoll, members }: IdeasTabP
         ))}
       </div>
 
-      {view === 'wishlist' ? (
-        <ProposalsPanel tripId={tripId} myUserId={myUserId} members={members} />
-      ) : (
-        <PollsTab tripId={tripId} myUserId={myUserId} canCreate={canCreatePoll} members={members} />
-      )}
+      <div key={view} className="animate-cascade">
+        {view === 'wishlist' ? (
+          <ProposalsPanel tripId={tripId} myUserId={myUserId} members={members} />
+        ) : (
+          <PollsTab tripId={tripId} myUserId={myUserId} canCreate={canCreatePoll} members={members} />
+        )}
+      </div>
     </div>
   )
 }

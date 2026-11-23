@@ -90,7 +90,7 @@ export function AvailabilityTab({ tripId, myUserId, myRole, onEditTrip }: Availa
                 const editable = !data.locked
 
                 return (
-                  <div className="grid gap-6">
+                  <div className="grid gap-6 animate-cascade">
                     {data.locked && data.startDate && data.endDate ? (
                       <LockedBanner tripId={tripId} startDate={data.startDate} endDate={data.endDate} canUnlock={isOwner} />
                     ) : (

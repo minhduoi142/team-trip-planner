@@ -104,7 +104,7 @@ export function AlbumTab({ tripId, canEdit }: AlbumTabProps) {
   }
 
         return (
-        <div className="grid gap-4">
+        <div className="grid gap-4 animate-cascade">
           {/* Thư mục Drive chung */}
               <Card className="rounded-[28px] border-2 border-white/80 bg-gradient-to-br from-sky-50/90 via-indigo-50/70 to-violet-50/90 shadow-clay-card">
                 <CardHeader className="flex flex-row items-start justify-between gap-2 p-5 pb-3">
@@ -237,7 +237,7 @@ export function AlbumTab({ tripId, canEdit }: AlbumTabProps) {
           {data.photos.length === 0 ? 'Chưa có ảnh nào. Dán link ảnh Drive đẹp nhất của chuyến vào nhé 📸' : 'Ngày này chưa có ảnh.'}
         </p>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 stagger-list">
           {photos.map((p) => (
             <PhotoTile key={p.id} photo={p} onEdit={() => setEditing(p)} onDelete={() => setToDelete(p)} />
           ))}

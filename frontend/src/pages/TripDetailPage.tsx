@@ -184,7 +184,7 @@ export function TripDetailPage() {
                     </div>
 
                         <TabsContent value="overview" className="mt-4 grid gap-6 md:grid-cols-5">
-                          <div className="space-y-6 md:col-span-3">
+                          <div className="space-y-6 md:col-span-3 animate-cascade">
                             {data.description && (
               <Card className="rounded-[28px] shadow-clay-card border border-border/60 bg-card">
                 <CardHeader>
@@ -199,7 +199,7 @@ export function TripDetailPage() {
               <MemberList tripId={data.id} members={data.members} currentUserId={user.id} myRole={data.myRole} />
             )}
           </div>
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 animate-cascade">
             {data.inviteCode && (
               <InviteShare
                 tripId={data.id}
@@ -289,7 +289,7 @@ export function TripDetailPage() {
                             <Skeleton className="h-44 rounded-[28px]" />
                             <Skeleton className="h-64 rounded-[28px]" />
                           </div>
-                          <div className="md:col-span-2">
+                          <div className="md:col-span-2 animate-cascade">
                             <Skeleton className="h-56 rounded-[28px]" />
                           </div>
                         </div>

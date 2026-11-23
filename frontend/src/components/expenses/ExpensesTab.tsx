@@ -125,7 +125,7 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
   }
 
         return (
-        <div className="grid gap-4">
+        <div className="grid gap-4 animate-cascade">
           {/* Tổng quan */}
               <Card className="rounded-[28px] border-2 border-white/80 bg-gradient-to-br from-emerald-50/90 via-sky-50/70 to-teal-50/90 shadow-clay-card">
                 <CardContent className="grid gap-3 p-5 sm:p-6">
@@ -252,7 +252,7 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
                                                   </p>
                                                   ) : (
         [...groups.entries()].map(([date, expenses]) => (
-                                                  <section key={date || 'none'} className="grid gap-2">
+                                                  <section key={date || 'none'} className="grid gap-2 stagger-list">
                                                     <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">{date ? formatDate(date) : 'Không rõ ngày'}</h4>
                                                     {expenses.map((e) => {
                                                       const cat = expenseCategory(e.category)

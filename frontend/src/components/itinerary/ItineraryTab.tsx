@@ -159,7 +159,7 @@ export function ItineraryTab({ tripId, canEdit }: ItineraryTabProps) {
   }
 
           return (
-          <div className="grid gap-4">
+          <div className="grid gap-4 animate-cascade">
             <DndContext
               sensors={sensors}
               collisionDetection={collisionDetection}
@@ -171,6 +171,7 @@ export function ItineraryTab({ tripId, canEdit }: ItineraryTabProps) {
                   <DayPills days={data.days} selectedId={day.id} onSelect={setSelectedId} dragging={activeItem !== null} />
                 </div>
 
+                <div key={day.id} className="grid gap-4 animate-cascade">
                 {day.overflow && (
                     <div className="flex items-start justify-between gap-3 rounded-[24px] border-2 border-amber-300 bg-amber-50/90 p-4 text-sm text-amber-950 shadow-clay-card">
                       <p>
@@ -212,7 +213,7 @@ export function ItineraryTab({ tripId, canEdit }: ItineraryTabProps) {
           </p>
         ) : (
           <SortableContext items={day.items.map((i) => itemDndId(i.id))} strategy={verticalListSortingStrategy}>
-            <ol className="grid gap-2.5">
+            <ol className="grid gap-2.5 stagger-list">
               {day.items.map((item) => (
                 <ItemCard
                   key={item.id}
@@ -236,6 +237,7 @@ export function ItineraryTab({ tripId, canEdit }: ItineraryTabProps) {
             </ol>
           </SortableContext>
         )}
+                </div>
 
         <DragOverlay>{activeItem ? <ItemCardBody item={activeItem} floating /> : null}</DragOverlay>
       </DndContext>

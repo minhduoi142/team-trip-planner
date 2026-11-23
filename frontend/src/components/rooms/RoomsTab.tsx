@@ -77,7 +77,7 @@ export function RoomsTab({ tripId, myUserId, canEdit }: RoomsTabProps) {
   }
 
         return (
-        <div className="grid gap-4">
+        <div className="grid gap-4 animate-cascade">
           <div className="flex items-center justify-between gap-2">
               <div className="rounded-full border border-white/80 bg-card/90 px-4 py-1.5 text-xs sm:text-sm font-semibold shadow-clay-badge text-foreground">
                 {myRoom ? (
@@ -105,7 +105,7 @@ export function RoomsTab({ tripId, myUserId, canEdit }: RoomsTabProps) {
                 </p>
               </div>
               ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2 stagger-list">
                 {data.rooms.map((room) => {
                   const full = room.capacity !== null && room.members.length >= room.capacity
                   const amIn = room.members.some((m) => m.userId === myUserId)

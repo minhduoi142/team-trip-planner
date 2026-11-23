@@ -101,7 +101,7 @@ export function ChecklistTab({ tripId, myUserId, canEdit, members }: ChecklistTa
   }
 
         return (
-        <div className="grid gap-4">
+        <div className="grid gap-4 animate-cascade">
               <Card className="rounded-[28px] border-2 border-white/80 bg-gradient-to-br from-teal-50/90 via-emerald-50/70 to-sky-50/90 shadow-clay-card">
                 <CardContent className="grid gap-3 p-5 sm:p-6">
                   <div className="flex items-baseline justify-between">
@@ -185,7 +185,7 @@ export function ChecklistTab({ tripId, myUserId, canEdit, members }: ChecklistTa
                               ({items.filter((i) => i.checked).length}/{items.length})
                             </span>
                         </h3>
-                        <ul className="grid gap-2">
+                        <ul className="grid gap-2 stagger-list">
                           {items.map((item) => {
                             const isMine = item.assignee?.userId === myUserId
                             const canCheck = isMine || canEdit

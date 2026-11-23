@@ -416,6 +416,33 @@
     }
 }
 
+@keyframes detail-unfold {
+    0% {
+        opacity: 0;
+        transform: translateY(24px) scale(0.95);
+        filter: blur(6px);
+    }
+    60% {
+        opacity: 0.92;
+        transform: translateY(-2px) scale(1.008);
+        filter: blur(0px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0px);
+    }
+}
+
+@keyframes tab-fade {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
 @keyframes float-gentle-1 {
     0%, 100% {
         transform: translateY(0px) rotate(0deg);
@@ -543,6 +570,35 @@
     .animate-exhaust-puff {
         animation: exhaust-puff 2s ease-out infinite;
     }
+    .animate-tab-unfold {
+        animation: tab-fade 0.4s ease-out both;
+    }
+    .animate-cascade > * {
+        animation: detail-unfold 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .animate-cascade > *:nth-child(1) { animation-delay: 0.06s; }
+    .animate-cascade > *:nth-child(2) { animation-delay: 0.18s; }
+    .animate-cascade > *:nth-child(3) { animation-delay: 0.30s; }
+    .animate-cascade > *:nth-child(4) { animation-delay: 0.42s; }
+    .animate-cascade > *:nth-child(5) { animation-delay: 0.54s; }
+    .animate-cascade > *:nth-child(6) { animation-delay: 0.66s; }
+    .animate-cascade > *:nth-child(7) { animation-delay: 0.78s; }
+    .animate-cascade > *:nth-child(n+8) { animation-delay: 0.90s; }
+
+    .stagger-list > * {
+        animation: detail-unfold 0.68s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .stagger-list > *:nth-child(1) { animation-delay: 0.08s; }
+    .stagger-list > *:nth-child(2) { animation-delay: 0.18s; }
+    .stagger-list > *:nth-child(3) { animation-delay: 0.28s; }
+    .stagger-list > *:nth-child(4) { animation-delay: 0.38s; }
+    .stagger-list > *:nth-child(5) { animation-delay: 0.48s; }
+    .stagger-list > *:nth-child(6) { animation-delay: 0.58s; }
+    .stagger-list > *:nth-child(7) { animation-delay: 0.68s; }
+    .stagger-list > *:nth-child(8) { animation-delay: 0.78s; }
+    .stagger-list > *:nth-child(9) { animation-delay: 0.88s; }
+    .stagger-list > *:nth-child(n+10) { animation-delay: 0.98s; }
+
     .clay-bg-dots {
         background-image: radial-gradient(color-mix(in oklch, var(--primary) 18%, transparent) 1.5px, transparent 1.5px);
         background-size: 28px 28px;
@@ -571,7 +627,10 @@
     .animate-float-gentle-1,
     .animate-float-gentle-2,
     .animate-float-gentle-3,
-    .animate-float-gentle-4 {
+    .animate-float-gentle-4,
+    .animate-tab-unfold,
+    .animate-cascade > *,
+    .stagger-list > * {
         animation: none !important;
     }
 }
