@@ -1,8 +1,9 @@
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router'
+import { createBrowserRouter, RouterProvider } from 'react-router'
 import { ProtectedRoute, PublicOnlyRoute } from '@/auth/routes'
 import { AppLayout } from '@/components/AppLayout'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { JoinPage } from '@/pages/JoinPage'
+import { LandingPage } from '@/pages/LandingPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { RegisterPage } from '@/pages/RegisterPage'
@@ -10,7 +11,7 @@ import { ShareRedirectPage } from '@/pages/ShareRedirectPage'
 import { TripDetailPage } from '@/pages/TripDetailPage'
 
 const router = createBrowserRouter([
-  { path: '/', element: <Navigate to="/trips" replace /> },
+  { path: '/', element: <LandingPage /> },
   {
     element: <PublicOnlyRoute />,
     children: [
