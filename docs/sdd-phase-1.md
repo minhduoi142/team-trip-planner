@@ -489,7 +489,7 @@ Lệnh:
 | # | Mặc định | Phương án khác |
 |---|---|---|
 | 1 | Người join qua link nhận quyền **EDITOR** (nhóm bạn, ai cũng góp được) | `VIEWER`, Owner nâng quyền sau |
-| 2 | JWT hết hạn sau 7 ngày, lưu `localStorage`, chưa có refresh token | Refresh token + cookie HttpOnly (thêm khoảng nửa ngày) |
+| 2 | JWT hết hạn sau 7 ngày, lưu `localStorage`, chưa có refresh token. **Đã thay** bằng access token 15 phút trong bộ nhớ + refresh token rotation trong cookie HttpOnly (xem `docs/sdd-refresh-token.md`) | Refresh token + cookie HttpOnly (thêm khoảng nửa ngày) |
 | 3 | Google login có email trùng với user đã có thì tự **liên kết** vào tài khoản đó | Luôn tạo tài khoản riêng |
 | 4 | Chưa có "quên mật khẩu". Muốn reset thì Owner hoặc admin làm tay trong DB | Reset qua email (cần dịch vụ gửi mail) |
 | 5 | Toàn bộ chuỗi trong DB dùng collation `utf8mb4_0900_ai_ci` (không phân biệt hoa/thường, dấu) | Collation riêng cho cột cần phân biệt |

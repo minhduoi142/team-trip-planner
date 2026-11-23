@@ -1,13 +1,20 @@
-import axios, { AxiosError } from 'axios'
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import type { ErrorCode, ProblemDetail } from '@/types/api'
+import { API_BASE_URL } from './config'
+import { refreshErrorCode, refreshSession } from './session'
 import { tokenStorage } from './token'
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+  // Gửi/nhận cookie refresh token (HttpOnly) cả khi FE và BE khác cổng (dev: 5173 ↔ 8080)
+  withCredentials: true,
 })
 
-/** Sự kiện phát ra khi token hết hạn / không hợp lệ để AuthProvider đăng xuất. */
+/**
+ * Phát ra khi phiên không cứu được (refresh thất bại) để AuthProvider đăng xuất.
+ * `detail` = mã lỗi refresh (vd REFRESH_TOKEN_REUSED để báo người dùng).
+ */
 export const UNAUTHORIZED_EVENT = 'tp:unauthorized'
 
 api.interceptors.request.use((config) => {
@@ -18,13 +25,24 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+type RetriableConfig = InternalAxiosRequestConfig & { _retriedAfterRefresh?: boolean }
+
+/** Access token hết hạn (401) → refresh 1 lần (single-flight) rồi gửi lại request; không được thì đăng xuất. */
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<ProblemDetail>) => {
-    const hadToken = Boolean(error.config?.headers?.Authorization)
-    if (error.response?.status === 401 && hadToken) {
-      tokenStorage.clear()
-      window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
+  async (error: AxiosError<ProblemDetail>) => {
+    const config = error.config as RetriableConfig | undefined
+    const isAuthCall = config?.url?.startsWith('/auth/') ?? false
+    const hadToken = Boolean(config?.headers?.Authorization)
+    if (error.response?.status === 401 && config && hadToken && !isAuthCall && !config._retriedAfterRefresh) {
+      config._retriedAfterRefresh = true
+      try {
+        const auth = await refreshSession()
+        config.headers.Authorization = `Bearer ${auth.accessToken}`
+        return api(config)
+      } catch (refreshError) {
+        window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT, { detail: refreshErrorCode(refreshError) }))
+      }
     }
     return Promise.reject(error)
   },

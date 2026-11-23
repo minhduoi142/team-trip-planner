@@ -1,5 +1,6 @@
 import { CalendarDays, MapPin, Users } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useCallback, useEffect, useRef } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { AuthShell } from '@/components/AuthShell'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -11,23 +12,40 @@ import { useAuth } from '@/auth/useAuth'
 import { useInvitePreview, useJoinTrip } from '@/hooks/useTrips'
 import { getErrorCode, getErrorMessage } from '@/lib/api'
 import { formatDateRange } from '@/lib/date'
+import { joinReturnTo } from '@/lib/inviteCode'
 import { loginPath } from '@/lib/redirect'
 
 export function JoinPage() {
   const { code = '' } = useParams()
   const navigate = useNavigate()
   const { status } = useAuth()
+  const [params] = useSearchParams()
   const preview = useInvitePreview(code)
   const join = useJoinTrip()
+  const { mutate } = join
 
-  const doJoin = () =>
-    join.mutate(code, {
-      onSuccess: (result) => {
-        toast.success(result.alreadyMember ? 'Bạn đã ở trong nhóm này rồi' : 'Vào nhóm thành công! 🎉')
-        navigate(`/trips/${result.tripId}`, { replace: true })
-      },
-      onError: (error) => toast.error(getErrorMessage(error)),
-    })
+  const doJoin = useCallback(
+    () =>
+      mutate(code, {
+        onSuccess: (result) => {
+          toast.success(result.alreadyMember ? 'Bạn đã ở trong nhóm này rồi' : 'Vào nhóm thành công! 🎉')
+          navigate(`/trips/${result.tripId}`, { replace: true })
+        },
+        onError: (error) => toast.error(getErrorMessage(error)),
+      }),
+    [mutate, code, navigate],
+  )
+
+  // Người được mời vừa đăng ký/đăng nhập xong (returnTo có ?auto=1) → tự vào nhóm, khỏi bấm lần nữa.
+  // Backend join idempotent nên gọi lại cũng an toàn.
+  const autoJoin = params.get('auto') === '1'
+  const autoJoined = useRef(false)
+  useEffect(() => {
+    if (autoJoin && status === 'authenticated' && !autoJoined.current) {
+      autoJoined.current = true
+      doJoin()
+    }
+  }, [autoJoin, status, doJoin])
 
   if (preview.isPending) {
     return (
@@ -58,7 +76,7 @@ export function JoinPage() {
                       : getErrorMessage(preview.error)}
                   </p>
                     <Button asChild variant="outline" className="rounded-full shadow-clay-card hover:-translate-y-0.5">
-                      <Link to="/trips">Về trang chủ</Link>
+                      <Link to="/">Về trang chủ</Link>
                     </Button>
                 </CardContent>
               </Card>
@@ -110,9 +128,18 @@ export function JoinPage() {
                                 {join.isPending ? 'Đang vào nhóm…' : 'Tham gia chuyến đi ✨'}
                               </Button>
                             ) : (
-                              <Button asChild size="lg" className="w-full rounded-full shadow-clay-btn-primary font-bold h-12 text-base" disabled={status === 'loading'}>
-                                <Link to={loginPath(`/join/${code}`)}>Đăng nhập để tham gia</Link>
-                              </Button>
+                              // Người lạ: đăng ký (nút chính) hoặc đăng nhập → quay lại đây và tự vào nhóm
+                              <div className="grid gap-2.5">
+                                <Button asChild size="lg" className="w-full rounded-full shadow-clay-btn-primary font-bold h-12 text-base" disabled={status === 'loading'}>
+                                  <Link to={`/register?returnTo=${encodeURIComponent(joinReturnTo(code))}`}>Tạo tài khoản & tham gia</Link>
+                                </Button>
+                                <Button asChild variant="outline" size="lg" className="w-full rounded-full h-12 text-base" disabled={status === 'loading'}>
+                                  <Link to={loginPath(joinReturnTo(code))}>Tôi đã có tài khoản</Link>
+                                </Button>
+                                <p className="text-center text-xs text-muted-foreground">
+                                  Miễn phí, chỉ mất 30 giây. Xong là vào nhóm ngay.
+                                </p>
+                              </div>
                             )}
                           </div>
                       </CardContent>

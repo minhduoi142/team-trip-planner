@@ -54,7 +54,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST,
-                                "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/google").permitAll()
+                                "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/google",
+                                // Đọc refresh token từ cookie HttpOnly, không cần access token
+                                "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/trips/invite/*").permitAll()
                         // Trang xem trước khi share link (Open Graph) + ảnh bìa: public
                         .requestMatchers(HttpMethod.GET, "/share/**").permitAll()
@@ -110,6 +112,8 @@ public class SecurityConfig {
         config.setAllowedOrigins(properties.cors().allowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // Cookie refresh token (HttpOnly) đi kèm request /auth/refresh, /auth/logout từ FE khác cổng
+        config.setAllowCredentials(true);
         config.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

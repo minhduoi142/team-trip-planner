@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router'
+import { Link, Navigate, useNavigate } from 'react-router'
 import {
   ArrowRight,
   ArrowUp,
@@ -13,10 +13,11 @@ import {
   Mail,
   MapPin,
   Menu,
+  MessageCircle,
   QrCode,
-  Send,
   Share2,
   Sparkles,
+  Ticket,
   Users,
   Wallet,
   X,
@@ -30,7 +31,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FloatingBackground } from '@/components/ui/FloatingBackground'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { CONTACT_EMAIL, CONTACT_GMAIL_URL, CONTACT_ZALO_URL } from '@/lib/config'
+import { extractInviteCode } from '@/lib/inviteCode'
 
 /**
  * Trang giới thiệu (Landing Page) cho ứng dụng Team Trip Planner:
@@ -42,11 +44,9 @@ export function LandingPage() {
   const { status } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // Form liên hệ state
-  const [contactName, setContactName] = useState('')
-  const [contactEmail, setContactEmail] = useState('')
-  const [contactMessage, setContactMessage] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const navigate = useNavigate()
+  // Ô "Có mã mời?": người được mời tự gõ tên miền vẫn vào thẳng trang tham gia
+  const [inviteInput, setInviteInput] = useState('')
 
   // 1. Kiểm tra luồng Auth:
   // Đang tải dữ liệu session -> hiển thị spinner
@@ -59,37 +59,14 @@ export function LandingPage() {
     return <Navigate to="/trips" replace />
   }
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const goToInvite = (e: React.FormEvent) => {
     e.preventDefault()
-
-    const trimmedName = contactName.trim()
-    const trimmedEmail = contactEmail.trim()
-    const trimmedMessage = contactMessage.trim()
-
-    if (!trimmedName) {
-      toast.error('Vui lòng nhập họ và tên của bạn.')
+    const code = extractInviteCode(inviteInput)
+    if (code.length < 4) {
+      toast.error('Nhập mã mời hoặc dán link mời bạn bè gửi nhé')
       return
     }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(trimmedEmail)) {
-      toast.error('Vui lòng nhập địa chỉ email hợp lệ.')
-      return
-    }
-
-    if (trimmedMessage.length < 5) {
-      toast.error('Nội dung tin nhắn cần tối thiểu 5 ký tự.')
-      return
-    }
-
-    setIsSubmitting(true)
-    setTimeout(() => {
-      setIsSubmitting(false)
-      toast.success('Cảm ơn bạn đã gửi liên hệ! Minhduoi và Công Ty TNHH Mai Mối sẽ phản hồi sớm nhất.')
-      setContactName('')
-      setContactEmail('')
-      setContactMessage('')
-    }, 600)
+    navigate(`/join/${code}`)
   }
 
   /**
@@ -304,8 +281,8 @@ export function LandingPage() {
               {/* Action Buttons */}
               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5">
                 <Button asChild size="lg" className="w-full sm:w-auto rounded-full h-13 px-8 text-base shadow-clay-btn-primary">
-                  <Link to="/login">
-                    Bắt đầu ngay
+                  <Link to="/register">
+                    Bắt đầu miễn phí
                     <ArrowRight className="ml-1.5 size-5" />
                   </Link>
                 </Button>
@@ -316,6 +293,25 @@ export function LandingPage() {
                   </a>
                 </Button>
               </div>
+
+              {/* Có mã mời? → trang tham gia (không cần đăng nhập trước) */}
+              <form
+                onSubmit={goToInvite}
+                className="mt-6 mx-auto lg:mx-0 flex max-w-md items-center gap-2 rounded-full border-2 border-white/90 bg-card/90 p-1.5 pl-4 shadow-clay-card"
+              >
+                <Ticket className="size-4 shrink-0 text-primary" />
+                <Input
+                  value={inviteInput}
+                  onChange={(e) => setInviteInput(e.target.value)}
+                  placeholder="Có mã mời? Nhập mã hoặc dán link"
+                  aria-label="Mã mời hoặc link mời"
+                  autoCapitalize="characters"
+                  className="h-10 min-w-0 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
+                />
+                <Button type="submit" size="sm" className="h-10 shrink-0 rounded-full px-4 shadow-clay-btn-primary">
+                  Vào nhóm
+                </Button>
+              </form>
 
               {/* Micro-props / Trust Indicators */}
               <div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs sm:text-sm text-muted-foreground">
@@ -674,8 +670,8 @@ export function LandingPage() {
                       <Mail className="size-4.5 text-primary shrink-0 mt-0.5" />
                       <div>
                         <div className="text-xs text-muted-foreground font-medium">Email hỗ trợ & Hợp tác</div>
-                        <a href="mailto:minhduoi142006@gmail.com" className="font-semibold text-primary hover:underline break-all">
-                          minhduoi142006@gmail.com
+                        <a href={`mailto:${CONTACT_EMAIL}`} className="font-semibold text-primary hover:underline break-all">
+                          {CONTACT_EMAIL}
                         </a>
                       </div>
                     </div>
@@ -706,83 +702,57 @@ export function LandingPage() {
               </Card>
             </div>
 
-            {/* Right Column: Quick Contact & Feedback Form */}
+            {/* Right Column: liên hệ nhanh qua Zalo / Gmail (không qua backend) */}
             <div className="lg:col-span-7">
-              <Card className="rounded-3xl bg-card/90 backdrop-blur-md shadow-clay-card border-2 border-white/90 p-6 sm:p-7">
+              <Card className="h-full rounded-3xl bg-card/90 backdrop-blur-md shadow-clay-card border-2 border-white/90 p-6 sm:p-7">
                 <CardHeader className="p-0 mb-6">
                   <CardTitle className="text-xl font-bold text-foreground">
-                    Gửi tin nhắn hoặc góp ý nhanh
+                    Nhắn cho đội phát triển
                   </CardTitle>
                   <CardDescription className="text-sm text-muted-foreground">
-                    Mọi ý kiến đóng góp của bạn giúp ứng dụng ngày càng tiện lợi hơn cho các hội nhóm.
+                    Góp ý tính năng, báo lỗi hay muốn hợp tác? Chọn kênh bạn quen dùng, tụi mình sẽ phản hồi sớm nhất.
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="p-0">
-                  <form onSubmit={handleContactSubmit} className="space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <label htmlFor="contact-name" className="text-xs font-semibold text-foreground">
-                          Họ và tên <span className="text-destructive">*</span>
-                        </label>
-                        <Input
-                          id="contact-name"
-                          placeholder="Nguyễn Văn A"
-                          value={contactName}
-                          onChange={(e) => setContactName(e.target.value)}
-                          disabled={isSubmitting}
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label htmlFor="contact-email" className="text-xs font-semibold text-foreground">
-                          Email của bạn <span className="text-destructive">*</span>
-                        </label>
-                        <Input
-                          id="contact-email"
-                          type="email"
-                          placeholder="example@gmail.com"
-                          value={contactEmail}
-                          onChange={(e) => setContactEmail(e.target.value)}
-                          disabled={isSubmitting}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label htmlFor="contact-message" className="text-xs font-semibold text-foreground">
-                        Nội dung góp ý / liên hệ <span className="text-destructive">*</span>
-                      </label>
-                      <Textarea
-                        id="contact-message"
-                        placeholder="Hãy chia sẻ cảm nghĩ, tính năng bạn muốn có thêm hoặc bất kỳ điều gì bạn muốn nhắn gửi..."
-                        rows={4}
-                        value={contactMessage}
-                        onChange={(e) => setContactMessage(e.target.value)}
-                        disabled={isSubmitting}
-                        required
-                      />
-                    </div>
-
-                    <div className="pt-2">
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full sm:w-auto rounded-full h-11 px-7 shadow-clay-btn-primary"
-                      >
-                        {isSubmitting ? (
-                          <>Đang gửi...</>
-                        ) : (
-                          <>
-                            <Send className="mr-1.5 size-4" />
-                            Gửi liên hệ ngay
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
+                <CardContent className="grid gap-3.5 p-0 sm:grid-cols-2">
+                  {CONTACT_ZALO_URL && (
+                    <a
+                      href={CONTACT_ZALO_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group flex items-center gap-3.5 rounded-3xl border-2 border-white/90 bg-sky-50/90 p-4 shadow-clay-card transition-transform duration-200 hover:-translate-y-0.5 active:scale-98"
+                    >
+                      <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 text-white shadow-clay-badge">
+                        <MessageCircle className="size-6" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block font-bold text-foreground">Nhắn Zalo</span>
+                        <span className="block text-xs text-muted-foreground">Trả lời nhanh nhất</span>
+                      </span>
+                      <ArrowRight className="ml-auto size-4 shrink-0 text-sky-600 transition-transform group-hover:translate-x-0.5" />
+                    </a>
+                  )}
+                  <a
+                    href={CONTACT_GMAIL_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group flex items-center gap-3.5 rounded-3xl border-2 border-white/90 bg-rose-50/90 p-4 shadow-clay-card transition-transform duration-200 hover:-translate-y-0.5 active:scale-98"
+                  >
+                    <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-red-500 text-white shadow-clay-badge">
+                      <Mail className="size-6" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-bold text-foreground">Gửi Gmail</span>
+                      <span className="block truncate text-xs text-muted-foreground">{CONTACT_EMAIL}</span>
+                    </span>
+                    <ArrowRight className="ml-auto size-4 shrink-0 text-rose-600 transition-transform group-hover:translate-x-0.5" />
+                  </a>
+                  <p className="text-xs text-muted-foreground sm:col-span-2">
+                    Không dùng Gmail?{' '}
+                    <a href={`mailto:${CONTACT_EMAIL}`} className="font-semibold text-primary hover:underline">
+                      Mở ứng dụng email khác
+                    </a>
+                  </p>
                 </CardContent>
               </Card>
             </div>

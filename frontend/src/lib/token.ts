@@ -1,24 +1,45 @@
-const TOKEN_KEY = 'tp.accessToken'
+/**
+ * Access token chỉ sống trong BỘ NHỚ của tab (không ghi localStorage): XSS không lấy được token lâu dài.
+ * Tải lại trang → mất token → AuthProvider gọi /auth/refresh (cookie HttpOnly) để lấy lại.
+ * Xem docs/sdd-refresh-token.md.
+ */
+let accessToken: string | null = null
 
-/** localStorage có thể bị chặn (chế độ riêng tư): mọi thao tác đều bọc try/catch. */
+/** Key cũ (trước khi có refresh token): xóa một lần để token 7 ngày không còn nằm trong máy. */
+const LEGACY_TOKEN_KEY = 'tp.accessToken'
+/** Cờ KHÔNG bí mật: "có thể đang có cookie refresh" → khách chưa đăng nhập khỏi phải gọi refresh. */
+const SESSION_HINT_KEY = 'tp.hasSession'
+
+try {
+  localStorage.removeItem(LEGACY_TOKEN_KEY)
+} catch {
+  /* localStorage bị chặn (chế độ riêng tư): bỏ qua */
+}
+
 export const tokenStorage = {
   get(): string | null {
-    try {
-      return localStorage.getItem(TOKEN_KEY)
-    } catch {
-      return null
-    }
+    return accessToken
   },
   set(token: string): void {
-    try {
-      localStorage.setItem(TOKEN_KEY, token)
-    } catch {
-      /* bỏ qua: phiên chỉ sống trong bộ nhớ */
-    }
+    accessToken = token
   },
   clear(): void {
+    accessToken = null
+  },
+}
+
+export const sessionHint = {
+  get(): boolean {
     try {
-      localStorage.removeItem(TOKEN_KEY)
+      return localStorage.getItem(SESSION_HINT_KEY) === '1'
+    } catch {
+      return true // không đọc được thì cứ thử refresh
+    }
+  },
+  set(on: boolean): void {
+    try {
+      if (on) localStorage.setItem(SESSION_HINT_KEY, '1')
+      else localStorage.removeItem(SESSION_HINT_KEY)
     } catch {
       /* bỏ qua */
     }

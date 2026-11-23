@@ -18,7 +18,7 @@ import { FloatingBackground } from '@/components/ui/FloatingBackground'
 
 /** Khung chung cho các trang đã đăng nhập: header + nội dung + background bay bổng. */
 export function AppLayout() {
-  const { user, signOut } = useAuth()
+  const { user, logout } = useAuth()
   const [profileOpen, setProfileOpen] = useState(false)
 
   return (
@@ -44,7 +44,7 @@ export function AppLayout() {
                   <UserRound />
                   Hồ sơ
                 </DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onSelect={signOut}>
+                <DropdownMenuItem variant="destructive" onSelect={logout}>
                   <LogOut />
                   Đăng xuất
                 </DropdownMenuItem>

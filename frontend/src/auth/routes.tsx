@@ -3,14 +3,17 @@ import { FullPageSpinner } from '@/components/FullPageSpinner'
 import { loginPath, safeReturnTo } from '@/lib/redirect'
 import { useAuth } from './useAuth'
 
-/** Trang cần đăng nhập: chưa đăng nhập thì chuyển về /login, giữ lại returnTo. */
+/**
+ * Trang cần đăng nhập: chưa đăng nhập thì chuyển về /login, giữ lại returnTo.
+ * Vừa tự bấm Đăng xuất thì về landing thay vì trang đăng nhập.
+ */
 export function ProtectedRoute() {
-  const { status } = useAuth()
+  const { status, loggedOut } = useAuth()
   const location = useLocation()
 
   if (status === 'loading') return <FullPageSpinner />
   if (status === 'anonymous') {
-    return <Navigate to={loginPath(location.pathname + location.search)} replace />
+    return <Navigate to={loggedOut ? '/' : loginPath(location.pathname + location.search)} replace />
   }
   return <Outlet />
 }

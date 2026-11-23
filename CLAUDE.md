@@ -22,7 +22,7 @@ Login is Google **or** username/password. No Drive OAuth scope is requested, so 
 
 ## Current state
 
-All 5 phases, the MinIO image upload and the proposals wishlist are implemented (see `docs/sdd-phase-{1..5}.md`, `docs/sdd-media-upload.md` and `docs/sdd-proposals.md`). The backend runs against local MySQL 8.0.44 and MinIO, and all 116 tests pass, including the integration tests and the real-MinIO test. **Not deployed yet:** the user chose to run locally only for now. When deploying, write a separate SDD; uploaded images should go to MinIO on the same host, and `backend/Dockerfile` is ready but has never been built. The frontend builds and lints cleanly but has not been tried in a browser yet. The Docker image has not been built yet because Docker Desktop is turned off.
+All 5 phases, the MinIO image upload and the proposals wishlist are implemented (see `docs/sdd-phase-{1..5}.md`, `docs/sdd-media-upload.md` and `docs/sdd-proposals.md`). The backend runs against local MySQL 8.0.44 and MinIO, and all 128 tests pass, including the integration tests and the real-MinIO test. **Not deployed yet:** the user chose to run locally only for now. When deploying, write a separate SDD; uploaded images should go to MinIO on the same host, and `backend/Dockerfile` is ready but has never been built. The frontend builds and lints cleanly but has not been tried in a browser yet. The Docker image has not been built yet because Docker Desktop is turned off.
 
 ## Commands
 
@@ -47,7 +47,8 @@ Frontend (`frontend/`):
 ## Architecture
 
 **Backend** (`com.tripplanner`). Packages are split by feature (`auth`, `user`, `trip`) plus `common` and `config`.
-- **Auth:** stateless. The app issues its own HS256 JWT (`JwtService`), and `oauth2-resource-server` verifies it. The JWT `sub` claim is the userId; controllers read it with `@AuthenticationPrincipal Jwt` + `CurrentUser.id(jwt)`.
+- **Auth:** stateless. The app issues its own HS256 JWT (`JwtService`), and `oauth2-resource-server` verifies it. The JWT `sub` claim is the userId; controllers read it with `@AuthenticationPrincipal Jwt` + `CurrentUser.id(jwt)`. Access tokens live **15 minutes** (`JWT_ACCESS_TTL_MINUTES`).
+- **Refresh tokens (V8, `docs/sdd-refresh-token.md`, package `auth.refresh`):** login/register/google open a **token family** and set the HttpOnly cookie `tp_rt` (`Path=/api/v1/auth`, `SameSite=Strict`, `Secure`). `POST /auth/refresh` rotates the token: the old one is consumed, and a new one is issued in the same family. The decision lives in the pure class `RefreshTokenPolicy` (unit-tested): a consumed token reused within 10 s is `REFRESH_TOKEN_STALE` (two tabs refreshing at once, no revoke); later reuse is `REFRESH_TOKEN_REUSED`, which **revokes the whole family**. `rotate` locks the family row and uses `noRollbackFor = BusinessException` so the revoke commits. Only SHA-256 hashes are stored; `user_id` sits on the family only (BCNF); there is no self-FK `parent_id` (MySQL cascade depth 15). `POST /auth/logout` (cookie) and `/auth/logout-all` (access token) revoke families; a nightly `@Scheduled` job deletes old families. CORS has `allowCredentials(true)`.
 - **Google login:** the FE sends a Google ID token to `POST /api/v1/auth/google`. `NimbusGoogleTokenVerifier` checks it against Google's JWKS. That decoder is deliberately **not** a bean, so it never clashes with the app's `JwtDecoder`. Tests mock the `GoogleTokenVerifier` interface. A password account can attach Google from the profile (`PUT/DELETE /api/v1/users/me/google`, `UserService.linkGoogle/unlinkGoogle`, `GoogleLinkSection`); two existing accounts are never merged automatically. Unlinking also clears `email`, otherwise the next Google login would relink by email. The Google button is hidden while `VITE_GOOGLE_CLIENT_ID` is empty, and the backend returns `GOOGLE_LOGIN_NOT_CONFIGURED` while `GOOGLE_CLIENT_ID` is empty; both must hold the same Client ID.
 - **Authorization:** every trip-scoped check goes through `TripAccessService.require(tripId, userId, minRole)`, where `VIEWER < EDITOR < OWNER` by enum order. Reuse it for later phases (availability, itinerary, …).
 - **Errors:** `BusinessException(ErrorCode)` → `GlobalExceptionHandler` → `ProblemDetail` with extra `code` and optional `fieldErrors`. 401/403 raised by the security filter chain use the same shape. To add an error, add it to `ErrorCode` **and** to `frontend/src/types/api.ts`.
@@ -78,12 +79,15 @@ Frontend (`frontend/`):
 
 **Frontend** (`src/`):
 - `types/`: mirrors the Java DTOs 1:1.
-- `api/`: axios calls only. The `lib/api.ts` interceptor attaches the JWT. On a 401 it clears the token and fires an event that `AuthProvider` listens for.
+- `api/`: axios calls only (`withCredentials: true` for the refresh cookie). The `lib/api.ts` interceptor attaches the JWT. On a 401 from a non-`/auth/*` call it runs `refreshSession()` once and retries the request; if that fails it fires `UNAUTHORIZED_EVENT` (detail = error code) for `AuthProvider`.
+- Access token is **memory-only** (`lib/token.ts`), never localStorage; `tp.hasSession` is a non-secret hint so that anonymous visitors skip the refresh call. `lib/session.ts` makes refresh single-flight inside a tab and serialises it across tabs with Web Locks, retrying once on `REFRESH_TOKEN_STALE`. On page load `AuthProvider` calls refresh to restore the session. `BroadcastChannel('tp-auth')` syncs login/logout across tabs. Profile → Bảo mật has "Đăng xuất mọi thiết bị".
 - `hooks/`: TanStack Query hooks; UI components never call `api/` directly.
 - `pages/`, `components/`. `components/ui/` is generated by Shadcn; avoid hand-editing it.
-- Routing:
-  - `ProtectedRoute` sends logged-out users to `/login?returnTo=…`, and `PublicOnlyRoute` sends logged-in users on to `returnTo`. This keeps invite links working across login.
-  - `/join/:code` is public.
+- Routing (`docs/sdd-landing-flow.md`):
+  - `/` is the landing page for anonymous users; logged-in users are redirected to `/trips`.
+  - `ProtectedRoute` sends logged-out users to `/login?returnTo=…`, except right after the user clicks **Đăng xuất** (`AuthProvider.logout()` sets `loggedOut`), when it sends them to `/`. A 401 uses `signOut()` and keeps the login redirect. `PublicOnlyRoute` sends logged-in users on to `returnTo`.
+  - `/join/:code` is public. Anonymous users get "Tạo tài khoản & tham gia" / "Tôi đã có tài khoản" with `returnTo=/join/:code?auto=1`; `auto=1` joins once automatically after auth (the backend join is idempotent). `InviteHint` shows the trip name on login/register. Invite codes are parsed by `lib/inviteCode.ts` (plain code, `/join/…` or `/share/…` links).
+  - Landing contact opens Zalo/Gmail (`VITE_CONTACT_ZALO`, `VITE_CONTACT_EMAIL` in `lib/config.ts`); there is no backend form. The `og:image` of `index.html` is `%OG_ORIGIN%/og-image.jpg`, which the `ogOrigin` Vite plugin fills from `VITE_SHARE_BASE_URL` at build time.
 - Trip covers are either an http(s) URL or `preset:<key>`, which `lib/covers.ts` renders as a gradient. The backend validates both forms.
 - Image upload: `ImageUploadButton` → `useUploadImage` → `lib/imageCompress.ts` (resizes on the client to at most 1920px and encodes WebP, or JPEG on Safari) → `api/media.ts`. That call must override `Content-Type: multipart/form-data`; otherwise axios turns the FormData into JSON.
 - Query keys live in `tripKeys` (`hooks/useTrips.ts`). The availability and days keys sit **under** `detail(tripId)`, so invalidating a trip's detail refreshes them too. The availability PUT returns the full matrix, which is written straight into the cache.

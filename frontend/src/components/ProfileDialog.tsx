@@ -15,6 +15,7 @@ import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import type { UserResponse } from '@/types/auth'
 import { BankAccountSection } from './BankAccountSection'
 import { GoogleLinkSection } from './GoogleLinkSection'
+import { SessionSecuritySection } from './SessionSecuritySection'
 import { FormField } from './FormField'
 import { ImageUploadButton } from './ImageUploadButton'
 import { UserAvatar } from './UserAvatar'
@@ -35,6 +36,7 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
             {/* Form riêng (không lồng trong form hồ sơ) */}
             <BankAccountSection user={user} />
             <GoogleLinkSection user={user} />
+            <SessionSecuritySection />
           </>
         )}
       </DialogContent>

@@ -36,7 +36,7 @@ public abstract class IntegrationTest {
     protected ObjectMapper objectMapper;
 
     @Autowired
-    private JdbcTemplate jdbc;
+    protected JdbcTemplate jdbc;
 
     @MockitoBean
     protected GoogleTokenVerifier googleTokenVerifier;

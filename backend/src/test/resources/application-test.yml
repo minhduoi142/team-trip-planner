@@ -8,7 +8,13 @@ app:
   jwt:
     # Secret chỉ dùng cho test, không dùng ở môi trường thật
     secret: test-only-secret-key-for-integration-tests-0123456789
-    expiration-days: 7
+    access-ttl-minutes: 15
+  auth:
+    refresh-ttl-days: 14
+    family-max-days: 60
+    reuse-grace-seconds: 10
+    cookie-secure: true
+    cookie-same-site: Strict
   google:
     client-id: test-client-id.apps.googleusercontent.com
   seed:

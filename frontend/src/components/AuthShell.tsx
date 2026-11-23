@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router'
 import { BrandLogo } from './BrandLogo'
 import { FloatingBackground } from '@/components/ui/FloatingBackground'
 
@@ -9,7 +10,9 @@ export function AuthShell({ children }: { children: ReactNode }) {
       <FloatingBackground />
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-6 flex justify-center">
-          <BrandLogo />
+          <Link to="/" aria-label="Về trang giới thiệu" className="rounded-2xl">
+            <BrandLogo />
+          </Link>
         </div>
         {children}
       </div>

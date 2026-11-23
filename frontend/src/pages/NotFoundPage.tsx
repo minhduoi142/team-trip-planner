@@ -12,7 +12,7 @@ export function NotFoundPage() {
           <h1 className="text-2xl font-bold text-foreground">Lạc đường rồi!</h1>
           <p className="text-sm font-medium text-muted-foreground">Trang bạn tìm không tồn tại hoặc đã được dời đi.</p>
           <Button asChild className="rounded-full shadow-clay-btn-primary font-bold px-6">
-            <Link to="/trips">Về trang chủ ✨</Link>
+            <Link to="/">Về trang chủ ✨</Link>
           </Button>
         </CardContent>
       </Card>

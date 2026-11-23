@@ -24,6 +24,9 @@ public enum ErrorCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để tiếp tục"),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu"),
     INVALID_GOOGLE_TOKEN(HttpStatus.UNAUTHORIZED, "Đăng nhập Google không hợp lệ hoặc đã hết hạn"),
+    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại"),
+    REFRESH_TOKEN_STALE(HttpStatus.UNAUTHORIZED, "Phiên vừa được làm mới ở tab khác, vui lòng thử lại"),
+    REFRESH_TOKEN_REUSED(HttpStatus.UNAUTHORIZED, "Phát hiện phiên đăng nhập bất thường. Để bảo vệ tài khoản, bạn cần đăng nhập lại"),
 
     FORBIDDEN(HttpStatus.FORBIDDEN, "Bạn không có quyền thực hiện thao tác này"),
     NOT_TRIP_MEMBER(HttpStatus.FORBIDDEN, "Bạn không phải thành viên của chuyến đi này"),

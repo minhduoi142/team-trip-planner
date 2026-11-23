@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { AuthShell } from '@/components/AuthShell'
 import { FormField } from '@/components/FormField'
 import { GoogleLoginButton } from '@/components/GoogleLoginButton'
+import { InviteHint } from '@/components/InviteHint'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -75,6 +76,7 @@ export function RegisterPage() {
             <CardDescription>Chỉ mất vài giây để vào nhóm cùng mọi người</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-5">
+            <InviteHint returnTo={returnTo} action="Đăng ký" />
             <form onSubmit={submit} className="grid gap-4" noValidate>
               <FormField id="displayName" label="Tên hiển thị" error={errors.displayName}>
                 <Input

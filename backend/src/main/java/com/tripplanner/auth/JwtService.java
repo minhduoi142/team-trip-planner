@@ -22,7 +22,7 @@ public class JwtService {
     public JwtService(JwtEncoder encoder, Clock clock, AppProperties properties) {
         this.encoder = encoder;
         this.clock = clock;
-        this.ttl = Duration.ofDays(properties.jwt().expirationDays());
+        this.ttl = Duration.ofMinutes(properties.jwt().accessTtlMinutes());
     }
 
     public IssuedToken issue(User user) {

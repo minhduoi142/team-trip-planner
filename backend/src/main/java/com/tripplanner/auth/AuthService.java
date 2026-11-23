@@ -2,6 +2,9 @@ package com.tripplanner.auth;
 
 import com.tripplanner.auth.GoogleTokenVerifier.GoogleProfile;
 import com.tripplanner.auth.dto.AuthResponse;
+import com.tripplanner.auth.refresh.RefreshTokenService;
+import com.tripplanner.auth.refresh.RefreshTokenService.IssuedRefreshToken;
+import com.tripplanner.auth.refresh.RefreshTokenService.Rotation;
 import com.tripplanner.auth.dto.GoogleLoginRequest;
 import com.tripplanner.auth.dto.LoginRequest;
 import com.tripplanner.auth.dto.RegisterRequest;
@@ -30,9 +33,14 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final GoogleTokenVerifier googleTokenVerifier;
+    private final RefreshTokenService refreshTokenService;
+
+    /** Kết quả đăng nhập: body trả cho FE + refresh token để controller đặt vào cookie HttpOnly. */
+    public record AuthSession(AuthResponse body, IssuedRefreshToken refreshToken) {
+    }
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthSession register(RegisterRequest request, String userAgent) {
         String username = normalizeUsername(request.username());
         if (userRepository.existsByUsername(username)) {
             throw new BusinessException(ErrorCode.USERNAME_TAKEN);
@@ -42,25 +50,25 @@ public class AuthService {
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .displayName(request.displayName().trim())
                 .build());
-        return toResponse(user);
+        return newSession(user, userAgent);
     }
 
-    @Transactional(readOnly = true)
-    public AuthResponse login(LoginRequest request) {
+    @Transactional   // không readOnly: mở họ refresh token mới (INSERT)
+    public AuthSession login(LoginRequest request, String userAgent) {
         Optional<User> found = userRepository.findByUsername(normalizeUsername(request.username()));
         String hash = found.map(User::getPasswordHash).orElse(null);
         boolean matches = passwordEncoder.matches(request.password(), hash != null ? hash : DUMMY_HASH);
         if (found.isEmpty() || hash == null || !matches) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
-        return toResponse(found.get());
+        return newSession(found.get(), userAgent);
     }
 
     /**
      * Tìm theo google_sub → theo email (liên kết vào tài khoản sẵn có) → tạo mới.
      */
     @Transactional
-    public AuthResponse loginWithGoogle(GoogleLoginRequest request) {
+    public AuthSession loginWithGoogle(GoogleLoginRequest request, String userAgent) {
         GoogleProfile profile = googleTokenVerifier.verify(request.idToken());
         String email = StringUtils.hasText(profile.email()) ? profile.email().toLowerCase(Locale.ROOT) : null;
 
@@ -73,7 +81,7 @@ public class AuthService {
                         .displayName(displayNameFrom(profile, email))
                         .avatarUrl(profile.pictureUrl())
                         .build()));
-        return toResponse(user);
+        return newSession(user, userAgent);
     }
 
     private User linkGoogle(User user, GoogleProfile profile) {
@@ -96,7 +104,28 @@ public class AuthService {
         return username.trim().toLowerCase(Locale.ROOT);
     }
 
-    private AuthResponse toResponse(User user) {
+    /** Xoay refresh token (cookie) → access token mới + refresh token mới cùng họ. */
+    @Transactional(noRollbackFor = BusinessException.class)
+    public AuthSession refresh(String rawRefreshToken) {
+        Rotation rotation = refreshTokenService.rotate(rawRefreshToken);
+        return new AuthSession(body(rotation.user()), rotation.token());
+    }
+
+    /** Đăng xuất trình duyệt này: thu hồi họ của refresh token trong cookie. */
+    public void logout(String rawRefreshToken) {
+        refreshTokenService.revokeFamilyOf(rawRefreshToken);
+    }
+
+    /** Đăng xuất mọi thiết bị của user. */
+    public void logoutAll(Long userId) {
+        refreshTokenService.revokeAll(userId);
+    }
+
+    private AuthSession newSession(User user, String userAgent) {
+        return new AuthSession(body(user), refreshTokenService.startFamily(user, userAgent));
+    }
+
+    private AuthResponse body(User user) {
         JwtService.IssuedToken token = jwtService.issue(user);
         return new AuthResponse(token.value(), token.expiresAt(), UserResponse.from(user));
     }
