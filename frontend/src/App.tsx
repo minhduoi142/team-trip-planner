@@ -6,6 +6,7 @@ import { JoinPage } from '@/pages/JoinPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { RegisterPage } from '@/pages/RegisterPage'
+import { ShareRedirectPage } from '@/pages/ShareRedirectPage'
 import { TripDetailPage } from '@/pages/TripDetailPage'
 
 const router = createBrowserRouter([
@@ -19,6 +20,8 @@ const router = createBrowserRouter([
   },
   // Xem trước lời mời không cần đăng nhập
   { path: '/join/:code', element: <JoinPage /> },
+  // Phòng khi proxy chưa chuyển /share/ sang backend (xem ShareRedirectPage)
+  { path: '/share/:code/*', element: <ShareRedirectPage /> },
   {
     element: <ProtectedRoute />,
     children: [
