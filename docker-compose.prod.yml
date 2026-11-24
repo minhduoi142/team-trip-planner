@@ -71,6 +71,9 @@ services:
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Trip Planner}
       NOTIFY_DAILY_LIMIT: ${NOTIFY_DAILY_LIMIT:-400}
+      # 0 = gửi ngay (lượt quét kế tiếp, mỗi NOTIFY_DISPATCH_INTERVAL_MS); > 0 = chờ để gộp nhiều sự kiện vào 1 email
+      NOTIFY_DELAY_MINUTES: ${NOTIFY_DELAY_MINUTES:-0}
+      NOTIFY_DISPATCH_INTERVAL_MS: ${NOTIFY_DISPATCH_INTERVAL_MS:-10000}
       JAVA_OPTS: ${JAVA_OPTS:--Xmx384m -XX:+UseSerialGC}
     depends_on:
       mysql:

@@ -61,12 +61,13 @@ class NotificationEventsIntegrationTest extends IntegrationTest {
     // ---------------------------------------------------------------- thành viên
 
     @Test
-    void joiningNotifiesOtherMembersOnceAfterWindow() throws Exception {
+    void joiningNotifiesOtherMembersOnceWithoutDelay() throws Exception {
         join(maiToken);
         assertThat(rows("MEMBER_JOINED")).containsExactly(linh);
+        // Mặc định không chờ (delay-minutes = 0): đến hạn ngay, lượt quét kế tiếp gửi luôn
         assertThat(jdbc.queryForObject("""
-                SELECT TIMESTAMPDIFF(MINUTE, created_at, send_after) FROM notifications WHERE type = 'MEMBER_JOINED'
-                """, Integer.class)).isEqualTo(30);
+                SELECT TIMESTAMPDIFF(SECOND, created_at, send_after) FROM notifications WHERE type = 'MEMBER_JOINED'
+                """, Integer.class)).isZero();
         assertThat(payload("MEMBER_JOINED", linh).get("memberName").asText()).isEqualTo("Mai");
 
         join(maiToken);   // join lại (idempotent) → không thêm dòng
@@ -236,6 +237,16 @@ class NotificationEventsIntegrationTest extends IntegrationTest {
         mvc.perform(auth(delete("/api/v1/trips/" + tripId + "/members/" + ngoc), ngocToken))
                 .andExpect(MockMvcResultMatchers.status().isNoContent());
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM trip_notification_mutes", Integer.class)).isZero();
+    }
+
+    @Test
+    void joinIsEmailedOnTheNextDispatcherRun() throws Exception {
+        join(maiToken);
+        assertThat(dispatcher.runOnce().sent()).isEqualTo(1);
+        ArgumentCaptor<OutgoingEmail> captor = ArgumentCaptor.forClass(OutgoingEmail.class);
+        verify(mailGateway).send(captor.capture());
+        assertThat(captor.getValue().to()).isEqualTo("linh@example.com");
+        assertThat(captor.getValue().subject()).isEqualTo("[Phú Quốc] Mai đã tham gia nhóm");
     }
 
     @Test

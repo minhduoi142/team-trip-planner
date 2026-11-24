@@ -2,30 +2,28 @@ package com.tripplanner.notification;
 
 /**
  * Loại sự kiện. {@link #category()} và {@link #channel()} suy ra từ type nên không lưu ở DB (BCNF).
- * {@link #windowMinutes()}: cửa sổ chờ để gộp nhiều sự kiện vào 1 email.
+ * Thời gian chờ trước khi gửi là cấu hình chung {@code app.notifications.delay-minutes} (mặc định 0 = gửi ngay).
  */
 public enum NotificationType {
-    COUNTDOWN(NotificationCategory.COUNTDOWN, 0),
+    COUNTDOWN(NotificationCategory.COUNTDOWN),
 
-    MEMBER_JOINED(NotificationCategory.MEMBER, 30),
-    MEMBER_LEFT(NotificationCategory.MEMBER, 30),
-    MEMBER_REMOVED(NotificationCategory.MEMBER, 30),
+    MEMBER_JOINED(NotificationCategory.MEMBER),
+    MEMBER_LEFT(NotificationCategory.MEMBER),
+    MEMBER_REMOVED(NotificationCategory.MEMBER),
     /** Gửi cho chính người bị mời ra: bỏ qua việc tắt thông báo theo chuyến. */
-    YOU_WERE_REMOVED(NotificationCategory.MEMBER, 30),
+    YOU_WERE_REMOVED(NotificationCategory.MEMBER),
 
-    EXPENSE_ADDED(NotificationCategory.EXPENSE, 10),
-    EXPENSE_UPDATED(NotificationCategory.EXPENSE, 10),
-    EXPENSE_DELETED(NotificationCategory.EXPENSE, 10),
-    SETTLEMENT_PENDING(NotificationCategory.EXPENSE, 10),
-    SETTLEMENT_CONFIRMED(NotificationCategory.EXPENSE, 10),
-    SETTLEMENT_REJECTED(NotificationCategory.EXPENSE, 10);
+    EXPENSE_ADDED(NotificationCategory.EXPENSE),
+    EXPENSE_UPDATED(NotificationCategory.EXPENSE),
+    EXPENSE_DELETED(NotificationCategory.EXPENSE),
+    SETTLEMENT_PENDING(NotificationCategory.EXPENSE),
+    SETTLEMENT_CONFIRMED(NotificationCategory.EXPENSE),
+    SETTLEMENT_REJECTED(NotificationCategory.EXPENSE);
 
     private final NotificationCategory category;
-    private final int windowMinutes;
 
-    NotificationType(NotificationCategory category, int windowMinutes) {
+    NotificationType(NotificationCategory category) {
         this.category = category;
-        this.windowMinutes = windowMinutes;
     }
 
     public NotificationCategory category() {
@@ -34,10 +32,6 @@ public enum NotificationType {
 
     public NotificationChannel channel() {
         return this == COUNTDOWN ? NotificationChannel.COUNTDOWN : NotificationChannel.DIGEST;
-    }
-
-    public int windowMinutes() {
-        return windowMinutes;
     }
 
     /** Tắt thông báo theo chuyến có áp dụng không (người đã bị mời ra không còn quyền tắt/bật). */

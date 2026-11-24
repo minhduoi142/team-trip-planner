@@ -503,6 +503,13 @@ Mute = tắt **mọi** email của chuyến đó, kể cả đếm ngược (tr�
 - **Menu "⋯" của trang chuyến** giờ hiện cho mọi thành viên (trước chỉ EDITOR+), vì ai cũng tắt/bật email được; "Sửa thông tin" vẫn chỉ EDITOR+, "Xoá chuyến" chỉ OWNER.
 - **`?tab=`:** Tabs của `TripDetailPage` điều khiển bằng URL (`replace`, tab `overview` thì xoá param); giá trị lạ → `overview`.
 
+### 6.10 Thay đổi sau khi triển khai: gửi ngay, không chờ
+
+Theo yêu cầu người dùng (có thông báo là gửi luôn), bỏ cửa sổ chờ 10/30 phút theo từng loại ở §6.1:
+- `NotificationType` không còn `windowMinutes()`. Thời gian chờ là cấu hình chung `app.notifications.delay-minutes` (`NOTIFY_DELAY_MINUTES`), **mặc định 0**: dòng đến hạn ngay, lượt quét kế tiếp gửi.
+- Lượt quét mặc định **10 giây** (`NOTIFY_DISPATCH_INTERVAL_MS=10000`, trước là 30 giây) → mail đi chậm nhất khoảng 10 giây.
+- Hệ quả: các sự kiện cùng chuyến chỉ còn được gộp nếu xảy ra trong cùng một lượt quét; sửa khoản chi sau khi mail "đã thêm" đã đi sẽ có thêm mail "đã sửa" (logic `CoalescePlanner` giữ nguyên). Muốn gộp lại như thiết kế ban đầu: đặt `NOTIFY_DELAY_MINUTES` > 0.
+
 ## 7. Phase N3 – Đếm ngược
 
 ### 7.1 `CountdownMilestones` (thuần, unit test)

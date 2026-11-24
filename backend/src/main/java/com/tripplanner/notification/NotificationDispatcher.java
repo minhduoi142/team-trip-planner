@@ -84,7 +84,7 @@ public class NotificationDispatcher {
     private record GroupKey(long userId, Long tripId, boolean countdown) {
     }
 
-    @Scheduled(fixedDelayString = "${app.notifications.dispatch-interval-ms:30000}", initialDelay = 15_000)
+    @Scheduled(fixedDelayString = "${app.notifications.dispatch-interval-ms:10000}", initialDelay = 15_000)
     public void scheduledRun() {
         if (!config.schedulerEnabled()) {
             return;

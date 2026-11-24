@@ -76,7 +76,10 @@ app:
   # Tên "notifications" (không phải "notify": trùng Object.notify() trong record AppProperties)
   notifications:
     scheduler-enabled: ${NOTIFY_SCHEDULER_ENABLED:true}
-    dispatch-interval-ms: ${NOTIFY_DISPATCH_INTERVAL_MS:30000}
+    # Bao lâu quét outbox 1 lần (mail đi chậm nhất ~ khoảng này)
+    dispatch-interval-ms: ${NOTIFY_DISPATCH_INTERVAL_MS:10000}
+    # Chờ bao nhiêu phút trước khi gửi để gộp nhiều sự kiện cùng chuyến vào 1 email. 0 = gửi ngay
+    delay-minutes: ${NOTIFY_DELAY_MINUTES:0}
     batch-size: 50
     # Gmail cá nhân ~500 người nhận/ngày (vượt bị khoá gửi 24h) → chừa biên
     daily-limit: ${NOTIFY_DAILY_LIMIT:400}

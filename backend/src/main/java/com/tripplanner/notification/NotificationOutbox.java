@@ -2,6 +2,7 @@ package com.tripplanner.notification;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tripplanner.config.AppProperties;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
@@ -22,15 +23,18 @@ public class NotificationOutbox {
     private final JdbcTemplate jdbc;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    /** Chờ bao lâu trước khi gửi (gộp nhiều sự kiện vào 1 email). 0 = gửi ở lượt quét kế tiếp. */
+    private final long delaySeconds;
 
-    public NotificationOutbox(JdbcTemplate jdbc, ObjectMapper objectMapper, Clock clock) {
+    public NotificationOutbox(JdbcTemplate jdbc, ObjectMapper objectMapper, Clock clock, AppProperties properties) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.clock = clock;
+        this.delaySeconds = Math.max(0, properties.notifications().delayMinutes()) * 60L;
     }
 
     /**
-     * @param sendAfter null = now + cửa sổ chờ của type
+     * @param sendAfter null = now + {@code app.notifications.delay-minutes}
      * @param dedupKey  khoá idempotent vĩnh viễn: đã có thì bỏ qua (INSERT IGNORE)
      */
     public record NewNotification(long userId, Long tripId, NotificationType type, Map<String, ?> payload,
@@ -42,7 +46,7 @@ public class NotificationOutbox {
         try {
             Instant now = clock.instant();
             Instant sendAfter = n.sendAfter() != null ? n.sendAfter()
-                    : now.plusSeconds(n.type().windowMinutes() * 60L);
+                    : now.plusSeconds(delaySeconds);
             int inserted = jdbc.update("""
                             INSERT IGNORE INTO notifications
                                 (user_id, trip_id, type, payload, dedup_key, coalesce_key, status, send_after,

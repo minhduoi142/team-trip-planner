@@ -20,7 +20,7 @@ public record AppProperties(Jwt jwt, Auth auth, Google google, Cors cors, String
      * job @Scheduled của thông báo; test gọi trực tiếp {@code runOnce()}.
      */
     public record Notifications(boolean schedulerEnabled, long dispatchIntervalMs, int batchSize, int dailyLimit,
-                         List<Integer> countdownDays, String countdownCron) {
+                         int delayMinutes, List<Integer> countdownDays, String countdownCron) {
     }
 
     /** Kho ảnh chuẩn S3. {@code publicUrl}: địa chỉ trình duyệt dùng để tải ảnh (mặc định = endpoint). */
