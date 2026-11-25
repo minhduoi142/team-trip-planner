@@ -132,7 +132,37 @@ class NotificationMailBuilderTest {
                          "coverImageUrl":"preset:ocean","day1":null,"myChecklist":[],"myChecklistMore":0}"""))));
 
         assertThat(mail.subject()).isEqualTo("Hôm nay khởi hành: Đà Lạt 🎒");
-        assertThat(mail.html()).contains("#7dd3fc").doesNotContain("Ngày 1", "Dress code", "Bạn nhận mang");
+        assertThat(mail.html()).contains("#7dd3fc")
+                .doesNotContain("Ngày 1", "Dress code", "Bạn nhận mang", "Thời tiết dự kiến", "Open-Meteo");
+        assertThat(mail.text()).doesNotContain("THỜI TIẾT");
+    }
+
+    @Test
+    void countdownShowsWeatherDaysAdviceAndOtherPlaces() {
+        OutgoingEmail mail = builder.group(new GroupMail(5, "lan@example.com", 3L, "Đà Lạt",
+                NotificationChannel.COUNTDOWN, List.of(new GroupRow(NotificationType.COUNTDOWN, """
+                        {"tripTitle":"Đà Lạt","destination":"Đà Lạt, Lam Dong, Việt Nam","daysLeft":3,
+                         "startDate":"2026-12-04","endDate":"2026-12-06","day1":null,"myChecklist":[],
+                         "myChecklistMore":0,
+                         "weather":[
+                           {"dayIndex":1,"date":"2026-12-04","placeName":"Đà Lạt, Lam Dong, Việt Nam","emoji":"🌧️",
+                            "label":"Mưa rào","tempMin":14.6,"tempMax":21.2,"precipProbability":80,
+                            "advice":["Khả năng mưa 80% – nhớ mang áo mưa/ô","Trời lạnh 15°C – mang áo ấm"]},
+                           {"dayIndex":2,"date":"2026-12-05","placeName":"Nha Trang, Khánh Hòa, Việt Nam",
+                            "emoji":"☀️","label":"Trời quang","tempMin":24.0,"tempMax":30.0,
+                            "precipProbability":null,"advice":[]}]}"""))));
+
+        assertThat(mail.html())
+                .contains("Thời tiết dự kiến", "Dữ liệu thời tiết: Open-Meteo.com")
+                .contains("🌧️ Ngày 1 · T6 04/12 · Mưa rào · 15–21°C · 💧 80%")
+                .contains("Khả năng mưa 80% – nhớ mang áo mưa/ô · Trời lạnh 15°C – mang áo ấm")
+                .contains("☀️ Ngày 2 · T7 05/12 · Trời quang · 24–30°C")
+                .contains("📍 Nha Trang, Khánh Hòa, Việt Nam");
+        // Ngày 1 trùng điểm đến của chuyến → khối thời tiết không lặp lại (chỉ còn dòng điểm đến ở đầu thư)
+        assertThat(mail.html().split("📍 Đà Lạt", -1)).hasSize(2);
+        assertThat(mail.text())
+                .contains("THỜI TIẾT DỰ KIẾN", "- 🌧️ Ngày 1 · T6 04/12 · Mưa rào · 15–21°C · 💧 80%")
+                .contains("→ Khả năng mưa 80%", "(📍 Nha Trang, Khánh Hòa, Việt Nam)");
     }
 
     @Test

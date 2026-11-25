@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { formatShortDate } from '@/lib/date'
 import type { IsoInstant } from '@/types/api'
 import type { DayWeatherResponse } from '@/types/weather'
+import { WeatherAdviceList } from './WeatherAdviceList'
 import { WeatherIcon } from './WeatherIcon'
 
 /** Ngưỡng hiện thêm gió / UV (docs/sdd-weather.md §5.7) */
@@ -18,15 +19,21 @@ function fetchedTime(fetchedAt: IsoInstant | null): string | null {
 }
 
 interface DayWeatherCardProps {
+  tripId: number
   weather: DayWeatherResponse | undefined
   fetchedAt: IsoInstant | null
   canEdit: boolean
+  /** Ngày có vị trí riêng (khác vị trí của chuyến) → hiện tên nơi đó */
+  ownPlace: boolean
   /** Mở form sửa chuyến để chọn vị trí điểm đến */
   onEditTrip?: () => void
+  /** Mở hộp thoại sửa ngày để đặt vị trí riêng cho ngày này */
+  onEditDayPlace?: () => void
 }
 
 /** Thời tiết đầu mỗi ngày trong tab Lịch trình. PAST / NO_DATE / đang tải lần đầu → không hiện gì. */
-export function DayWeatherCard({ weather, fetchedAt, canEdit, onEditTrip }: DayWeatherCardProps) {
+export function DayWeatherCard(props: DayWeatherCardProps) {
+  const { tripId, weather, fetchedAt, canEdit, ownPlace, onEditTrip, onEditDayPlace } = props
   if (!weather) return null
 
   switch (weather.status) {
@@ -35,6 +42,7 @@ export function DayWeatherCard({ weather, fetchedAt, canEdit, onEditTrip }: DayW
       if (!f) return null
       const time = fetchedTime(fetchedAt)
       return (
+        <div className="grid gap-2">
         <section
           aria-label="Dự báo thời tiết"
           className="flex min-h-24 items-center gap-4 rounded-[28px] border-2 border-white/80 bg-gradient-to-br from-sky-50/95 via-card/95 to-amber-50/90 p-4 shadow-clay-card"
@@ -71,8 +79,8 @@ export function DayWeatherCard({ weather, fetchedAt, canEdit, onEditTrip }: DayW
                   UV {round(f.uvMax)} (rất cao)
                 </span>
               )}
-              {weather.placeName && (
-                <span className="inline-flex min-w-0 items-center gap-1">
+              {ownPlace && weather.placeName && (
+                <span className="inline-flex min-w-0 items-center gap-1 text-foreground">
                   <MapPin className="size-3.5 shrink-0" />
                   <span className="truncate">{weather.placeName}</span>
                 </span>
@@ -84,9 +92,19 @@ export function DayWeatherCard({ weather, fetchedAt, canEdit, onEditTrip }: DayW
               <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline underline-offset-2">
                 Open-Meteo.com
               </a>
+              {canEdit && onEditDayPlace && (
+                <>
+                  {' · '}
+                  <button type="button" onClick={onEditDayPlace} className="underline underline-offset-2">
+                    {ownPlace ? 'Đổi địa điểm ngày này' : 'Ngày này ở nơi khác?'}
+                  </button>
+                </>
+              )}
             </p>
           </div>
         </section>
+        <WeatherAdviceList tripId={tripId} advice={f.advice} canEdit={canEdit} />
+        </div>
       )
     }
     case 'TOO_FAR':

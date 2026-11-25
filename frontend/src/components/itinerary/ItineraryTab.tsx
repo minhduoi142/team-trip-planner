@@ -204,10 +204,13 @@ export function ItineraryTab({ tripId, canEdit, onEditTrip }: ItineraryTabProps)
         )}
 
                     <DayWeatherCard
+                      tripId={tripId}
                       weather={weatherByDay.get(day.id)}
                       fetchedAt={weather.data?.fetchedAt ?? null}
                       canEdit={canEdit}
+                      ownPlace={day.place !== null}
                       onEditTrip={onEditTrip}
+                      onEditDayPlace={() => setDressOpen(true)}
                     />
 
                     <DressCodeCard day={day} canEdit={canEdit} onEdit={() => setDressOpen(true)} />

@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { FormField } from '@/components/FormField'
 import { ImageUploadButton } from '@/components/ImageUploadButton'
+import { PlacePicker, type PlaceLocation } from '@/components/PlacePicker'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -46,6 +47,10 @@ function DressCodeForm({ day, dayLabel, pending, onSubmit, onOpenChange }: Dress
   const [dressNote, setDressNote] = useState(day.dress.note ?? '')
   const [imageUrl, setImageUrl] = useState(day.dress.imageUrl ?? '')
   const [colors, setColors] = useState<string[]>(day.dress.colors)
+  const [placeName, setPlaceName] = useState(day.place?.name ?? '')
+  const [placeLocation, setPlaceLocation] = useState<PlaceLocation | null>(
+    day.place ? { lat: day.place.lat, lon: day.place.lon } : null,
+  )
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const toggleColor = (key: string) =>
@@ -60,6 +65,12 @@ function DressCodeForm({ day, dayLabel, pending, onSubmit, onOpenChange }: Dress
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    // Vị trí ngày phải chọn từ gợi ý (để có tọa độ); bỏ trống = theo vị trí của chuyến
+    if (placeName.trim() && !placeLocation) {
+      setErrors({ placeName: 'Chọn địa điểm từ gợi ý, hoặc để trống để theo điểm đến của chuyến' })
+      return
+    }
+    const place = placeName.trim() && placeLocation ? placeLocation : null
     try {
       await onSubmit({
         note: orNull(note),
@@ -67,6 +78,9 @@ function DressCodeForm({ day, dayLabel, pending, onSubmit, onOpenChange }: Dress
         dressNote: orNull(dressNote),
         dressImageUrl: orNull(imageUrl),
         dressColors: colors,
+        placeName: place ? placeName.trim() : null,
+        placeLat: place?.lat ?? null,
+        placeLon: place?.lon ?? null,
       })
     } catch (error) {
       const fieldErrors = getFieldErrors(error)
@@ -78,9 +92,28 @@ function DressCodeForm({ day, dayLabel, pending, onSubmit, onOpenChange }: Dress
   return (
     <form onSubmit={submit} className="grid gap-5" noValidate>
       <DialogHeader>
-        <DialogTitle>Dress code & ghi chú ✨</DialogTitle>
+        <DialogTitle>Địa điểm, dress code & ghi chú ✨</DialogTitle>
         <DialogDescription>{dayLabel}. Cả nhóm mặc ton-sur-ton chụp ảnh cho xịn!</DialogDescription>
       </DialogHeader>
+
+      <FormField id="day-place" label="Địa điểm ngày này" optional error={errors.placeName}>
+        <PlacePicker
+          id="day-place"
+          maxLength={150}
+          placeholder="Bỏ trống = theo điểm đến của chuyến"
+          value={placeName}
+          location={placeLocation}
+          onChange={(value, location) => {
+            setPlaceName(value)
+            setPlaceLocation(location)
+            setErrors((prev) => {
+              const next = { ...prev }
+              delete next.placeName
+              return next
+            })
+          }}
+        />
+      </FormField>
 
       <FormField id="dress-theme" label="Chủ đề" optional error={errors.dressTheme}>
         <Input

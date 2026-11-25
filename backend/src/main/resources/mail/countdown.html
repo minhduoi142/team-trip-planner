@@ -40,6 +40,19 @@
   </table>
 </th:block>
 
+<!--/* Thời tiết (docs/sdd-weather.md §6.3) */-->
+<th:block th:if="${!weatherDays.isEmpty()}">
+  <p style="margin:0 0 8px 0;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#e25c72;">Thời tiết dự kiến</p>
+  <div style="margin:0 0 20px 0;padding:12px;border-radius:14px;background:#f2f8fd;">
+    <div th:each="w : ${weatherDays}" style="margin:0 0 10px 0;">
+      <div style="font-weight:600;" th:text="${w.summary()}">☀️ Ngày 1 · T6 05/12 · Trời quang · 18–24°C · 💧 30%</div>
+      <div style="font-size:13px;color:#8a7380;" th:if="${w.place() != null}" th:text="'📍 ' + ${w.place()}">Đà Lạt</div>
+      <div style="font-size:13px;font-style:italic;color:#4a6378;" th:if="${w.advice() != null}" th:text="${w.advice()}">Khả năng mưa 70% – nhớ mang áo mưa/ô</div>
+    </div>
+    <div style="font-size:12px;color:#8a7380;">Dữ liệu thời tiết: Open-Meteo.com</div>
+  </div>
+</th:block>
+
 <!--/* Dress code ngày 1 */-->
 <th:block th:if="${hasDress}">
   <p style="margin:0 0 8px 0;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#e25c72;">Dress code ngày 1</p>

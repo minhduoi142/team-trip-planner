@@ -5,7 +5,9 @@ import com.tripplanner.common.ErrorCode;
 import com.tripplanner.config.AppProperties;
 import com.tripplanner.trip.Trip;
 import com.tripplanner.trip.TripAccessService;
+import com.tripplanner.trip.TripRepository;
 import com.tripplanner.trip.TripRole;
+import com.tripplanner.tripday.TripDay;
 import com.tripplanner.tripday.TripDayRepository;
 import com.tripplanner.weather.dto.DayWeatherResponse;
 import com.tripplanner.weather.dto.ForecastResponse;
@@ -18,8 +20,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -27,6 +31,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * Thời tiết theo ngày của chuyến + tìm địa điểm (docs/sdd-weather.md). Đọc DB trong 1 transaction ngắn rồi mới gọi
  * API ngoài, để không giữ kết nối DB trong lúc chờ mạng. Lỗi API không bao giờ thành 5xx của endpoint thời tiết.
+ * Vị trí hiệu lực của mỗi ngày = vị trí riêng của ngày (W2), không có thì vị trí của chuyến.
  */
 @Service
 public class WeatherService {
@@ -34,29 +39,28 @@ public class WeatherService {
     static final int MIN_QUERY = 2;
     static final int MAX_QUERY = 100;
 
-    /** Dữ liệu đã đọc từ DB (thuần, dùng ngoài transaction). */
-    private record DayInfo(Long id, int dayIndex, LocalDate date) {
-    }
-
-    private record TripInfo(String destination, Coordinates location, List<DayInfo> days) {
+    /** 1 ngày đã đọc từ DB (thuần, dùng ngoài transaction). {@code location} = vị trí hiệu lực, có thể null. */
+    private record DayInfo(Long id, int dayIndex, LocalDate date, String placeName, Coordinates location) {
     }
 
     private final WeatherProvider provider;
     private final AppProperties.Weather config;
     private final Clock clock;
     private final TripAccessService accessService;
+    private final TripRepository tripRepository;
     private final TripDayRepository dayRepository;
     private final TransactionTemplate readOnlyTx;
     private final WeatherCache<ForecastSnapshot> forecasts;
     private final WeatherCache<List<GeoPlace>> places;
 
     public WeatherService(WeatherProvider provider, AppProperties properties, Clock clock,
-                          TripAccessService accessService, TripDayRepository dayRepository,
-                          PlatformTransactionManager transactionManager) {
+                          TripAccessService accessService, TripRepository tripRepository,
+                          TripDayRepository dayRepository, PlatformTransactionManager transactionManager) {
         this.provider = provider;
         this.config = properties.weather();
         this.clock = clock;
         this.accessService = accessService;
+        this.tripRepository = tripRepository;
         this.dayRepository = dayRepository;
         this.readOnlyTx = new TransactionTemplate(transactionManager);
         this.readOnlyTx.setReadOnly(true);
@@ -86,36 +90,19 @@ public class WeatherService {
     }
 
     public TripWeatherResponse tripWeather(Long tripId, Long userId) {
-        TripInfo trip = readOnlyTx.execute(status -> load(tripId, userId));
-        LocalDate today = LocalDate.now(clock);
-        int forecastDays = config.forecastDays();
+        List<DayInfo> days = readOnlyTx.execute(status ->
+                loadDays(accessService.require(tripId, userId, TripRole.VIEWER).getTrip()));
+        return compute(days);
+    }
 
-        ForecastSnapshot snapshot = null;
-        boolean needed = trip.location() != null
-                && trip.days().stream().anyMatch(d -> ForecastWindow.needsForecast(d.date(), today, forecastDays));
-        if (needed && config.enabled()) {
-            Coordinates point = trip.location().rounded();
-            try {
-                snapshot = forecasts.get(point.cacheKey(),
-                        () -> ForecastSnapshot.of(clock.instant(), provider.forecast(point)));
-            } catch (WeatherUnavailableException e) {
-                snapshot = null;   // các ngày trong tầm → UNAVAILABLE
-            }
-        }
-
-        String placeName = trip.location() == null ? null : trip.destination();
-        List<DayWeatherResponse> days = new ArrayList<>(trip.days().size());
-        boolean anyForecast = false;
-        for (DayInfo day : trip.days()) {
-            ForecastWindow.Decision decision =
-                    ForecastWindow.classify(day.date(), trip.location() != null, today, forecastDays, snapshot);
-            anyForecast |= decision.status() == WeatherStatus.FORECAST;
-            days.add(new DayWeatherResponse(day.id(), day.dayIndex(), day.date(), placeName, decision.status(),
-                    decision.availableFrom(),
-                    decision.forecast() == null ? null : ForecastResponse.from(decision.forecast())));
-        }
-        Instant fetchedAt = anyForecast ? snapshot.fetchedAt() : null;
-        return new TripWeatherResponse(TripWeatherResponse.SOURCE, fetchedAt, days);
+    /**
+     * Cho job hệ thống (email đếm ngược): không kiểm quyền. Chuyến không tồn tại → không có ngày nào.
+     * Như endpoint, lỗi API chỉ thành status {@code UNAVAILABLE}, không ném ra ngoài.
+     */
+    public TripWeatherResponse tripWeatherForSystem(Long tripId) {
+        List<DayInfo> days = readOnlyTx.execute(status ->
+                tripRepository.findById(tripId).map(this::loadDays).orElse(List.of()));
+        return compute(days);
     }
 
     /** Chỉ cho test: xóa cache giữa các test case (bean dùng chung trong Spring context). */
@@ -124,13 +111,63 @@ public class WeatherService {
         places.clear();
     }
 
-    private TripInfo load(Long tripId, Long userId) {
-        Trip trip = accessService.require(tripId, userId, TripRole.VIEWER).getTrip();
-        Coordinates location = trip.getDestinationLat() == null || trip.getDestinationLon() == null
-                ? null : new Coordinates(trip.getDestinationLat(), trip.getDestinationLon());
-        List<DayInfo> days = dayRepository.findAllByTripId(tripId).stream()
-                .map(d -> new DayInfo(d.getId(), d.getDayIndex(), d.dateIn(trip)))
+    // ---------------------------------------------------------------- helpers
+
+    private TripWeatherResponse compute(List<DayInfo> days) {
+        LocalDate today = LocalDate.now(clock);
+        int forecastDays = config.forecastDays();
+
+        // Mỗi vị trí (làm tròn) chỉ lấy 1 lần, và chỉ khi có ngày nằm trong tầm dự báo
+        Map<String, ForecastSnapshot> snapshots = new HashMap<>();
+        for (DayInfo day : days) {
+            if (day.location() == null || !config.enabled()
+                    || !ForecastWindow.needsForecast(day.date(), today, forecastDays)) {
+                continue;
+            }
+            Coordinates point = day.location().rounded();
+            snapshots.computeIfAbsent(point.cacheKey(), key -> fetch(point));
+        }
+
+        List<DayWeatherResponse> result = new ArrayList<>(days.size());
+        Instant oldest = null;
+        for (DayInfo day : days) {
+            ForecastSnapshot snapshot = day.location() == null ? null
+                    : snapshots.get(day.location().rounded().cacheKey());
+            ForecastWindow.Decision decision =
+                    ForecastWindow.classify(day.date(), day.location() != null, today, forecastDays, snapshot);
+            if (decision.status() == WeatherStatus.FORECAST
+                    && (oldest == null || snapshot.fetchedAt().isBefore(oldest))) {
+                oldest = snapshot.fetchedAt();
+            }
+            result.add(new DayWeatherResponse(day.id(), day.dayIndex(), day.date(), day.placeName(),
+                    decision.status(), decision.availableFrom(),
+                    decision.forecast() == null ? null : ForecastResponse.from(decision.forecast())));
+        }
+        return new TripWeatherResponse(TripWeatherResponse.SOURCE, oldest, result);
+    }
+
+    /** null nếu không lấy được (các ngày đó → UNAVAILABLE). */
+    private ForecastSnapshot fetch(Coordinates point) {
+        try {
+            return forecasts.get(point.cacheKey(), () -> ForecastSnapshot.of(clock.instant(), provider.forecast(point)));
+        } catch (WeatherUnavailableException e) {
+            return null;
+        }
+    }
+
+    private List<DayInfo> loadDays(Trip trip) {
+        Coordinates tripLocation = Coordinates.ofNullableQuietly(trip.getDestinationLat(), trip.getDestinationLon());
+        String tripPlace = tripLocation == null ? null : trip.getDestination();
+        return dayRepository.findAllByTripId(trip.getId()).stream()
+                .map(day -> toDayInfo(day, trip, tripPlace, tripLocation))
                 .toList();
-        return new TripInfo(trip.getDestination(), location, days);
+    }
+
+    private static DayInfo toDayInfo(TripDay day, Trip trip, String tripPlace, Coordinates tripLocation) {
+        Coordinates own = day.getPlaceName() == null ? null
+                : Coordinates.ofNullableQuietly(day.getPlaceLat(), day.getPlaceLon());
+        return own != null
+                ? new DayInfo(day.getId(), day.getDayIndex(), day.dateIn(trip), day.getPlaceName(), own)
+                : new DayInfo(day.getId(), day.getDayIndex(), day.dateIn(trip), tripPlace, tripLocation);
     }
 }

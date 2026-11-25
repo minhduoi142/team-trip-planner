@@ -27,6 +27,13 @@ public final class MailFormat {
         return WEEKDAYS[date.getDayOfWeek().getValue() - 1] + ", " + DATE.format(date);
     }
 
+    /** 2026-12-05 → "T7 05/12" (dòng thời tiết trong email đếm ngược) */
+    public String weekdayShortDate(LocalDate date) {
+        int dow = date.getDayOfWeek().getValue();   // 1 = Thứ Hai … 7 = Chủ Nhật
+        String weekday = dow == 7 ? "CN" : "T" + (dow + 1);
+        return weekday + " " + String.format("%02d/%02d", date.getDayOfMonth(), date.getMonthValue());
+    }
+
     /** 2026-12-05 → "05/12/2026" */
     public String shortDate(LocalDate date) {
         return DATE.format(date);

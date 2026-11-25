@@ -7,6 +7,8 @@ import com.tripplanner.notification.NotificationOutbox;
 import com.tripplanner.notification.NotificationOutbox.NewNotification;
 import com.tripplanner.notification.NotificationType;
 import com.tripplanner.notification.countdown.CountdownContentBuilder.TripInfo;
+import com.tripplanner.weather.WeatherService;
+import com.tripplanner.weather.dto.TripWeatherResponse;
 import java.sql.Date;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -36,15 +38,18 @@ public class CountdownJob {
     private final NotificationAudience audience;
     private final NotificationOutbox outbox;
     private final CountdownContentBuilder content;
+    private final WeatherService weatherService;
     private final Clock clock;
     private final AppProperties.Notifications config;
 
     public CountdownJob(NamedParameterJdbcTemplate jdbc, NotificationAudience audience, NotificationOutbox outbox,
-                        CountdownContentBuilder content, Clock clock, AppProperties properties) {
+                        CountdownContentBuilder content, WeatherService weatherService, Clock clock,
+                        AppProperties properties) {
         this.jdbc = jdbc;
         this.audience = audience;
         this.outbox = outbox;
         this.content = content;
+        this.weatherService = weatherService;
         this.clock = clock;
         this.config = properties.notifications();
     }
@@ -108,7 +113,9 @@ public class CountdownJob {
             return 0;
         }
         Snapshot members = audience.load(trip.id(), true, List.of());
-        Map<String, Object> shared = content.shared(trip, daysLeft.get(), members.memberIds().size());
+        // Job không chạy trong transaction: gọi API thời tiết ở đây không giữ kết nối DB
+        TripWeatherResponse weather = weather(trip.id());
+        Map<String, Object> shared = content.shared(trip, daysLeft.get(), members.memberIds().size(), weather);
         int created = 0;
         for (long userId : members.memberIds()) {
             if (!members.canReceive(userId, NotificationType.COUNTDOWN)) {
@@ -121,6 +128,16 @@ public class CountdownJob {
             }
         }
         return created;
+    }
+
+    /** Thời tiết cho email; lỗi gì cũng chỉ làm mất khối thời tiết, không chặn email đếm ngược. */
+    private TripWeatherResponse weather(long tripId) {
+        try {
+            return weatherService.tripWeatherForSystem(tripId);
+        } catch (RuntimeException e) {
+            log.warn("Không lấy được thời tiết cho email đếm ngược của chuyến {}: {}", tripId, e.getMessage());
+            return null;
+        }
     }
 
     /** Hôm nay cron đã tới giờ chạy chưa (vd 08:00 → true nếu bây giờ ≥ 08:00). */

@@ -1,4 +1,5 @@
 import type { IsoDate, IsoInstant } from './api'
+import type { ChecklistCategory } from './checklist'
 
 /** com.tripplanner.weather.Condition */
 export type WeatherCondition =
@@ -16,6 +17,23 @@ export type WeatherCondition =
 /** com.tripplanner.weather.WeatherStatus */
 export type WeatherStatus = 'FORECAST' | 'TOO_FAR' | 'PAST' | 'NO_DATE' | 'NO_LOCATION' | 'UNAVAILABLE'
 
+/** com.tripplanner.weather.WeatherAdvice.Type */
+export type AdviceType = 'STORM' | 'RAIN' | 'COLD' | 'HOT' | 'UV' | 'WIND'
+
+/** com.tripplanner.weather.dto.AdviceResponse.ChecklistItemSuggestion */
+export interface ChecklistItemSuggestion {
+  itemName: string
+  category: ChecklistCategory
+}
+
+/** com.tripplanner.weather.dto.AdviceResponse */
+export interface AdviceResponse {
+  type: AdviceType
+  text: string
+  /** Món nên thêm vào checklist chung; null nếu không có (nắng nóng, gió) */
+  checklistItem: ChecklistItemSuggestion | null
+}
+
 /** com.tripplanner.weather.dto.ForecastResponse. Trường số null = chưa có dữ liệu (ẩn). °C, %, mm, km/h */
 export interface ForecastResponse {
   weatherCode: number | null
@@ -27,6 +45,8 @@ export interface ForecastResponse {
   precipSum: number | null
   windMax: number | null
   uvMax: number | null
+  /** Tối đa 2 gợi ý (áo mưa, áo ấm…); rỗng nếu thời tiết bình thường */
+  advice: AdviceResponse[]
 }
 
 /** com.tripplanner.weather.dto.DayWeatherResponse */

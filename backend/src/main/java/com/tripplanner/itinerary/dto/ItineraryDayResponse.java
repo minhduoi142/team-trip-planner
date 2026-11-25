@@ -13,6 +13,8 @@ public record ItineraryDayResponse(
         LocalDate date,
         boolean overflow,
         String note,
+        /** Vị trí riêng của ngày; null = theo vị trí của chuyến */
+        DayPlaceResponse place,
         DressCodeResponse dress,
         long totalCost,
         boolean timeOrderBroken,

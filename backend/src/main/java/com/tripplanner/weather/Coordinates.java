@@ -29,6 +29,11 @@ public record Coordinates(BigDecimal lat, BigDecimal lon) {
         return new Coordinates(lat, lon);
     }
 
+    /** Đọc từ DB (đã có CHECK): thiếu 1 trong 2 → null, không ném lỗi. */
+    public static Coordinates ofNullableQuietly(BigDecimal lat, BigDecimal lon) {
+        return lat == null || lon == null ? null : new Coordinates(lat, lon);
+    }
+
     /** Tọa độ làm tròn dùng để gọi API và làm khóa cache. */
     public Coordinates rounded() {
         return new Coordinates(lat.setScale(CACHE_SCALE, RoundingMode.HALF_UP), lon.setScale(CACHE_SCALE, RoundingMode.HALF_UP));

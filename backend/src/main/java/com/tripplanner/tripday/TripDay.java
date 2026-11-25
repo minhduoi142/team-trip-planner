@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -53,6 +54,16 @@ public class TripDay {
     @Column(name = "dress_image_url", length = 2000)
     private String dressImageUrl;
 
+    /** Vị trí riêng của ngày (chuyến nhiều nơi, docs/sdd-weather.md W2); cả 3 cùng có hoặc cùng null. */
+    @Column(name = "place_name", length = 150)
+    private String placeName;
+
+    @Column(name = "place_lat", precision = 7, scale = 5)
+    private BigDecimal placeLat;
+
+    @Column(name = "place_lon", precision = 8, scale = 5)
+    private BigDecimal placeLon;
+
     /** Số ngày của chuyến đã chốt; null nếu chưa chốt. */
     public static Integer lockedLength(Trip trip) {
         if (!trip.isLocked()) {
@@ -72,6 +83,7 @@ public class TripDay {
     }
 
     public boolean hasOwnFields() {
-        return note != null || dressTheme != null || dressNote != null || dressImageUrl != null;
+        return note != null || dressTheme != null || dressNote != null || dressImageUrl != null
+                || placeName != null;
     }
 }

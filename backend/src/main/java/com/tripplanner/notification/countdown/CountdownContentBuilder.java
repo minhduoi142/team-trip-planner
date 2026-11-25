@@ -1,6 +1,11 @@
 package com.tripplanner.notification.countdown;
 
 import com.tripplanner.tripday.TripDayDressColor;
+import com.tripplanner.weather.WeatherStatus;
+import com.tripplanner.weather.dto.AdviceResponse;
+import com.tripplanner.weather.dto.DayWeatherResponse;
+import com.tripplanner.weather.dto.ForecastResponse;
+import com.tripplanner.weather.dto.TripWeatherResponse;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -24,6 +29,7 @@ public class CountdownContentBuilder {
 
     static final int MAX_ITEMS = 8;
     static final int MAX_CHECKLIST = 10;
+    static final int MAX_WEATHER_DAYS = 3;
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm");
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -36,8 +42,11 @@ public class CountdownContentBuilder {
                            LocalDate endDate) {
     }
 
-    /** Phần chung cho mọi người nhận của 1 chuyến. */
-    public Map<String, Object> shared(TripInfo trip, int daysLeft, int memberCount) {
+    /**
+     * Phần chung cho mọi người nhận của 1 chuyến. {@code weather} null/không có ngày dự báo → không có khóa
+     * {@code weather} (email bỏ khối thời tiết).
+     */
+    public Map<String, Object> shared(TripInfo trip, int daysLeft, int memberCount, TripWeatherResponse weather) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("tripTitle", trip.title());
         payload.put("destination", trip.destination());
@@ -47,7 +56,40 @@ public class CountdownContentBuilder {
         payload.put("coverImageUrl", trip.coverImageUrl());
         payload.put("memberCount", memberCount);
         payload.put("day1", day1(trip.id()));
+        List<Map<String, Object>> weatherDays = weatherDays(weather);
+        if (!weatherDays.isEmpty()) {
+            payload.put("weather", weatherDays);
+        }
         return payload;
+    }
+
+    /** Tối đa {@link #MAX_WEATHER_DAYS} ngày đầu có dự báo (docs/sdd-weather.md §6.3). */
+    static List<Map<String, Object>> weatherDays(TripWeatherResponse weather) {
+        if (weather == null) {
+            return List.of();
+        }
+        List<Map<String, Object>> days = new ArrayList<>();
+        for (DayWeatherResponse day : weather.days()) {
+            if (days.size() >= MAX_WEATHER_DAYS) {
+                break;
+            }
+            ForecastResponse f = day.forecast();
+            if (day.status() != WeatherStatus.FORECAST || f == null) {
+                continue;
+            }
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("dayIndex", day.dayIndex());
+            item.put("date", day.date() == null ? null : day.date().toString());
+            item.put("placeName", day.placeName());
+            item.put("emoji", f.condition().emoji());
+            item.put("label", f.label());
+            item.put("tempMin", f.tempMin());
+            item.put("tempMax", f.tempMax());
+            item.put("precipProbability", f.precipProbability());
+            item.put("advice", f.advice().stream().map(AdviceResponse::text).toList());
+            days.add(item);
+        }
+        return days;
     }
 
     /** Bản riêng cho 1 người nhận: thêm checklist của họ. */

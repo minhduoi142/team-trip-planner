@@ -3,8 +3,9 @@ import { checklistApi } from '@/api/checklist'
 import type { ChecklistItemRequest, ChecklistResponse } from '@/types/checklist'
 import { tripKeys } from './useTrips'
 
-export function useChecklist(tripId: number) {
-  return useQuery({ queryKey: tripKeys.checklist(tripId), queryFn: () => checklistApi.get(tripId) })
+/** {@code enabled=false}: không tải (vd gợi ý thời tiết chỉ cần checklist khi có món gợi ý) */
+export function useChecklist(tripId: number, enabled = true) {
+  return useQuery({ queryKey: tripKeys.checklist(tripId), queryFn: () => checklistApi.get(tripId), enabled })
 }
 
 function useChecklistMutation<TVars>(tripId: number, fn: (vars: TVars) => Promise<ChecklistResponse>) {

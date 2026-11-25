@@ -38,10 +38,16 @@ export function useMoveItem(tripId: number) {
   )
 }
 
+/** Sửa ngày có thể đổi vị trí riêng của ngày → làm mới thời tiết (query này không poll). */
 export function useUpdateDay(tripId: number) {
-  return useItineraryMutation(tripId, ({ dayId, body }: { dayId: number; body: UpdateDayRequest }) =>
-    itineraryApi.updateDay(dayId, body),
-  )
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ dayId, body }: { dayId: number; body: UpdateDayRequest }) => itineraryApi.updateDay(dayId, body),
+    onSuccess: (data) => {
+      qc.setQueryData(tripKeys.itinerary(tripId), data)
+      return qc.invalidateQueries({ queryKey: tripKeys.weather(tripId) })
+    },
+  })
 }
 
 export function useDeleteOverflowDay(tripId: number) {

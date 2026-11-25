@@ -2,7 +2,7 @@
 
 **Dự án:** Team Trip Planner
 **Phụ thuộc:** Phase 1 (trips), Phase 2 (khoảng ngày dự kiến, chốt ngày), Phase 3 (`trip_days`, lịch trình, dress code, checklist), Email N3 (`CountdownJob`, `CountdownContentBuilder`)
-**Trạng thái:** Đã duyệt theo đề xuất §1.3. **W1 đã triển khai** (ghi chú §5.10); W2, W3 chưa làm
+**Trạng thái:** Đã duyệt theo đề xuất §1.3. **W1, W2 đã triển khai** (ghi chú §5.10, §6.5); W3 chưa làm
 **Migration:** `V10__trip_destination_location.sql` (W1), `V11__trip_day_location.sql` (W2). W3 không thêm migration.
 
 | Phase | Nội dung | Kết quả nghiệm thu |
@@ -346,6 +346,15 @@ Từ 1 `DailyForecast` sinh tối đa **2** gợi ý, theo độ ưu tiên:
 ### 6.4 Kiểm thử (W2)
 - Unit: `WeatherAdviceTest` (từng ngưỡng, biên, tối đa 2, STORM loại RAIN), `NotificationMailBuilderTest` có/không khối thời tiết.
 - Integration: vị trí riêng của ngày ghi đè vị trí chuyến (2 vị trí → provider gọi 2 khóa); `updateDay` thiếu 1 trong 3 trường → 400; mở chốt/chốt lại giữ vị trí ngày; `CountdownJobIntegrationTest` có `weather` trong payload khi provider trả dữ liệu, không có khi provider lỗi (job vẫn ghi outbox bình thường).
+
+### 6.5 Ghi chú contract đã chốt khi triển khai W2
+- `UpdateDayRequest`: `placeName` trống + 2 tọa độ null = xóa vị trí ngày; mọi tổ hợp thiếu khác → `INVALID_LOCATION` (kiểm ở `ItineraryService.applyPlace`, tọa độ qua `Coordinates`). `TripDay.hasOwnFields()` tính cả `placeName`, nên rút ngắn chuyến thì ngày có vị trí riêng thành ngày thừa chứ không bị xóa.
+- `ItineraryDayResponse.place` đứng ngay sau `note` (`DayPlaceResponse(name, lat, lon)`, null = theo chuyến).
+- `WeatherService`: mỗi ngày tự tính vị trí hiệu lực; gọi API **1 lần cho mỗi khóa tọa độ** cần thiết; `fetchedAt` = snapshot cũ nhất trong các ngày `FORECAST`. Ngày có vị trí riêng vẫn có thời tiết dù chuyến chưa có tọa độ. `tripWeatherForSystem(tripId)` (không kiểm quyền) cho job.
+- `WeatherAdvice` nằm trong `weather/` (dùng `ChecklistCategory`); văn bản RAIN khi chỉ có lượng mưa (không có %) là "Có thể mưa – nhớ mang áo mưa/ô". `ForecastResponse.advice` luôn là mảng (có thể rỗng).
+- Email: `CountdownJob` (không chạy trong transaction) gọi `tripWeatherForSystem` trước khi ghi outbox; lỗi gì cũng chỉ bỏ khối thời tiết. Payload `weather` chỉ có khi có ít nhất 1 ngày `FORECAST` (tối đa 3). `NotificationMailBuilder.putWeather` dựng sẵn chuỗi `summary` ("🌧️ Ngày 1 · T6 04/12 · Mưa rào · 15–21°C · 💧 80%", `MailFormat.weekdayShortDate`), `place` chỉ khi khác điểm đến, `advice` nối bằng " · ". Khối nằm sau "Ngày 1", trước dress code.
+- FE: hộp thoại sửa ngày (`DressCodeDialog`, tiêu đề "Địa điểm, dress code & ghi chú") có `PlacePicker` "Địa điểm ngày này"; gõ mà không chọn gợi ý thì chặn lưu. `DayWeatherCard` có link "Ngày này ở nơi khác?" / "Đổi địa điểm ngày này" (EDITOR+) mở hộp thoại đó, chỉ hiện tên nơi khi ngày có vị trí riêng, và `WeatherAdviceList` bên dưới. `useChecklist(tripId, enabled)` chỉ tải khi có món gợi ý và người xem là EDITOR+. `useUpdateDay` invalidate `tripKeys.weather` (query thời tiết không poll, nếu không sẽ hiện thời tiết nơi cũ: lỗi bắt được khi chụp màn hình).
+- Đã kiểm chứng trên trình duyệt với dữ liệu thật: đặt Ngày 3 chuyến Phú Quốc về "Hà Tiên" → card đổi sang thời tiết Hà Tiên; bấm "Thêm "Áo mưa" vào checklist" → toast + nút thành "Đã có trong checklist". Email đếm ngược có thời tiết mới chỉ kiểm bằng unit/integration test (chưa gửi thật).
 
 ---
 

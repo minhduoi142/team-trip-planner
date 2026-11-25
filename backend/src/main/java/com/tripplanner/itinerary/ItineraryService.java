@@ -2,6 +2,7 @@ package com.tripplanner.itinerary;
 
 import com.tripplanner.common.BusinessException;
 import com.tripplanner.common.ErrorCode;
+import com.tripplanner.itinerary.dto.DayPlaceResponse;
 import com.tripplanner.itinerary.dto.DressCodeResponse;
 import com.tripplanner.itinerary.dto.ItineraryDayResponse;
 import com.tripplanner.itinerary.dto.ItineraryItemRequest;
@@ -17,6 +18,7 @@ import com.tripplanner.tripday.TripDayDressColor;
 import com.tripplanner.tripday.TripDayDressColorRepository;
 import com.tripplanner.tripday.TripDayRepository;
 import com.tripplanner.user.UserRepository;
+import com.tripplanner.weather.Coordinates;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -151,6 +153,7 @@ public class ItineraryService {
         day.setDressTheme(blankToNull(request.dressTheme()));
         day.setDressNote(blankToNull(request.dressNote()));
         day.setDressImageUrl(blankToNull(request.dressImageUrl()));
+        applyPlace(day, request);
         colorRepository.deleteByDayId(dayId);
         colors.forEach(key -> colorRepository.save(new TripDayDressColor(dayId, key)));
         return build(day.getTrip().getId());
@@ -197,6 +200,7 @@ public class ItineraryService {
                     .toList();
             dayResponses.add(new ItineraryDayResponse(
                     day.getId(), day.getDayIndex(), day.dateIn(trip), day.isOverflow(trip), day.getNote(),
+                    DayPlaceResponse.of(day),
                     new DressCodeResponse(day.getDressTheme(), day.getDressNote(), day.getDressImageUrl(), colors),
                     dayTotal,
                     ItineraryOrdering.isTimeOrderBroken(items, ItineraryItem::getStartTime),
@@ -207,6 +211,18 @@ public class ItineraryService {
     }
 
     // ---------------------------------------------------------------- helpers
+
+    /** Tên + tọa độ cả ba hoặc không (gõ tay không chọn gợi ý thì FE gửi cả ba null); sai → INVALID_LOCATION. */
+    private static void applyPlace(TripDay day, UpdateDayRequest request) {
+        String name = blankToNull(request.placeName());
+        Coordinates point = Coordinates.ofNullable(request.placeLat(), request.placeLon());
+        if ((name == null) != (point == null)) {
+            throw new BusinessException(ErrorCode.INVALID_LOCATION);
+        }
+        day.setPlaceName(name);
+        day.setPlaceLat(point == null ? null : point.lat());
+        day.setPlaceLon(point == null ? null : point.lon());
+    }
 
     private TripDay requireDay(Long dayId, Long userId, TripRole minRole) {
         Long tripId = dayRepository.findTripIdByDayId(dayId)

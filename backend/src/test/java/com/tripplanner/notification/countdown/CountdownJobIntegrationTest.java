@@ -1,12 +1,15 @@
 package com.tripplanner.notification.countdown;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.tripplanner.notification.mail.MailGateway;
 import com.tripplanner.support.IntegrationTest;
+import com.tripplanner.weather.WeatherUnavailableException;
+import com.tripplanner.weather.model.DailyForecast;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -122,6 +125,40 @@ class CountdownJobIntegrationTest extends IntegrationTest {
         jdbc.update("UPDATE users SET notify_email = 'mai@example.com' WHERE id = ?", mai);
         assertThat(job.runFor(TODAY)).isEqualTo(1);
         assertThat(recipients()).containsExactly(mai);
+    }
+
+    @Test
+    void payloadCarriesWeatherWhenForecastIsAvailable() throws Exception {
+        // Tọa độ riêng cho test này: cache thời tiết là bean dùng chung giữa các test
+        jdbc.update("UPDATE trips SET destination_lat = 10.31, destination_lon = 103.91 WHERE id = ?", tripId);
+        given(weatherProvider.forecast(any())).willReturn(List.of(
+                new DailyForecast(TODAY.plusDays(3), 95, 24.2, 29.6, 85, 18.0, 20.0, 9.0)));
+        lock(TODAY.plusDays(3));
+        seedDay1();
+
+        assertThat(job.runFor(TODAY)).isEqualTo(2);
+
+        JsonNode weather = payload(linh).get("weather");
+        assertThat(weather).hasSize(1);
+        assertThat(weather.get(0).get("dayIndex").asInt()).isEqualTo(1);
+        assertThat(weather.get(0).get("date").asText()).isEqualTo(TODAY.plusDays(3).toString());
+        assertThat(weather.get(0).get("emoji").asText()).isEqualTo("⛈️");
+        assertThat(weather.get(0).get("label").asText()).isEqualTo("Dông");
+        assertThat(weather.get(0).get("placeName").asText()).isEqualTo("Phú Quốc");
+        assertThat(weather.get(0).get("advice").get(0).asText()).startsWith("Có thể có dông");
+    }
+
+    @Test
+    void weatherOutageOnlyDropsTheWeatherBlock() throws Exception {
+        jdbc.update("UPDATE trips SET destination_lat = 10.42, destination_lon = 103.82 WHERE id = ?", tripId);
+        given(weatherProvider.forecast(any())).willThrow(new WeatherUnavailableException("timeout"));
+        lock(TODAY.plusDays(1));
+        seedDay1();
+
+        assertThat(job.runFor(TODAY)).isEqualTo(2);   // email đếm ngược vẫn được tạo
+
+        assertThat(payload(linh).has("weather")).isFalse();
+        assertThat(payload(linh).get("day1").get("items")).hasSize(2);
     }
 
     // ---------------------------------------------------------------- helpers

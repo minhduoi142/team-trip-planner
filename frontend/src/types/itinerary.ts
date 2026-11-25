@@ -32,6 +32,13 @@ export interface DressCodeResponse {
   colors: string[]
 }
 
+/** com.tripplanner.itinerary.dto.DayPlaceResponse */
+export interface DayPlaceResponse {
+  name: string
+  lat: number
+  lon: number
+}
+
 /** com.tripplanner.itinerary.dto.ItineraryDayResponse */
 export interface ItineraryDayResponse {
   id: number
@@ -40,6 +47,8 @@ export interface ItineraryDayResponse {
   date: IsoDate | null
   overflow: boolean
   note: string | null
+  /** Vị trí riêng của ngày; null = theo vị trí của chuyến */
+  place: DayPlaceResponse | null
   dress: DressCodeResponse
   totalCost: number
   timeOrderBroken: boolean
@@ -86,4 +95,8 @@ export interface UpdateDayRequest {
   dressNote: string | null
   dressImageUrl: string | null
   dressColors: string[]
+  /** Vị trí riêng của ngày (chọn từ gợi ý): cả ba hoặc không; null = theo vị trí của chuyến */
+  placeName: string | null
+  placeLat: number | null
+  placeLon: number | null
 }

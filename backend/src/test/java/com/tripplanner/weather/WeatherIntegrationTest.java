@@ -7,9 +7,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -29,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.ResultActions;
 
 class WeatherIntegrationTest extends IntegrationTest {
 
@@ -207,6 +210,130 @@ class WeatherIntegrationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.destination").value("Đà Lạt"))
                 .andExpect(jsonPath("$.destinationLat").isEmpty())
                 .andExpect(jsonPath("$.destinationLon").isEmpty());
+    }
+
+    // ---------------------------------------------------------------- W2: vị trí riêng từng ngày + gợi ý
+
+    private JsonNode itinerary(long tripId) throws Exception {
+        return read(mvc.perform(auth(get("/api/v1/trips/" + tripId + "/itinerary"), ownerToken))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+    }
+
+    private Map<String, Object> dayBody(String placeName, String lat, String lon) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("note", null);
+        body.put("dressTheme", "Biển xanh");
+        body.put("dressNote", null);
+        body.put("dressImageUrl", null);
+        body.put("dressColors", List.of());
+        body.put("placeName", placeName);
+        body.put("placeLat", lat == null ? null : new BigDecimal(lat));
+        body.put("placeLon", lon == null ? null : new BigDecimal(lon));
+        return body;
+    }
+
+    private ResultActions putDay(long dayId, Map<String, Object> body)
+            throws Exception {
+        return mvc.perform(auth(put("/api/v1/trip-days/" + dayId), ownerToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(body)));
+    }
+
+    @Test
+    void dayPlaceOverridesTripLocationAndEachPlaceIsFetchedOnce() throws Exception {
+        when(weatherProvider.forecast(any())).thenReturn(sixteenDays());
+        long tripId = createTrip(TODAY.plusDays(2), TODAY.plusDays(4), "11.94646", "108.44193");   // Đà Lạt
+        lock(tripId, TODAY.plusDays(2), TODAY.plusDays(4));
+        long day3 = itinerary(tripId).at("/days/2/id").asLong();
+
+        putDay(day3, dayBody("Nha Trang, Khánh Hòa, Việt Nam", "12.24507", "109.19432"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.days[2].place.name").value("Nha Trang, Khánh Hòa, Việt Nam"))
+                .andExpect(jsonPath("$.days[2].place.lat").value(12.24507))
+                .andExpect(jsonPath("$.days[0].place").isEmpty());
+
+        JsonNode days = weather(tripId, ownerToken).get("days");
+
+        assertThat(days.get(0).get("placeName").asText()).isEqualTo("Đà Lạt, Lam Dong, Việt Nam");
+        assertThat(days.get(2).get("placeName").asText()).isEqualTo("Nha Trang, Khánh Hòa, Việt Nam");
+        assertThat(days.get(2).get("status").asText()).isEqualTo("FORECAST");
+        ArgumentCaptor<Coordinates> points = ArgumentCaptor.forClass(Coordinates.class);
+        verify(weatherProvider, times(2)).forecast(points.capture());   // 2 vị trí, mỗi vị trí 1 lần
+        assertThat(points.getAllValues()).extracting(Coordinates::cacheKey)
+                .containsExactlyInAnyOrder("11.95,108.44", "12.25,109.19");
+    }
+
+    @Test
+    void dayPlaceWithoutTripLocationStillHasWeather() throws Exception {
+        when(weatherProvider.forecast(any())).thenReturn(sixteenDays());
+        long tripId = createTrip(TODAY.plusDays(1), TODAY.plusDays(2), null, null);
+        lock(tripId, TODAY.plusDays(1), TODAY.plusDays(2));
+        long day1 = itinerary(tripId).at("/days/0/id").asLong();
+        putDay(day1, dayBody("Sa Pa, Lào Cai, Việt Nam", "22.33", "103.84")).andExpect(status().isOk());
+
+        JsonNode days = weather(tripId, ownerToken).get("days");
+
+        assertThat(days.get(0).get("status").asText()).isEqualTo("FORECAST");
+        assertThat(days.get(1).get("status").asText()).isEqualTo("NO_LOCATION");
+    }
+
+    @Test
+    void partialDayPlaceIsRejectedAndNullClearsIt() throws Exception {
+        long tripId = createTrip(TODAY.plusDays(1), TODAY.plusDays(2), null, null);
+        lock(tripId, TODAY.plusDays(1), TODAY.plusDays(2));
+        long day1 = itinerary(tripId).at("/days/0/id").asLong();
+
+        putDay(day1, dayBody("Gõ tay không chọn gợi ý", null, null))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_LOCATION"));
+        putDay(day1, dayBody(null, "12.2", "109.1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_LOCATION"));
+        putDay(day1, dayBody("Nha Trang", "12.2", null))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_LOCATION"));
+
+        putDay(day1, dayBody("Nha Trang", "12.2", "109.1")).andExpect(status().isOk());
+        putDay(day1, dayBody("  ", null, null))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.days[0].place").isEmpty());
+    }
+
+    @Test
+    void dayPlaceFollowsTheDayAcrossUnlockAndRelock() throws Exception {
+        long tripId = createTrip(TODAY.plusDays(1), TODAY.plusDays(5), null, null);
+        lock(tripId, TODAY.plusDays(1), TODAY.plusDays(3));
+        long day2 = itinerary(tripId).at("/days/1/id").asLong();
+        putDay(day2, dayBody("Nha Trang", "12.2", "109.1")).andExpect(status().isOk());
+
+        mvc.perform(auth(delete("/api/v1/trips/" + tripId + "/lock-date"), ownerToken))
+                .andExpect(status().isOk());
+        lock(tripId, TODAY.plusDays(2), TODAY.plusDays(4));
+
+        JsonNode relocked = itinerary(tripId);
+        assertThat(relocked.at("/days/1/id").asLong()).isEqualTo(day2);
+        assertThat(relocked.at("/days/1/place/name").asText()).isEqualTo("Nha Trang");
+        // Rút ngắn còn 1 ngày: ngày 2 có vị trí riêng = có nội dung → thành ngày thừa, không bị xóa
+        mvc.perform(auth(delete("/api/v1/trips/" + tripId + "/lock-date"), ownerToken))
+                .andExpect(status().isOk());
+        lock(tripId, TODAY.plusDays(2), TODAY.plusDays(2));
+        assertThat(itinerary(tripId).at("/days/1/overflow").asBoolean()).isTrue();
+    }
+
+    @Test
+    void forecastCarriesAdviceWithChecklistSuggestion() throws Exception {
+        when(weatherProvider.forecast(any())).thenReturn(sixteenDays());   // mưa 70%, thấp nhất 15.5°C
+        long tripId = createTrip(TODAY.plusDays(1), TODAY.plusDays(1), "10.77", "106.70");
+        lock(tripId, TODAY.plusDays(1), TODAY.plusDays(1));
+
+        JsonNode advice = weather(tripId, ownerToken).at("/days/0/forecast/advice");
+
+        assertThat(advice).hasSize(1);
+        assertThat(advice.get(0).get("type").asText()).isEqualTo("RAIN");
+        assertThat(advice.get(0).get("text").asText()).isEqualTo("Khả năng mưa 70% – nhớ mang áo mưa/ô");
+        assertThat(advice.get(0).at("/checklistItem/itemName").asText()).isEqualTo("Áo mưa");
+        assertThat(advice.get(0).at("/checklistItem/category").asText()).isEqualTo("OTHER");
     }
 
     @Test

@@ -161,6 +161,7 @@ public class NotificationMailBuilder {
         vars.put("checklistUrl", mail.tripId() == null ? null : tripUrl(mail.tripId(), "checklist"));
         putCover(vars, p.path("coverImageUrl").asText(null), mail.tripId());
         putDay1(vars, p.path("day1"));
+        putWeather(vars, p.path("weather"), destination);
         putChecklist(vars, p);
         return new Content("countdown", headline, dateRange, vars);
     }
@@ -170,6 +171,40 @@ public class NotificationMailBuilder {
     }
 
     public record ChecklistLine(String itemName, int quantity) {
+    }
+
+    /**
+     * 1 ngày trong khối "Thời tiết dự kiến": {@code summary} vd "☀️ Ngày 1 · T6 05/12 · 18–24°C · 💧 30%";
+     * {@code place} chỉ có khi khác điểm đến của chuyến; {@code advice} null nếu không có gợi ý.
+     */
+    public record WeatherLine(String summary, String place, String advice) {
+    }
+
+    private static void putWeather(Map<String, Object> vars, JsonNode weather, String destination) {
+        List<WeatherLine> lines = new ArrayList<>();
+        weather.forEach(day -> {
+            List<String> parts = new ArrayList<>();
+            parts.add(day.path("emoji").asText("") + " Ngày " + day.path("dayIndex").asInt());
+            String date = textOrNull(day, "date");
+            if (date != null) {
+                parts.add(MailFormat.INSTANCE.weekdayShortDate(LocalDate.parse(date)));
+            }
+            parts.add(day.path("label").asText(""));
+            if (day.path("tempMin").isNumber() && day.path("tempMax").isNumber()) {
+                parts.add(Math.round(day.path("tempMin").asDouble()) + "–" + Math.round(day.path("tempMax").asDouble())
+                        + "°C");
+            }
+            if (day.path("precipProbability").isNumber()) {
+                parts.add("💧 " + day.path("precipProbability").asInt() + "%");
+            }
+            String place = textOrNull(day, "placeName");
+            List<String> advice = new ArrayList<>();
+            day.path("advice").forEach(a -> advice.add(a.asText()));
+            lines.add(new WeatherLine(String.join(" · ", parts),
+                    place == null || place.equals(destination) ? null : place,
+                    advice.isEmpty() ? null : String.join(" · ", advice)));
+        });
+        vars.put("weatherDays", lines);
     }
 
     /** Ảnh bìa http(s) → ảnh thật; preset → dải màu gradient như FE (CoverImageRenderer ↔ lib/covers.ts). */
