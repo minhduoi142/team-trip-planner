@@ -12,6 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
@@ -38,6 +39,13 @@ public class Trip {
 
     @Column(name = "destination", length = 150)
     private String destination;
+
+    /** Tọa độ điểm đến (chọn từ gợi ý geocoding) để xem thời tiết; cả hai cùng có hoặc cùng null. */
+    @Column(name = "destination_lat", precision = 7, scale = 5)
+    private BigDecimal destinationLat;
+
+    @Column(name = "destination_lon", precision = 8, scale = 5)
+    private BigDecimal destinationLon;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;

@@ -14,7 +14,7 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CalendarCheck, Plus, RotateCw, Trash2, TriangleAlert } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
@@ -29,10 +29,12 @@ import {
   useUpdateDay,
   useUpdateItem,
 } from '@/hooks/useItinerary'
+import { useTripWeather } from '@/hooks/useWeather'
 import { getErrorMessage } from '@/lib/api'
 import { formatVnd } from '@/lib/tripContent'
 import type { ItineraryItemRequest, ItineraryItemResponse } from '@/types/itinerary'
 import { DayPills } from './DayPills'
+import { DayWeatherCard } from './DayWeatherCard'
 import { DressCodeCard } from './DressCodeCard'
 import { DressCodeDialog } from './DressCodeDialog'
 import { ItemCard, ItemCardBody } from './ItemCard'
@@ -49,10 +51,18 @@ const collisionDetection: CollisionDetection = (args) => {
 interface ItineraryTabProps {
   tripId: number
   canEdit: boolean
+  /** Mở form sửa chuyến (gắn vị trí điểm đến để có thời tiết) */
+  onEditTrip?: () => void
 }
 
-export function ItineraryTab({ tripId, canEdit }: ItineraryTabProps) {
+export function ItineraryTab({ tripId, canEdit, onEditTrip }: ItineraryTabProps) {
   const itinerary = useItinerary(tripId)
+  // Chỉ hỏi thời tiết khi đã chốt ngày (có ngày thật)
+  const weather = useTripWeather(tripId, itinerary.data?.days.some((d) => d.date !== null) ?? false)
+  const weatherByDay = useMemo(
+    () => new Map((weather.data?.days ?? []).map((w) => [w.dayId, w] as const)),
+    [weather.data],
+  )
   const addItem = useAddItem(tripId)
   const updateItem = useUpdateItem(tripId)
   const deleteItem = useDeleteItem(tripId)
@@ -168,7 +178,13 @@ export function ItineraryTab({ tripId, canEdit }: ItineraryTabProps) {
               onDragCancel={() => setActiveItem(null)}
             >
                 <div className="sticky top-16 z-20 -mx-4 bg-background/85 px-4 py-2.5 backdrop-blur-md sm:mx-0 sm:rounded-full sm:px-3 sm:border-2 sm:border-white/70 sm:shadow-clay-card">
-                  <DayPills days={data.days} selectedId={day.id} onSelect={setSelectedId} dragging={activeItem !== null} />
+                  <DayPills
+                    days={data.days}
+                    selectedId={day.id}
+                    onSelect={setSelectedId}
+                    dragging={activeItem !== null}
+                    weatherByDay={weatherByDay}
+                  />
                 </div>
 
                 <div key={day.id} className="grid gap-4 animate-cascade">
@@ -186,6 +202,13 @@ export function ItineraryTab({ tripId, canEdit }: ItineraryTabProps) {
                       )}
                     </div>
         )}
+
+                    <DayWeatherCard
+                      weather={weatherByDay.get(day.id)}
+                      fetchedAt={weather.data?.fetchedAt ?? null}
+                      canEdit={canEdit}
+                      onEditTrip={onEditTrip}
+                    />
 
                     <DressCodeCard day={day} canEdit={canEdit} onEdit={() => setDressOpen(true)} />
 

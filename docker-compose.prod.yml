@@ -74,6 +74,10 @@ services:
       # 0 = gửi ngay (lượt quét kế tiếp, mỗi NOTIFY_DISPATCH_INTERVAL_MS); > 0 = chờ để gộp nhiều sự kiện vào 1 email
       NOTIFY_DELAY_MINUTES: ${NOTIFY_DELAY_MINUTES:-0}
       NOTIFY_DISPATCH_INTERVAL_MS: ${NOTIFY_DISPATCH_INTERVAL_MS:-10000}
+      # Dự báo thời tiết Open-Meteo (không cần key). false = ẩn thời tiết, không gọi ra ngoài
+      WEATHER_ENABLED: ${WEATHER_ENABLED:-true}
+      # Tìm địa điểm chi tiết qua Photon/OpenStreetMap; đặt rỗng trong .env.prod = chỉ dùng Open-Meteo
+      WEATHER_PHOTON_URL: ${WEATHER_PHOTON_URL-https://photon.komoot.io/api/}
       JAVA_OPTS: ${JAVA_OPTS:--Xmx384m -XX:+UseSerialGC}
     depends_on:
       mysql:

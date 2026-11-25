@@ -9,7 +9,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * {@code publicBaseUrl}: địa chỉ công khai của backend, dùng cho URL tuyệt đối trong thẻ og:image.
  */
 public record AppProperties(Jwt jwt, Auth auth, Google google, Cors cors, String timezone, Storage storage,
-                            String frontendUrl, String publicBaseUrl, Mail mail, Notifications notifications) {
+                            String frontendUrl, String publicBaseUrl, Mail mail, Notifications notifications,
+                            Weather weather) {
 
     /** Người gửi email. {@code from} trống thì dùng {@code spring.mail.username}. */
     public record Mail(String from, String fromName) {
@@ -21,6 +22,18 @@ public record AppProperties(Jwt jwt, Auth auth, Google google, Cors cors, String
      */
     public record Notifications(boolean schedulerEnabled, long dispatchIntervalMs, int batchSize, int dailyLimit,
                          int delayMinutes, List<Integer> countdownDays, String countdownCron) {
+    }
+
+    /**
+     * Dự báo thời tiết Open-Meteo (docs/sdd-weather.md). {@code apiKey} trống = gói miễn phí.
+     * {@code photonUrl}: tìm địa điểm chi tiết (OpenStreetMap); trống = chỉ dùng geocoding của Open-Meteo.
+     * Cache trong bộ nhớ: tươi {@code cacheTtlMinutes}, dùng bản cũ tối đa {@code staleMaxHours} khi API lỗi,
+     * nhớ lỗi {@code negativeTtlSeconds}, tối đa {@code maxEntries} vị trí.
+     */
+    public record Weather(boolean enabled, String forecastUrl, String geocodingUrl, String photonUrl,
+                          String archiveUrl, String apiKey,
+                          int forecastDays, int cacheTtlMinutes, int staleMaxHours, int negativeTtlSeconds,
+                          int maxEntries, int connectTimeoutMs, int readTimeoutMs) {
     }
 
     /** Kho ảnh chuẩn S3. {@code publicUrl}: địa chỉ trình duyệt dùng để tải ảnh (mặc định = endpoint). */

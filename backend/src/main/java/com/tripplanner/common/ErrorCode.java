@@ -23,6 +23,7 @@ public enum ErrorCode {
     INVALID_EMAIL_VERIFICATION(HttpStatus.BAD_REQUEST, "Liên kết xác minh không hợp lệ hoặc đã hết hạn"),
     NOTIFY_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "Bạn chưa có email nhận thông báo đã xác minh"),
     INVALID_UNSUBSCRIBE_TOKEN(HttpStatus.BAD_REQUEST, "Liên kết huỷ nhận không hợp lệ"),
+    INVALID_LOCATION(HttpStatus.BAD_REQUEST, "Vị trí không hợp lệ, hãy chọn lại điểm đến từ gợi ý"),
 
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để tiếp tục"),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu"),
@@ -79,6 +80,7 @@ public enum ErrorCode {
     GOOGLE_LOGIN_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "Đăng nhập Google chưa được cấu hình trên máy chủ"),
     MAIL_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "Máy chủ chưa cấu hình gửi email"),
     MAIL_SEND_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "Không gửi được email, vui lòng thử lại sau"),
+    GEO_SEARCH_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Chưa tìm được địa điểm lúc này, thử lại sau"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Có lỗi xảy ra, vui lòng thử lại sau");
 
     private final HttpStatus status;

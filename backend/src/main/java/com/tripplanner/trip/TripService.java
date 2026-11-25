@@ -15,6 +15,7 @@ import com.tripplanner.trip.dto.TripMemberResponse;
 import com.tripplanner.trip.dto.TripRequest;
 import com.tripplanner.trip.dto.TripSummaryResponse;
 import com.tripplanner.user.User;
+import com.tripplanner.weather.Coordinates;
 import com.tripplanner.user.UserService;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -159,8 +160,8 @@ public class TripService {
                 .toList();
         String inviteCode = myRole.atLeast(TripRole.EDITOR) ? trip.getInviteCode() : null;
         return new TripDetailResponse(
-                trip.getId(), trip.getTitle(), trip.getDestination(), trip.getDescription(), trip.getCoverImageUrl(),
-                trip.statusOn(today()), trip.getPlannedStartDate(), trip.getPlannedEndDate(),
+                trip.getId(), trip.getTitle(), trip.getDestination(), trip.getDestinationLat(), trip.getDestinationLon(),
+                trip.getDescription(), trip.getCoverImageUrl(), trip.statusOn(today()), trip.getPlannedStartDate(), trip.getPlannedEndDate(),
                 trip.getStartDate(), trip.getEndDate(), inviteCode, myRole, members.size(), trip.getCreatedAt(),
                 trip.getDriveFolderUrl(), members);
     }
@@ -180,8 +181,11 @@ public class TripService {
             throw new BusinessException(ErrorCode.INVALID_DATE_RANGE,
                     "Khoảng ngày dự kiến tối đa " + MAX_PLANNED_DAYS + " ngày");
         }
+        Coordinates location = Coordinates.ofNullable(request.destinationLat(), request.destinationLon());
         trip.setTitle(request.title().trim());
         trip.setDestination(blankToNull(request.destination()));
+        trip.setDestinationLat(location == null ? null : location.lat());
+        trip.setDestinationLon(location == null ? null : location.lon());
         trip.setDescription(blankToNull(request.description()));
         trip.setCoverImageUrl(blankToNull(request.coverImageUrl()));
         trip.setPlannedStartDate(start);

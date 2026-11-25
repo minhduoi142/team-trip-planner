@@ -2,6 +2,7 @@ package com.tripplanner.trip.dto;
 
 import com.tripplanner.trip.TripRole;
 import com.tripplanner.trip.TripStatus;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -11,6 +12,9 @@ public record TripDetailResponse(
         Long id,
         String title,
         String destination,
+        /** Tọa độ điểm đến; null nếu chưa chọn vị trí từ gợi ý (khi đó không có thời tiết). */
+        BigDecimal destinationLat,
+        BigDecimal destinationLon,
         String description,
         String coverImageUrl,
         TripStatus status,

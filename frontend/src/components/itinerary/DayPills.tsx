@@ -2,7 +2,9 @@ import { useDroppable } from '@dnd-kit/core'
 import { formatShortDate, weekdayShort } from '@/lib/date'
 import { cn } from '@/lib/utils'
 import type { ItineraryDayResponse } from '@/types/itinerary'
+import type { DayWeatherResponse } from '@/types/weather'
 import { dayDndId } from './dndIds'
+import { WeatherIcon } from './WeatherIcon'
 
 interface DayPillsProps {
   days: ItineraryDayResponse[]
@@ -10,9 +12,11 @@ interface DayPillsProps {
   onSelect: (dayId: number) => void
   /** Đang kéo 1 hoạt động: các ngày KHÁC ngày hiện tại thành vùng thả */
   dragging: boolean
+  /** Thời tiết theo dayId (có dự báo thì hiện icon + nhiệt độ cao nhất thay chấm tròn) */
+  weatherByDay?: ReadonlyMap<number, DayWeatherResponse>
 }
 
-export function DayPills({ days, selectedId, onSelect, dragging }: DayPillsProps) {
+export function DayPills({ days, selectedId, onSelect, dragging, weatherByDay }: DayPillsProps) {
   return (
         <div className="-mx-4 overflow-x-auto px-4 pb-1.5 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="flex gap-2.5 py-0.5" role="tablist" aria-label="Chọn ngày">
@@ -22,6 +26,7 @@ export function DayPills({ days, selectedId, onSelect, dragging }: DayPillsProps
                 day={day}
                 selected={day.id === selectedId}
                 droppable={dragging && day.id !== selectedId}
+                weather={weatherByDay?.get(day.id)}
                 onSelect={() => onSelect(day.id)}
               />
             ))}
@@ -35,12 +40,15 @@ export function DayPills({ days, selectedId, onSelect, dragging }: DayPillsProps
           selected,
           droppable,
           onSelect,
+          weather,
 }: {
           day: ItineraryDayResponse
         selected: boolean
         droppable: boolean
   onSelect: () => void
+  weather?: DayWeatherResponse
 }) {
+  const forecast = weather?.status === 'FORECAST' ? weather.forecast : null
   const {setNodeRef, isOver} = useDroppable({id: dayDndId(day.id), disabled: !droppable })
         return (
         <button
@@ -62,12 +70,22 @@ export function DayPills({ days, selectedId, onSelect, dragging }: DayPillsProps
         >
             <div className="flex items-center justify-between gap-1">
               <p className="text-xs font-bold tracking-wide">Ngày {day.dayIndex}</p>
-              <span
-                className={cn(
-                  'inline-block size-1.5 rounded-full',
-                  selected || isOver ? 'bg-white' : 'bg-primary/60',
-                )}
-              />
+              {forecast ? (
+                <span
+                  className="inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums"
+                  title={forecast.label}
+                >
+                  <WeatherIcon condition={forecast.condition} className="size-3.5" colored={!selected && !isOver} />
+                  {forecast.tempMax != null && `${Math.round(forecast.tempMax)}°`}
+                </span>
+              ) : (
+                <span
+                  className={cn(
+                    'inline-block size-1.5 rounded-full',
+                    selected || isOver ? 'bg-white' : 'bg-primary/60',
+                  )}
+                />
+              )}
             </div>
             <p className={cn('text-xs mt-0.5 truncate', selected || isOver ? 'text-white/90' : 'text-muted-foreground')}>
               {day.overflow ? 'Chưa xếp' : day.date ? `${weekdayShort(day.date)} ${formatShortDate(day.date)}` : '—'}

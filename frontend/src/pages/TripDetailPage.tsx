@@ -241,7 +241,7 @@ export function TripDetailPage() {
                         </TabsContent>
 
                         <TabsContent value="itinerary" className="mt-4">
-                          <ItineraryTab tripId={data.id} canEdit={canEdit} />
+                          <ItineraryTab tripId={data.id} canEdit={canEdit} onEditTrip={() => setEditOpen(true)} />
                         </TabsContent>
 
                         <TabsContent value="polls" className="mt-4">

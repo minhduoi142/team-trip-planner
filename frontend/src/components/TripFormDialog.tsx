@@ -16,6 +16,7 @@ import { COVER_PRESETS, presetValue } from '@/lib/covers'
 import type { TripDetailResponse, TripRequest } from '@/types/trip'
 import { CoverPicker } from './CoverPicker'
 import { FormField } from './FormField'
+import { PlacePicker, type PlaceLocation } from './PlacePicker'
 
 interface TripFormDialogProps {
   open: boolean
@@ -29,6 +30,8 @@ interface TripFormDialogProps {
 interface FormState {
   title: string
   destination: string
+  /** Tọa độ khi chọn từ gợi ý; gõ tay → null */
+  location: PlaceLocation | null
   description: string
   coverImageUrl: string
   plannedStartDate: string
@@ -39,6 +42,10 @@ function initialState(trip?: TripDetailResponse): FormState {
   return {
     title: trip?.title ?? '',
     destination: trip?.destination ?? '',
+    location:
+      trip?.destinationLat != null && trip.destinationLon != null
+        ? { lat: trip.destinationLat, lon: trip.destinationLon }
+        : null,
     description: trip?.description ?? '',
     coverImageUrl:
       trip?.coverImageUrl ?? presetValue(COVER_PRESETS[Math.floor(Math.random() * COVER_PRESETS.length)].key),
@@ -98,6 +105,9 @@ function TripForm({ trip, pending, onSubmit, onOpenChange }: TripFormDialogProps
       await onSubmit({
         title: form.title.trim(),
         destination: orNull(form.destination),
+        // Không còn chữ điểm đến thì cũng bỏ vị trí
+        destinationLat: orNull(form.destination) && form.location ? form.location.lat : null,
+        destinationLon: orNull(form.destination) && form.location ? form.location.lon : null,
         description: orNull(form.description),
         coverImageUrl: orNull(form.coverImageUrl),
         plannedStartDate: orNull(form.plannedStartDate),
@@ -132,12 +142,16 @@ function TripForm({ trip, pending, onSubmit, onOpenChange }: TripFormDialogProps
       </FormField>
 
       <FormField id="destination" label="Điểm đến" optional error={errors.destination}>
-        <Input
+        <PlacePicker
           id="destination"
           maxLength={150}
           placeholder="VD: Đà Lạt"
           value={form.destination}
-          onChange={(e) => set('destination', e.target.value)}
+          location={form.location}
+          onChange={(destination, location) => {
+            set('destination', destination)
+            set('location', location)
+          }}
         />
       </FormField>
 

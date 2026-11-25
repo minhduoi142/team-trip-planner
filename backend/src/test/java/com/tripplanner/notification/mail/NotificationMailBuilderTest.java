@@ -25,7 +25,7 @@ class NotificationMailBuilderTest {
     private final UnsubscribeTokens tokens = new UnsubscribeTokens("test-only-secret-key-for-unit-tests-0123456789");
     private final NotificationMailBuilder builder = new NotificationMailBuilder(new MailRenderer(), tokens,
             new ObjectMapper(), new AppProperties(null, null, null, null, "Asia/Ho_Chi_Minh", null,
-            FE + "/", BE, null, null));
+            FE + "/", BE, null, null, null));
 
     @Test
     void digestWithSeveralCategoriesGroupsSectionsAndUsesTripScope() {

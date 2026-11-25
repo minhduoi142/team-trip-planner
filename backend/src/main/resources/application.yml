@@ -85,6 +85,23 @@ app:
     daily-limit: ${NOTIFY_DAILY_LIMIT:400}
     countdown-days: ${NOTIFY_COUNTDOWN_DAYS:7,3,1,0}
     countdown-cron: ${NOTIFY_COUNTDOWN_CRON:0 0 8 * * *}
+  # Dự báo thời tiết Open-Meteo (docs/sdd-weather.md). Không cần key với gói miễn phí (phi thương mại).
+  weather:
+    enabled: ${WEATHER_ENABLED:true}
+    forecast-url: ${WEATHER_FORECAST_URL:https://api.open-meteo.com/v1/forecast}
+    geocoding-url: ${WEATHER_GEOCODING_URL:https://geocoding-api.open-meteo.com/v1/search}
+    # Tìm địa điểm chi tiết (làng/bản, xã, thác, hồ… từ OpenStreetMap). Trống = chỉ dùng Open-Meteo
+    photon-url: ${WEATHER_PHOTON_URL:https://photon.komoot.io/api/}
+    archive-url: ${WEATHER_ARCHIVE_URL:https://archive-api.open-meteo.com/v1/archive}
+    # Trống = gói miễn phí; có key (gói trả phí) thì đổi các URL sang customer-*.open-meteo.com
+    api-key: ${WEATHER_API_KEY:}
+    forecast-days: 16
+    cache-ttl-minutes: 120
+    stale-max-hours: 24
+    negative-ttl-seconds: 120
+    max-entries: 300
+    connect-timeout-ms: 2000
+    read-timeout-ms: 3000
   seed:
     # Chỉ bật ở local để tạo tài khoản + chuyến đi mẫu (DevDataSeeder). KHÔNG bật trên production.
     enabled: ${APP_SEED_ENABLED:false}

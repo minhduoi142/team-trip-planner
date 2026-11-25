@@ -3,6 +3,7 @@ package com.tripplanner.trip.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -29,5 +30,9 @@ public record TripRequest(
 
         LocalDate plannedStartDate,
 
-        LocalDate plannedEndDate) {
+        LocalDate plannedEndDate,
+
+        /** Tọa độ điểm đến (chọn từ gợi ý {@code /geo/search}); cả hai hoặc không. null = xóa vị trí. */
+        BigDecimal destinationLat,
+        BigDecimal destinationLon) {
 }

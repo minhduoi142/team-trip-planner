@@ -15,6 +15,9 @@ export interface TripRequest {
   coverImageUrl: string | null
   plannedStartDate: IsoDate | null
   plannedEndDate: IsoDate | null
+  /** Tọa độ điểm đến (chọn từ gợi ý /geo/search); cả hai hoặc không. null = xóa vị trí */
+  destinationLat: number | null
+  destinationLon: number | null
 }
 
 /** com.tripplanner.trip.dto.MemberPreview */
@@ -54,6 +57,9 @@ export interface TripDetailResponse {
   id: number
   title: string
   destination: string | null
+  /** Tọa độ điểm đến; null nếu chưa chọn vị trí từ gợi ý (khi đó không có thời tiết) */
+  destinationLat: number | null
+  destinationLon: number | null
   description: string | null
   coverImageUrl: string | null
   status: TripStatus

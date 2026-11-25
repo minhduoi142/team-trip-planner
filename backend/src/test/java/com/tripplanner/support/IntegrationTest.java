@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tripplanner.auth.GoogleTokenVerifier;
+import com.tripplanner.weather.WeatherProvider;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,10 @@ public abstract class IntegrationTest {
 
     @MockitoBean
     protected GoogleTokenVerifier googleTokenVerifier;
+
+    /** Không gọi Open-Meteo thật trong test (docs/sdd-weather.md). */
+    @MockitoBean
+    protected WeatherProvider weatherProvider;
 
     @BeforeEach
     void cleanDatabase() {

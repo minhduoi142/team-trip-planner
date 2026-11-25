@@ -18,6 +18,7 @@ export type ErrorCode =
   | 'INVALID_EMAIL_VERIFICATION'
   | 'NOTIFY_EMAIL_REQUIRED'
   | 'INVALID_UNSUBSCRIBE_TOKEN'
+  | 'INVALID_LOCATION'
   | 'DAY_NOT_FOUND'
   | 'ITEM_NOT_FOUND'
   | 'CHECKLIST_ITEM_NOT_FOUND'
@@ -67,6 +68,7 @@ export type ErrorCode =
   | 'GOOGLE_LOGIN_NOT_CONFIGURED'
   | 'MAIL_NOT_CONFIGURED'
   | 'MAIL_SEND_FAILED'
+  | 'GEO_SEARCH_UNAVAILABLE'
   | 'INTERNAL_ERROR'
 
 /** ProblemDetail (RFC 9457) + trường mở rộng của GlobalExceptionHandler */

@@ -15,6 +15,8 @@ export const tripKeys = {
   expenses: (tripId: number) => [...tripKeys.detail(tripId), 'expenses'] as const,
   album: (tripId: number) => [...tripKeys.detail(tripId), 'album'] as const,
   rooms: (tripId: number) => [...tripKeys.detail(tripId), 'rooms'] as const,
+  /** Thời tiết: dưới detail nên chốt/mở chốt ngày hay sửa điểm đến tự làm mới */
+  weather: (tripId: number) => [...tripKeys.detail(tripId), 'weather'] as const,
   proposals: (tripId: number) => [...tripKeys.detail(tripId), 'proposals'] as const,
   invite: (code: string) => ['invite', code.toUpperCase()] as const,
 }
