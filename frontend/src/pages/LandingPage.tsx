@@ -141,8 +141,8 @@ export function LandingPage() {
   }
 
   return (
-    <div className="relative min-h-svh bg-background/50 overflow-x-hidden selection:bg-rose-200 selection:text-rose-900">
-      {/* Background tương tác hoạt hình Tactile Clay */}
+    <div className="relative min-h-svh overflow-x-hidden selection:bg-rose-200 selection:text-rose-900">
+      {/* Hình trang trí bay bổng; nền video là TripBackground ở App */}
       <FloatingBackground />
 
       {/* ========================================================= */}

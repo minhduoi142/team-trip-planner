@@ -146,20 +146,7 @@ export function FloatingBackground({ className }: { className?: string }) {
       aria-hidden="true"
       className={`fixed inset-0 pointer-events-none select-none overflow-hidden z-0 ${className ?? ''}`}
     >
-      {/* ========================================================= */}
-      {/* 1. TÔNG MÀU NỀN ĐỒNG ĐIỆU VỚI CÁC NÚT BẤM VÀ COMPONENT     */}
-      {/* ========================================================= */}
-      {/* Nền gradient pastel nhẹ nhàng ấm áp */}
-      <div className="absolute inset-0 bg-gradient-to-br from-rose-50/70 via-amber-50/35 to-violet-50/60 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950" />
-
-      {/* Các quầng sáng mềm mại (soft ambient auras) ở 4 góc */}
-      <div className="absolute -top-16 -left-16 w-80 sm:w-96 h-80 sm:h-96 rounded-full bg-amber-200/25 blur-3xl" />
-      <div className="absolute -top-16 -right-16 w-80 sm:w-96 h-80 sm:h-96 rounded-full bg-violet-200/25 blur-3xl" />
-      <div className="absolute -bottom-20 -left-16 w-96 sm:w-[28rem] h-96 sm:h-[28rem] rounded-full bg-rose-200/25 blur-3xl" />
-      <div className="absolute -bottom-20 -right-16 w-80 sm:w-96 h-80 sm:h-96 rounded-full bg-amber-200/20 blur-3xl" />
-
-      {/* Lưới chấm đất sét Tactile Clay tinh tế */}
-      <div className="absolute inset-0 clay-bg-dots opacity-40 dark:opacity-10" />
+      {/* Nền là video (TripBackground ở App); ở đây chỉ còn các hình trang trí bay bổng */}
 
       {/* ========================================================= */}
       {/* 2. MẶT TRỜI ĐEO KÍNH RÂM (sun.png) - Top Left             */}

@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { ProtectedRoute, PublicOnlyRoute } from '@/auth/routes'
 import { AppLayout } from '@/components/AppLayout'
+import { TripBackground } from '@/components/TripBackground'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { JoinPage } from '@/pages/JoinPage'
 import { LandingPage } from '@/pages/LandingPage'
@@ -44,5 +45,11 @@ const router = createBrowserRouter([
 ])
 
 export default function App() {
-  return <RouterProvider router={router} />
+  return (
+    <>
+      {/* Nền video chung cho mọi trang, nằm ngoài router nên không tải lại khi chuyển trang */}
+      <TripBackground />
+      <RouterProvider router={router} />
+    </>
+  )
 }

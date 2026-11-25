@@ -16,13 +16,13 @@ import { ProfileDialog } from './ProfileDialog'
 import { UserAvatar } from './UserAvatar'
 import { FloatingBackground } from '@/components/ui/FloatingBackground'
 
-/** Khung chung cho các trang đã đăng nhập: header + nội dung + background bay bổng. */
+/** Khung chung cho các trang đã đăng nhập: header + nội dung + hình trang trí bay bổng (nền video là TripBackground ở App). */
 export function AppLayout() {
   const { user, logout } = useAuth()
   const [profileOpen, setProfileOpen] = useState(false)
 
   return (
-    <div className="relative min-h-svh bg-background/50 overflow-x-hidden">
+    <div className="relative min-h-svh overflow-x-hidden">
       <FloatingBackground />
       <header className="sticky top-0 z-30 border-b border-white/70 bg-background/75 backdrop-blur-md shadow-clay-badge">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
