@@ -1,7 +1,10 @@
 import dayjs from 'dayjs'
-import { Bell, CheckCircle2, Clock, Send } from 'lucide-react'
+import { CheckCircle2, Clock, Send } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { FieldError } from '@/components/common/layout'
+import { TabErrorState } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,7 +20,11 @@ import {
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import type { NotificationPrefsRequest, NotificationSettingsResponse } from '@/types/notification'
 
-const CATEGORY_TOGGLES: { key: Exclude<keyof NotificationPrefsRequest, 'emailEnabled'>; label: string; hint: string }[] = [
+const CATEGORY_TOGGLES: {
+  key: Exclude<keyof NotificationPrefsRequest, 'emailEnabled'>
+  label: string
+  hint: string
+}[] = [
   { key: 'countdownEnabled', label: 'Đếm ngược ngày đi', hint: 'Còn 7, 3, 1 ngày và ngày khởi hành' },
   { key: 'memberEnabled', label: 'Thành viên', hint: 'Có người vào hoặc rời nhóm' },
   { key: 'expenseEnabled', label: 'Chi tiêu', hint: 'Khoản chi và chuyển khoản liên quan đến bạn' },
@@ -28,18 +35,17 @@ export function NotificationSection() {
   const settings = useNotificationSettings()
 
   return (
-    <div className="grid gap-3.5 rounded-[24px] border-2 border-white/80 bg-card/90 p-4 shadow-clay-card sm:p-5">
-      <p className="flex items-center gap-2 text-sm font-bold text-foreground">
-        <Bell className="size-4 text-primary" />
-        Thông báo qua email
+    <div className="grid gap-4">
+      <p className="text-sm text-muted-foreground">
+        Nhận email khi chuyến sắp tới ngày đi, có người vào nhóm hoặc có khoản chi mới.
       </p>
       {settings.isPending ? (
-        <div className="grid gap-2">
+        <div className="grid gap-2" aria-busy="true" aria-label="Đang tải">
           <Skeleton className="h-4 w-3/4 rounded-full" />
-          <Skeleton className="h-9 w-full rounded-full" />
+          <Skeleton className="h-10 w-full rounded-control" />
         </div>
       ) : settings.isError ? (
-        <p className="text-sm text-destructive">{getErrorMessage(settings.error)}</p>
+        <TabErrorState error={settings.error} onRetry={() => settings.refetch()} />
       ) : (
         <SettingsBody settings={settings.data} />
       )}
@@ -61,16 +67,18 @@ function SettingsBody({ settings }: { settings: NotificationSettingsResponse }) 
     updatePrefs.mutate({ ...prefs, [key]: value }, { onError: (e) => toast.error(getErrorMessage(e)) })
 
   return (
-    <>
+    <div className="grid divide-y divide-border">
       {!settings.mailConfigured && (
-        <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+        <p className="mb-4 rounded-item bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
           Máy chủ chưa bật gửi email, nên tạm thời chưa có thư nào được gửi đi.
         </p>
       )}
 
-      <EmailBlock settings={settings} />
+      <div className="pb-4">
+        <EmailBlock settings={settings} />
+      </div>
 
-      <div className="grid gap-3 border-t border-border/60 pt-3">
+      <div className="grid gap-3 py-4">
         <ToggleRow
           id="notify-all"
           label="Nhận email thông báo"
@@ -93,23 +101,24 @@ function SettingsBody({ settings }: { settings: NotificationSettingsResponse }) 
         </div>
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="justify-self-start"
-        disabled={!settings.notifyEmail || !settings.mailConfigured || sendTest.isPending}
-        onClick={() =>
-          sendTest.mutate(undefined, {
-            onSuccess: () => toast.success(`Đã gửi mail thử tới ${settings.notifyEmail}`),
-            onError: (e) => toast.error(getErrorMessage(e)),
-          })
-        }
-      >
-        <Send />
-        {sendTest.isPending ? 'Đang gửi…' : 'Gửi mail thử'}
-      </Button>
-    </>
+      <div className="pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!settings.notifyEmail || !settings.mailConfigured || sendTest.isPending}
+          onClick={() =>
+            sendTest.mutate(undefined, {
+              onSuccess: () => toast.success(`Đã gửi mail thử tới ${settings.notifyEmail}`),
+              onError: (e) => toast.error(getErrorMessage(e)),
+            })
+          }
+        >
+          <Send />
+          {sendTest.isPending ? 'Đang gửi…' : 'Gửi mail thử'}
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -119,6 +128,7 @@ function EmailBlock({ settings }: { settings: NotificationSettingsResponse }) {
   const [editing, setEditing] = useState(false)
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string>()
+  const [confirmRemove, setConfirmRemove] = useState(false)
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -159,7 +169,7 @@ function EmailBlock({ settings }: { settings: NotificationSettingsResponse }) {
       {settings.notifyEmail && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <p className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-            <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+            <CheckCircle2 className="size-4 shrink-0 text-success" />
             <span className="min-w-0 truncate">
               Nhận thư tại <b className="text-foreground">{settings.notifyEmail}</b>
             </span>
@@ -173,13 +183,9 @@ function EmailBlock({ settings }: { settings: NotificationSettingsResponse }) {
                 type="button"
                 variant="ghost"
                 size="sm"
+                className="text-destructive hover:bg-destructive/10"
                 disabled={remove.isPending}
-                onClick={() =>
-                  remove.mutate(undefined, {
-                    onSuccess: () => toast.success('Đã gỡ email nhận thông báo'),
-                    onError: (e) => toast.error(getErrorMessage(e)),
-                  })
-                }
+                onClick={() => setConfirmRemove(true)}
               >
                 Gỡ
               </Button>
@@ -189,9 +195,9 @@ function EmailBlock({ settings }: { settings: NotificationSettingsResponse }) {
       )}
 
       {settings.pendingEmail && (
-        <div className="grid gap-1.5 rounded-2xl bg-muted/60 px-3 py-2.5 text-sm">
+        <div className="grid gap-1.5 rounded-item bg-muted/60 px-3 py-2.5 text-sm">
           <p className="flex items-start gap-2 text-muted-foreground">
-            <Clock className="mt-0.5 size-4 shrink-0 text-primary" />
+            <Clock className="mt-0.5 size-4 shrink-0 text-primary-strong" />
             <span className="min-w-0 break-words">
               Đã gửi link xác minh tới <b className="text-foreground">{settings.pendingEmail}</b>
               {settings.pendingExpiresAt && <> (hết hạn {dayjs(settings.pendingExpiresAt).format('HH:mm DD/MM')})</>}.
@@ -213,9 +219,7 @@ function EmailBlock({ settings }: { settings: NotificationSettingsResponse }) {
 
       {showForm ? (
         <form onSubmit={submit} className="grid gap-1.5" noValidate>
-          <Label htmlFor="notify-email" className="text-xs font-semibold">
-            {settings.notifyEmail ? 'Email mới' : 'Email nhận thông báo'}
-          </Label>
+          <Label htmlFor="notify-email">{settings.notifyEmail ? 'Email mới' : 'Email nhận thông báo'}</Label>
           <div className="flex gap-2">
             <Input
               id="notify-email"
@@ -226,6 +230,7 @@ function EmailBlock({ settings }: { settings: NotificationSettingsResponse }) {
               maxLength={254}
               value={email}
               aria-invalid={Boolean(error)}
+              aria-describedby={error ? 'notify-email-error' : 'notify-email-hint'}
               onChange={(e) => setEmail(e.target.value)}
               className="min-w-0 flex-1"
             />
@@ -233,9 +238,11 @@ function EmailBlock({ settings }: { settings: NotificationSettingsResponse }) {
               {request.isPending ? 'Đang gửi…' : 'Xác minh'}
             </Button>
           </div>
-          {error && <p className="text-xs text-destructive">{error}</p>}
+          {error && <FieldError id="notify-email-error">{error}</FieldError>}
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-muted-foreground">Chúng tôi sẽ gửi 1 link để xác nhận đây là hộp thư của bạn.</p>
+            <p id="notify-email-hint" className="text-xs text-muted-foreground">
+              Chúng tôi sẽ gửi 1 link để xác nhận đây là hộp thư của bạn.
+            </p>
             {editing && (
               <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)}>
                 Huỷ
@@ -246,11 +253,36 @@ function EmailBlock({ settings }: { settings: NotificationSettingsResponse }) {
       ) : (
         !settings.notifyEmail &&
         settings.pendingEmail && (
-          <Button type="button" variant="ghost" size="sm" className="justify-self-start" onClick={() => setEditing(true)}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="justify-self-start"
+            onClick={() => setEditing(true)}
+          >
             Dùng email khác
           </Button>
         )
       )}
+
+      <ConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title="Gỡ email nhận thông báo?"
+        description={`Bạn sẽ không nhận email thông báo nào nữa${settings.notifyEmail ? ` tại ${settings.notifyEmail}` : ''} cho tới khi xác minh lại một email.`}
+        confirmLabel="Gỡ email"
+        destructive
+        pending={remove.isPending}
+        onConfirm={() =>
+          remove.mutate(undefined, {
+            onSuccess: () => {
+              setConfirmRemove(false)
+              toast.success('Đã gỡ email nhận thông báo')
+            },
+            onError: (e) => toast.error(getErrorMessage(e)),
+          })
+        }
+      />
     </div>
   )
 }

@@ -1,9 +1,11 @@
-import { ExternalLink, FolderOpen, ImageOff, Images, MoreVertical, Pencil, RotateCw, Trash2, X } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { ExternalLink, FolderOpen, ImageOff, ImagePlus, Images, MoreVertical, Pencil, Trash2, X } from 'lucide-react'
+import { memo, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { FormField } from '@/components/FormField'
+import { ChoiceChips } from '@/components/common/ChoiceChips'
+import { EmptyState, TabErrorState, TabSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -12,16 +14,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { dayLabel } from '@/components/itinerary/dayLabel'
 import {
@@ -33,11 +28,12 @@ import {
 } from '@/hooks/useAlbum'
 import { useItinerary } from '@/hooks/useItinerary'
 import { getErrorMessage } from '@/lib/api'
-import { cn } from '@/lib/utils'
-import type { AlbumPhotoResponse } from '@/types/album'
+import type { AddPhotosRequest, AlbumPhotoResponse } from '@/types/album'
 import type { ItineraryDayResponse } from '@/types/itinerary'
 
 const NO_DAY = 'none'
+/** Số ảnh hiện mỗi lần (P3-AL-04): album 200 ảnh không render hết một lúc. */
+const PAGE_SIZE = 24
 
 interface AlbumTabProps {
   tripId: number
@@ -54,196 +50,159 @@ export function AlbumTab({ tripId, canEdit }: AlbumTabProps) {
 
   const [showEmbed, setShowEmbed] = useState(false)
   const [folderOpen, setFolderOpen] = useState(false)
-  const [links, setLinks] = useState('')
-  const [dayId, setDayId] = useState(NO_DAY)
-  const [caption, setCaption] = useState('')
-  const [filter, setFilter] = useState<number | 'all'>('all')
+  const [addOpen, setAddOpen] = useState(false)
+  const [filter, setFilter] = useState('all')
+  const [visible, setVisible] = useState(PAGE_SIZE)
   const [editing, setEditing] = useState<AlbumPhotoResponse | null>(null)
   const [toDelete, setToDelete] = useState<AlbumPhotoResponse | null>(null)
 
-  if (album.isPending) return <Skeleton className="h-64 rounded-3xl" />
-  if (album.isError) {
-    return (
-        <div className="rounded-3xl border-2 border-dashed border-rose-200/80 bg-card/80 p-8 text-center shadow-clay-card">
-          <p className="text-muted-foreground">{getErrorMessage(album.error)}</p>
-          <Button variant="outline" className="mt-4" onClick={() => album.refetch()}>
-            <RotateCw />
-            Thử lại
-          </Button>
-        </div>
-        )
-  }
+  if (album.isPending) return <TabSkeleton variant="grid" rows={3} />
+  if (album.isError) return <TabErrorState error={album.error} onRetry={() => album.refetch()} />
 
-        const data = album.data
+  const data = album.data
   const days = (itinerary.data?.days ?? []).filter((d) => !d.overflow)
   const onError = (e: unknown) => toast.error(getErrorMessage(e))
-  const photos = filter === 'all' ? data.photos : data.photos.filter((p) => p.dayId === filter)
+  const photos = filter === 'all' ? data.photos : data.photos.filter((p) => String(p.dayId) === filter)
+  const shown = photos.slice(0, visible)
+  const remaining = photos.length - shown.length
 
-  const submitLinks = (event: FormEvent) => {
-          event.preventDefault()
-    const list = links
-        .split(/[\s,]+/)
-      .map((l) => l.trim())
-        .filter(Boolean)
-        if (list.length === 0) return
-        addPhotos.mutate(
-        {links: list.slice(0, 50), dayId: dayId === NO_DAY ? null : Number(dayId), caption: caption.trim() || null },
-        {
-          onSuccess: (res) => {
-          setLinks('')
-          setCaption('')
-          const invalid = res.skipped.filter((s) => s.reason === 'INVALID').length
-          const dup = res.skipped.filter((s) => s.reason === 'DUPLICATE').length
+  const submitPhotos = (body: AddPhotosRequest) =>
+    addPhotos.mutate(body, {
+      onSuccess: (res) => {
+        const invalid = res.skipped.filter((s) => s.reason === 'INVALID').length
+        const dup = res.skipped.filter((s) => s.reason === 'DUPLICATE').length
         const notes = [invalid && `${invalid} link không phải file Drive`, dup && `${dup} link đã có`].filter(Boolean)
-          if (res.added > 0) toast.success(`Đã thêm ${res.added} ảnh${notes.length ? ` · bỏ qua ${notes.join(', ')}` : ''}`)
-        else toast.error(`Chưa thêm được ảnh nào${notes.length ? `: ${notes.join(', ')}` : ''}`)
-        },
-        onError,
+        if (res.added > 0) {
+          setAddOpen(false)
+          toast.success(`Đã thêm ${res.added} ảnh${notes.length ? ` · bỏ qua ${notes.join(', ')}` : ''}`)
+        } else toast.error(`Chưa thêm được ảnh nào${notes.length ? `: ${notes.join(', ')}` : ''}`)
       },
-        )
-  }
+      onError,
+    })
 
-        return (
-        <div className="grid gap-4 animate-cascade">
-          {/* Thư mục Drive chung */}
-              <Card className="rounded-[28px] border-2 border-white/80 bg-gradient-to-br from-sky-50/90 via-indigo-50/70 to-violet-50/90 shadow-clay-card">
-                <CardHeader className="flex flex-row items-start justify-between gap-2 p-5 pb-3">
-                  <div>
-                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold text-foreground">
-                        <FolderOpen className="size-5 text-sky-600" />
-                        Thư mục Google Drive chung
-                      </CardTitle>
-                        <p className="mt-1 text-xs sm:text-sm text-muted-foreground font-medium">
-                          Ảnh/video gốc chất lượng cao để ở đây, cả nhóm cùng tải lên.
-                        </p>
-                      </div>
-                      {canEdit && (
-            <Button size="sm" variant="outline" onClick={() => setFolderOpen(true)} className="rounded-full shadow-clay-card hover:-translate-y-0.5">
-              {data.folderUrl ? 'Đổi link' : 'Gắn link'}
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="grid gap-3 p-5 pt-0">
-          {data.folderUrl ? (
-            <>
-              <div className="flex flex-wrap gap-2">
-                <Button asChild className="rounded-full shadow-clay-btn-primary font-bold bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-2 border-blue-300">
-                  <a href={data.folderUrl} target="_blank" rel="noreferrer">
-                    <ExternalLink className="size-3.5" />
-                    Mở trên Google Drive
-                  </a>
-                </Button>
-                {data.folderEmbedUrl && (
-                  <Button variant="outline" onClick={() => setShowEmbed((v) => !v)} className="rounded-full border-2 border-white/80 bg-white/80 shadow-clay-card hover:-translate-y-0.5">
-                    {showEmbed ? <X className="size-3.5" /> : <Images className="size-3.5" />}
-                    {showEmbed ? 'Đóng' : 'Xem trong app'}
-                  </Button>
-                )}
-              </div>
-              {showEmbed && data.folderEmbedUrl && (
-                <iframe
-                  title="Thư mục Google Drive"
-                  src={data.folderEmbedUrl}
-                  className="h-[480px] w-full rounded-[24px] bg-white border-2 border-white/90 shadow-clay-sunken"
-                />
-              )}
-            </>
-          ) : (
-            <ol className="list-decimal space-y-1 pl-5 text-xs sm:text-sm text-muted-foreground font-medium">
-              <li>Tạo 1 thư mục trên Google Drive cho chuyến đi.</li>
-              <li>
-                Chia sẻ → <b>Bất kỳ ai có đường liên kết</b> (Người xem hoặc Người chỉnh sửa để mọi người cùng tải lên).
-              </li>
-              <li>{canEdit ? 'Bấm "Gắn link" và dán link thư mục.' : 'Nhờ trưởng nhóm gắn link thư mục vào đây.'}</li>
-            </ol>
-          )}
-        </CardContent>
-      </Card>
+  const addButton = (
+    <Button onClick={() => setAddOpen(true)}>
+      <ImagePlus />
+      Thêm ảnh
+    </Button>
+  )
 
-      {/* Thêm ảnh nổi bật */}
-      <Card className="rounded-[28px] border-2 border-white/80 bg-card/95 shadow-clay-card">
-        <CardHeader className="p-5 pb-3">
-          <CardTitle className="text-base sm:text-lg font-bold text-foreground">Ảnh nổi bật</CardTitle>
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-            Dán link ảnh/video Drive (đã chia sẻ "Bất kỳ ai có đường liên kết"), mỗi dòng 1 link.
-          </p>
-        </CardHeader>
-        <CardContent className="p-5 pt-0">
-          <form onSubmit={submitLinks} className="grid gap-2.5">
-            <Textarea
-              rows={3}
-              placeholder="https://drive.google.com/file/d/…/view"
-              value={links}
-              onChange={(e) => setLinks(e.target.value)}
-              aria-label="Link ảnh Drive"
-              className="shadow-clay-sunken rounded-2xl"
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
-              <Select value={dayId} onValueChange={setDayId}>
-                <SelectTrigger aria-label="Gắn với ngày" className="w-full rounded-full shadow-clay-card">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NO_DAY}>Không gắn ngày</SelectItem>
-                  {days.map((d) => (
-                    <SelectItem key={d.id} value={String(d.id)}>
-                      {dayLabel(d)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder="Chú thích (tùy chọn)"
-                maxLength={300}
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-              />
-              <Button type="submit" disabled={!links.trim() || addPhotos.isPending} className="rounded-full shadow-clay-btn-primary">
-                Thêm
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+  return (
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-bold">
+          Ảnh nổi bật{data.photos.length > 0 && <span className="text-muted-foreground"> ({data.photos.length})</span>}
+        </h2>
+        {data.photos.length > 0 && addButton}
+      </div>
 
       {/* Lọc theo ngày */}
       {data.photos.length > 0 && days.length > 0 && (
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" role="radiogroup" aria-label="Lọc theo ngày">
-          {[{ id: 'all' as const, label: 'Tất cả' }, ...days.map((d) => ({ id: d.id, label: `Ngày ${d.dayIndex}` }))].map(
-            (f) => (
-              <button
-                key={f.id}
-                type="button"
-                role="radio"
-                aria-checked={filter === f.id}
-                onClick={() => setFilter(f.id)}
-                className={cn(
-                  'shrink-0 rounded-full px-4 py-1.5 text-xs sm:text-sm font-semibold transition-all duration-200 border-2 active:scale-95',
-                  filter === f.id
-                    ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white border-rose-300 shadow-clay-btn-primary -translate-y-0.5'
-                    : 'bg-card text-foreground border-white/70 shadow-clay-card hover:-translate-y-0.5 hover:shadow-clay-card-hover',
-                )}
-              >
-                {f.label}
-              </button>
-            ),
-          )}
+        <div className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <ChoiceChips
+            label="Lọc theo ngày"
+            className="flex-nowrap"
+            value={filter}
+            onChange={(next) => {
+              setFilter(next)
+              setVisible(PAGE_SIZE)
+            }}
+            options={[
+              { value: 'all', label: 'Tất cả' },
+              ...days.map((d) => ({ value: String(d.id), label: `Ngày ${d.dayIndex}` })),
+            ]}
+          />
         </div>
       )}
 
-      {/* Lưới ảnh */}
-      {photos.length === 0 ? (
-        <p className="rounded-[28px] border-2 border-dashed border-border/80 bg-card/60 px-4 py-10 text-center text-sm font-medium text-muted-foreground shadow-clay-card">
-          {data.photos.length === 0 ? 'Chưa có ảnh nào. Dán link ảnh Drive đẹp nhất của chuyến vào nhé 📸' : 'Ngày này chưa có ảnh.'}
+      {/* Lưới ảnh: nội dung chính nên đứng đầu (P3-AL-01) */}
+      {data.photos.length === 0 ? (
+        <EmptyState
+          icon={Images}
+          title="Chưa có ảnh nào"
+          description="Dán link ảnh Drive đẹp nhất của chuyến để cả nhóm cùng xem."
+          action={addButton}
+        />
+      ) : photos.length === 0 ? (
+        <p className="rounded-surface border border-dashed border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
+          Ngày này chưa có ảnh.
         </p>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 stagger-list">
-          {photos.map((p) => (
-            <PhotoTile key={p.id} photo={p} onEdit={() => setEditing(p)} onDelete={() => setToDelete(p)} />
-          ))}
-        </ul>
+        <>
+          <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+            {shown.map((p, i) => (
+              <PhotoTile key={p.id} photo={p} index={i + 1} onEdit={setEditing} onDelete={setToDelete} />
+            ))}
+          </ul>
+          {remaining > 0 && (
+            <Button variant="outline" className="justify-self-center" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+              Xem thêm ({remaining})
+            </Button>
+          )}
+        </>
       )}
 
+      {/* Thư mục Drive chung: một dòng (P3-AL-01) */}
+      <section
+        className="grid gap-3 rounded-surface border border-border bg-card p-4"
+        aria-label="Thư mục Google Drive"
+      >
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <FolderOpen className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Thư mục Google Drive chung</p>
+            <p className="text-sm text-muted-foreground">
+              {data.folderUrl
+                ? 'Ảnh/video gốc chất lượng cao, cả nhóm cùng tải lên.'
+                : canEdit
+                  ? 'Chưa gắn thư mục. Gắn link để cả nhóm cùng tải ảnh gốc lên.'
+                  : 'Chưa gắn thư mục. Nhờ trưởng nhóm gắn link thư mục Drive.'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {data.folderUrl && (
+              <Button asChild variant="outline" size="sm">
+                <a href={data.folderUrl} target="_blank" rel="noreferrer">
+                  <ExternalLink />
+                  Mở Drive
+                </a>
+              </Button>
+            )}
+            {data.folderUrl && data.folderEmbedUrl && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:inline-flex"
+                aria-expanded={showEmbed}
+                onClick={() => setShowEmbed((v) => !v)}
+              >
+                {showEmbed ? <X /> : <Images />}
+                {showEmbed ? 'Đóng' : 'Xem trong app'}
+              </Button>
+            )}
+            {canEdit && (
+              <Button variant="ghost" size="sm" onClick={() => setFolderOpen(true)}>
+                {data.folderUrl ? 'Đổi link' : 'Gắn link'}
+              </Button>
+            )}
+          </div>
+        </div>
+        {showEmbed && data.folderEmbedUrl && (
+          <iframe
+            title="Thư mục Google Drive"
+            src={data.folderEmbedUrl}
+            className="hidden h-[60svh] max-h-[480px] w-full rounded-item border border-border bg-card sm:block"
+          />
+        )}
+      </section>
+
+      <AddPhotosDialog
+        open={addOpen}
+        days={days}
+        pending={addPhotos.isPending}
+        onOpenChange={setAddOpen}
+        onSubmit={submitPhotos}
+      />
       <FolderDialog
         open={folderOpen}
         current={data.folderUrl}
@@ -265,8 +224,7 @@ export function AlbumTab({ tripId, canEdit }: AlbumTabProps) {
         pending={updatePhoto.isPending}
         onOpenChange={(open) => !open && setEditing(null)}
         onSubmit={(body) =>
-          editing &&
-          updatePhoto.mutate({ photoId: editing.id, body }, { onSuccess: () => setEditing(null), onError })
+          editing && updatePhoto.mutate({ photoId: editing.id, body }, { onSuccess: () => setEditing(null), onError })
         }
       />
       <ConfirmDialog
@@ -283,49 +241,65 @@ export function AlbumTab({ tripId, canEdit }: AlbumTabProps) {
   )
 }
 
-function PhotoTile({ photo, onEdit, onDelete }: { photo: AlbumPhotoResponse; onEdit: () => void; onDelete: () => void }) {
+/** memo: poll 15s trả cùng object (structural sharing) nên các ô không render lại (P3-AL-04). */
+const PhotoTile = memo(function PhotoTile({
+  photo,
+  index,
+  onEdit,
+  onDelete,
+}: {
+  photo: AlbumPhotoResponse
+  index: number
+  onEdit: (photo: AlbumPhotoResponse) => void
+  onDelete: (photo: AlbumPhotoResponse) => void
+}) {
   const [broken, setBroken] = useState(false)
+  const name = `Ảnh ${index}${photo.dayIndex ? ` · Ngày ${photo.dayIndex}` : ''}${photo.caption ? `: ${photo.caption}` : ''}`
+  const hasOverlay = Boolean(photo.dayIndex || photo.caption)
   return (
-    <li className="group relative overflow-hidden rounded-[24px] border-2 border-white/90 bg-muted shadow-clay-card transition-all duration-300 hover:-translate-y-1.5 hover:rotate-1 hover:shadow-clay-card-hover">
+    <li className="relative overflow-hidden rounded-surface border border-border bg-muted">
       <a href={photo.viewUrl} target="_blank" rel="noreferrer" className="block aspect-square">
         {broken ? (
-          <span className="flex size-full flex-col items-center justify-center gap-1 p-2 text-center text-xs font-medium text-muted-foreground">
-            <ImageOff className="size-6 text-muted-foreground/60" />
+          <span className="flex size-full flex-col items-center justify-center gap-1 p-2 text-center text-xs text-muted-foreground">
+            <ImageOff className="size-6" aria-hidden="true" />
+            <span className="sr-only">{name}. </span>
             Không xem trước được, bấm để mở trên Drive
           </span>
         ) : (
           <img
             src={photo.thumbnailUrl}
-            alt={photo.caption ?? 'Ảnh trong album'}
+            alt={name}
             loading="lazy"
             referrerPolicy="no-referrer"
-            className="size-full object-cover transition-transform duration-500 group-hover:scale-108"
+            className="size-full object-cover transition-[filter] duration-150 motion-safe:[@media(hover:hover)]:hover:brightness-95"
             onError={() => setBroken(true)}
           />
         )}
       </a>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-[22px] bg-gradient-to-t from-black/75 via-black/35 to-transparent p-3 text-white">
-        {photo.dayIndex && <p className="text-[11px] font-bold text-white/90">Ngày {photo.dayIndex}</p>}
-        {photo.caption && <p className="line-clamp-2 text-xs font-semibold">{photo.caption}</p>}
-      </div>
+      {hasOverlay && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent p-3 text-white">
+          {photo.dayIndex && <p className="text-xs font-bold text-white/90">Ngày {photo.dayIndex}</p>}
+          {photo.caption && <p className="line-clamp-2 text-xs font-semibold">{photo.caption}</p>}
+        </div>
+      )}
       {photo.canEdit && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="secondary"
-              size="icon-xs"
-              className="absolute top-2 right-2 rounded-full border border-white/80 bg-white/90 shadow-clay-badge hover:bg-white active:scale-95 transition-all"
-              aria-label="Tùy chọn ảnh"
+              size="icon"
+              className="absolute top-1.5 right-1.5 rounded-full bg-card/95 text-foreground shadow-flat hover:bg-card"
+              aria-label={`Tùy chọn cho ảnh ${index}`}
             >
-              <MoreVertical className="size-3" />
+              <MoreVertical />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onEdit}>
+            <DropdownMenuItem onSelect={() => onEdit(photo)}>
               <Pencil />
               Sửa chú thích / ngày
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+            <DropdownMenuItem variant="destructive" onSelect={() => onDelete(photo)}>
               <Trash2 />
               Xóa khỏi album
             </DropdownMenuItem>
@@ -333,6 +307,128 @@ function PhotoTile({ photo, onEdit, onDelete }: { photo: AlbumPhotoResponse; onE
         </DropdownMenu>
       )}
     </li>
+  )
+})
+
+function DaySelect({
+  id,
+  value,
+  days,
+  onChange,
+}: {
+  id: string
+  value: string
+  days: ItineraryDayResponse[]
+  onChange: (value: string) => void
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger id={id} className="w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NO_DAY}>Không gắn ngày</SelectItem>
+        {days.map((d) => (
+          <SelectItem key={d.id} value={String(d.id)}>
+            {dayLabel(d)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+function AddPhotosDialog({
+  open,
+  days,
+  pending,
+  onOpenChange,
+  onSubmit,
+}: {
+  open: boolean
+  days: ItineraryDayResponse[]
+  pending: boolean
+  onOpenChange: (open: boolean) => void
+  onSubmit: (body: AddPhotosRequest) => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        {open && (
+          <AddPhotosForm days={days} pending={pending} onSubmit={onSubmit} onCancel={() => onOpenChange(false)} />
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function AddPhotosForm({
+  days,
+  pending,
+  onSubmit,
+  onCancel,
+}: {
+  days: ItineraryDayResponse[]
+  pending: boolean
+  onSubmit: (body: AddPhotosRequest) => void
+  onCancel: () => void
+}) {
+  const [links, setLinks] = useState('')
+  const [dayId, setDayId] = useState(NO_DAY)
+  const [caption, setCaption] = useState('')
+  const [error, setError] = useState<string>()
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    const list = links
+      .split(/[\s,]+/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+    if (list.length === 0) {
+      setError('Dán ít nhất một link ảnh Drive')
+      return
+    }
+    setError(undefined)
+    onSubmit({
+      links: list.slice(0, 50),
+      dayId: dayId === NO_DAY ? null : Number(dayId),
+      caption: caption.trim() || null,
+    })
+  }
+
+  return (
+    <form onSubmit={submit} className="grid gap-4" noValidate>
+      <DialogHeader>
+        <DialogTitle>Thêm ảnh</DialogTitle>
+        <DialogDescription>
+          Dán link ảnh/video Drive (đã chia sẻ "Bất kỳ ai có đường liên kết"), mỗi dòng một link, tối đa 50.
+        </DialogDescription>
+      </DialogHeader>
+      <FormField id="album-links" label="Link ảnh Drive" error={error}>
+        <Textarea
+          id="album-links"
+          autoFocus
+          rows={4}
+          placeholder="https://drive.google.com/file/d/…/view"
+          value={links}
+          onChange={(e) => setLinks(e.target.value)}
+        />
+      </FormField>
+      <FormField id="album-day" label="Gắn với ngày" optional>
+        <DaySelect id="album-day" value={dayId} days={days} onChange={setDayId} />
+      </FormField>
+      <FormField id="album-caption" label="Chú thích" optional>
+        <Input id="album-caption" maxLength={300} value={caption} onChange={(e) => setCaption(e.target.value)} />
+      </FormField>
+      <DialogFooter>
+        <Button type="button" variant="outline" disabled={pending} onClick={onCancel}>
+          Hủy
+        </Button>
+        <Button type="submit" disabled={pending}>
+          {pending ? 'Đang thêm…' : 'Thêm ảnh'}
+        </Button>
+      </DialogFooter>
+    </form>
   )
 }
 
@@ -378,18 +474,34 @@ function FolderForm({
     >
       <DialogHeader>
         <DialogTitle>Link thư mục Google Drive</DialogTitle>
-        <DialogDescription>Dạng drive.google.com/drive/folders/… và đã bật "Bất kỳ ai có đường liên kết".</DialogDescription>
+        <DialogDescription>Dạng drive.google.com/drive/folders/…</DialogDescription>
       </DialogHeader>
-      <Input
-        autoFocus
-        inputMode="url"
-        placeholder="https://drive.google.com/drive/folders/…"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-      />
+      <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+        <li>Tạo một thư mục trên Google Drive cho chuyến đi.</li>
+        <li>
+          Chia sẻ → <b>Bất kỳ ai có đường liên kết</b> (Người chỉnh sửa để mọi người cùng tải lên).
+        </li>
+        <li>Dán link thư mục vào ô dưới.</li>
+      </ol>
+      <FormField id="album-folder" label="Link thư mục">
+        <Input
+          id="album-folder"
+          autoFocus
+          inputMode="url"
+          placeholder="https://drive.google.com/drive/folders/…"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+        />
+      </FormField>
       <DialogFooter>
         {current && (
-          <Button type="button" variant="ghost" disabled={pending} onClick={() => onSubmit(null)}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-destructive"
+            disabled={pending}
+            onClick={() => onSubmit(null)}
+          >
             Gỡ link
           </Button>
         )}
@@ -447,26 +559,12 @@ function PhotoEditForm({
       <DialogHeader>
         <DialogTitle>Sửa ảnh</DialogTitle>
       </DialogHeader>
-      <div className="grid gap-1.5">
-        <Label htmlFor="photo-caption">Chú thích</Label>
+      <FormField id="photo-caption" label="Chú thích" optional>
         <Input id="photo-caption" maxLength={300} value={caption} onChange={(e) => setCaption(e.target.value)} />
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor="photo-day">Ngày</Label>
-        <Select value={dayId} onValueChange={setDayId}>
-          <SelectTrigger id="photo-day" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NO_DAY}>Không gắn ngày</SelectItem>
-            {days.map((d) => (
-              <SelectItem key={d.id} value={String(d.id)}>
-                {dayLabel(d)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      </FormField>
+      <FormField id="photo-day" label="Ngày" optional>
+        <DaySelect id="photo-day" value={dayId} days={days} onChange={setDayId} />
+      </FormField>
       <DialogFooter>
         <Button type="submit" disabled={pending}>
           {pending ? 'Đang lưu…' : 'Lưu'}

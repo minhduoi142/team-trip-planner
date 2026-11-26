@@ -1,6 +1,7 @@
 import { Trophy } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
+import { ChoiceChips } from '@/components/common/ChoiceChips'
 import { dayLabel } from '@/components/itinerary/dayLabel'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,11 +14,12 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useItinerary } from '@/hooks/useItinerary'
 import { getErrorMessage } from '@/lib/api'
 import { ITINERARY_CATEGORIES } from '@/lib/tripContent'
-import { cn } from '@/lib/utils'
 import type { ItineraryCategory } from '@/types/itinerary'
 import type { ClosePollRequest, PollResponse } from '@/types/poll'
 
@@ -47,7 +49,8 @@ function CloseForm({ tripId, poll, pending, onSubmit, onOpenChange }: ClosePollD
   const [dayId, setDayId] = useState<string>('')
   const [startTime, setStartTime] = useState('')
   const [category, setCategory] = useState<ItineraryCategory>('FOOD')
-  const days = itinerary.data?.days ?? []
+  // Chỉ các ngày trong khoảng đã chốt (bỏ ngày thừa), giống ScheduleProposalDialog
+  const days = (itinerary.data?.days ?? []).filter((d) => !d.overflow)
   const canAdd = days.length > 0
 
   const submit = async (event: FormEvent) => {
@@ -75,100 +78,96 @@ function CloseForm({ tripId, poll, pending, onSubmit, onOpenChange }: ClosePollD
         <DialogDescription>Chọn lựa chọn thắng. Có thể thêm luôn vào lịch trình.</DialogDescription>
       </DialogHeader>
 
-        <div className="grid gap-2.5" role="radiogroup" aria-label="Lựa chọn thắng">
-          {poll.options.map((o) => (
-            <button
-              key={o.id}
-              type="button"
-              role="radio"
-              aria-checked={optionId === o.id}
-              onClick={() => setOptionId(o.id)}
-              className={cn(
-                'flex items-center justify-between rounded-[20px] px-4 py-3 text-left border-2 transition-all duration-200 active:scale-98',
-                optionId === o.id
-                  ? 'bg-amber-50/90 border-amber-400 shadow-clay-card-hover -translate-y-0.5'
-                  : 'bg-card border-white/80 shadow-clay-card hover:-translate-y-0.5',
-              )}
-            >
-                <span className="flex items-center gap-2 font-bold text-foreground">
-                  {optionId === o.id && <Trophy className="size-4 text-amber-500 animate-bounce" />}
-                  {o.name}
-                </span>
-                <span className="text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full border border-white/60 shadow-clay-badge">
-                  {o.voteCount} phiếu
-                </span>
-            </button>
-          ))}
-        </div>
+      <ToggleGroup
+        type="single"
+        aria-label="Lựa chọn thắng"
+        value={optionId ? String(optionId) : ''}
+        onValueChange={(next) => {
+          if (next) setOptionId(Number(next))
+        }}
+        className="grid gap-2"
+      >
+        {poll.options.map((o) => (
+          <ToggleGroupItem
+            key={o.id}
+            value={String(o.id)}
+            className="h-auto min-h-12 w-full justify-between gap-3 rounded-item px-4 py-2.5 text-left whitespace-normal data-[state=on]:border-warning data-[state=on]:bg-warning-soft data-[state=on]:text-warning-soft-foreground"
+          >
+            <span className="flex min-w-0 items-center gap-2 font-bold break-words">
+              {optionId === o.id && <Trophy className="size-4 shrink-0" aria-hidden="true" />}
+              {o.name}
+            </span>
+            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+              {o.voteCount} phiếu
+            </span>
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
 
-        {canAdd ? (
-              <div className="grid gap-3.5 rounded-[22px] border border-white/80 bg-muted/30 p-4 shadow-clay-sunken">
-                <label className="flex items-center gap-2 text-sm font-bold text-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="size-4.5 rounded accent-primary cursor-pointer"
-                    checked={addToItinerary}
-                    onChange={(e) => setAddToItinerary(e.target.checked)}
-                  />
-                  Thêm vào lịch trình
-                </label>
-                {addToItinerary && (
-                  <>
-                      <div className="grid grid-cols-[1fr_7rem] gap-2.5">
-                        <div className="grid gap-1.5">
-                          <Label htmlFor="close-day" className="font-semibold text-xs">Ngày</Label>
-                          <Select value={dayId} onValueChange={setDayId}>
-                              <SelectTrigger id="close-day" className="w-full rounded-full shadow-clay-card">
-                                <SelectValue placeholder="Chọn ngày" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {days.map((d) => (
-                                  <SelectItem key={d.id} value={String(d.id)}>
-                                    {dayLabel(d)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="grid gap-1.5">
-                          <Label htmlFor="close-time" className="font-semibold text-xs">Giờ</Label>
-                          <Input id="close-time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-                        </div>
-                      </div>
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {ITINERARY_CATEGORIES.map((c) => (
-                            <button
-                              key={c.value}
-                              type="button"
-                              aria-pressed={category === c.value}
-                              onClick={() => setCategory(c.value)}
-                              className={cn(
-                                'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-95 border-2',
-                                category === c.value
-                                  ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white border-rose-300 shadow-clay-btn-primary -translate-y-0.5'
-                                  : 'bg-card text-foreground border-white/70 shadow-clay-card hover:-translate-y-0.5',
-                              )}
-                            >
-                              <c.icon className="size-3.5" />
-                              {c.label}
-                            </button>
-                          ))}
-                        </div>
-                      </>
+      {itinerary.isPending ? (
+        <Skeleton className="h-28 rounded-item" />
+      ) : canAdd ? (
+        <div className="grid gap-3.5 rounded-item border border-border bg-muted/30 p-4">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-bold text-foreground">
+            <input
+              type="checkbox"
+              className="size-4.5 cursor-pointer rounded accent-primary-strong"
+              checked={addToItinerary}
+              onChange={(e) => setAddToItinerary(e.target.checked)}
+            />
+            Thêm vào lịch trình
+          </label>
+          {addToItinerary && (
+            <>
+              <div className="grid grid-cols-[1fr_7rem] gap-2.5">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="close-day" className="text-xs font-semibold">
+                    Ngày
+                  </Label>
+                  <Select value={dayId} onValueChange={setDayId}>
+                    <SelectTrigger id="close-day" className="w-full">
+                      <SelectValue placeholder="Chọn ngày" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {days.map((d) => (
+                        <SelectItem key={d.id} value={String(d.id)}>
+                          {dayLabel(d)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="close-time" className="text-xs font-semibold">
+                    Giờ
+                  </Label>
+                  <Input id="close-time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                </div>
+              </div>
+              <ChoiceChips
+                label="Loại hoạt động"
+                options={ITINERARY_CATEGORIES}
+                value={category}
+                onChange={setCategory}
+                className="pt-1"
+              />
+            </>
           )}
-                    </div>
-                    ) : (
-                    <p className="text-xs text-muted-foreground font-medium">Chốt ngày đi trước thì mới thêm được vào lịch trình.</p>
+        </div>
+      ) : (
+        <p className="text-xs font-medium text-muted-foreground">
+          Chốt ngày đi trước thì mới thêm được vào lịch trình.
+        </p>
       )}
 
-                    <DialogFooter>
-                      <Button type="button" variant="outline" disabled={pending} onClick={() => onOpenChange(false)}>
-                        Hủy
-                      </Button>
-                      <Button type="submit" disabled={pending || !optionId}>
-                        {pending ? 'Đang chốt…' : 'Chốt'}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                )
+      <DialogFooter>
+        <Button type="button" variant="outline" disabled={pending} onClick={() => onOpenChange(false)}>
+          Hủy
+        </Button>
+        <Button type="submit" disabled={pending || !optionId}>
+          {pending ? 'Đang chốt…' : 'Chốt'}
+        </Button>
+      </DialogFooter>
+    </form>
+  )
 }

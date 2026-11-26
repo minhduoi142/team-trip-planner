@@ -18,14 +18,19 @@ import type { ChecklistCategory } from '@/types/checklist'
 import type { ExpenseCategory } from '@/types/expense'
 import type { ItineraryCategory } from '@/types/itinerary'
 
+/**
+ * `tone`: nền nhạt + chữ đậm cùng hue, lấy từ token `avatar-*` (chữ ≥ 5,3:1) và `muted` (docs/ui-slop-audit.md P3-CP-06/08).
+ * Không dùng palette Tailwind viết cứng.
+ */
+
 export const ITINERARY_CATEGORIES: { value: ItineraryCategory; label: string; icon: LucideIcon; tone: string }[] = [
-  { value: 'FOOD', label: 'Ăn uống', icon: UtensilsCrossed, tone: 'bg-orange-100 text-orange-700' },
-  { value: 'SIGHTSEEING', label: 'Tham quan', icon: Landmark, tone: 'bg-sky-100 text-sky-700' },
-  { value: 'ACTIVITY', label: 'Vui chơi', icon: Sparkles, tone: 'bg-fuchsia-100 text-fuchsia-700' },
-  { value: 'TRANSPORT', label: 'Di chuyển', icon: Bus, tone: 'bg-zinc-100 text-zinc-700' },
-  { value: 'STAY', label: 'Lưu trú', icon: Hotel, tone: 'bg-violet-100 text-violet-700' },
-  { value: 'SHOPPING', label: 'Mua sắm', icon: ShoppingBag, tone: 'bg-rose-100 text-rose-700' },
-  { value: 'OTHER', label: 'Khác', icon: Coffee, tone: 'bg-amber-100 text-amber-700' },
+  { value: 'FOOD', label: 'Ăn uống', icon: UtensilsCrossed, tone: 'bg-avatar-7 text-avatar-7-foreground' },
+  { value: 'SIGHTSEEING', label: 'Tham quan', icon: Landmark, tone: 'bg-avatar-4 text-avatar-4-foreground' },
+  { value: 'ACTIVITY', label: 'Vui chơi', icon: Sparkles, tone: 'bg-avatar-2 text-avatar-2-foreground' },
+  { value: 'TRANSPORT', label: 'Di chuyển', icon: Bus, tone: 'bg-muted text-muted-foreground' },
+  { value: 'STAY', label: 'Lưu trú', icon: Hotel, tone: 'bg-avatar-3 text-avatar-3-foreground' },
+  { value: 'SHOPPING', label: 'Mua sắm', icon: ShoppingBag, tone: 'bg-avatar-1 text-avatar-1-foreground' },
+  { value: 'OTHER', label: 'Khác', icon: Coffee, tone: 'bg-avatar-6 text-avatar-6-foreground' },
 ]
 
 export const CHECKLIST_CATEGORIES: { value: ChecklistCategory; label: string; icon: LucideIcon }[] = [
@@ -38,12 +43,12 @@ export const CHECKLIST_CATEGORIES: { value: ChecklistCategory; label: string; ic
 ]
 
 export const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string; icon: LucideIcon; tone: string }[] = [
-  { value: 'FOOD', label: 'Ăn uống', icon: UtensilsCrossed, tone: 'bg-orange-100 text-orange-700' },
-  { value: 'TRANSPORT', label: 'Di chuyển', icon: Bus, tone: 'bg-sky-100 text-sky-700' },
-  { value: 'STAY', label: 'Chỗ ở', icon: Hotel, tone: 'bg-violet-100 text-violet-700' },
-  { value: 'TICKET', label: 'Vé / tour', icon: Ticket, tone: 'bg-emerald-100 text-emerald-700' },
-  { value: 'SHOPPING', label: 'Mua sắm', icon: ShoppingBag, tone: 'bg-rose-100 text-rose-700' },
-  { value: 'OTHER', label: 'Khác', icon: Package, tone: 'bg-zinc-100 text-zinc-700' },
+  { value: 'FOOD', label: 'Ăn uống', icon: UtensilsCrossed, tone: 'bg-avatar-7 text-avatar-7-foreground' },
+  { value: 'TRANSPORT', label: 'Di chuyển', icon: Bus, tone: 'bg-avatar-4 text-avatar-4-foreground' },
+  { value: 'STAY', label: 'Chỗ ở', icon: Hotel, tone: 'bg-avatar-3 text-avatar-3-foreground' },
+  { value: 'TICKET', label: 'Vé / tour', icon: Ticket, tone: 'bg-avatar-5 text-avatar-5-foreground' },
+  { value: 'SHOPPING', label: 'Mua sắm', icon: ShoppingBag, tone: 'bg-avatar-1 text-avatar-1-foreground' },
+  { value: 'OTHER', label: 'Khác', icon: Package, tone: 'bg-muted text-muted-foreground' },
 ]
 
 const EXPENSE_BY_VALUE = new Map(EXPENSE_CATEGORIES.map((c) => [c.value, c]))

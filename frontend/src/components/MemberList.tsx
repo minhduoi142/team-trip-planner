@@ -1,7 +1,8 @@
-import { Crown, Eye, LogOut, MoreVertical, Pencil, UserMinus } from 'lucide-react'
+import { Crown, Eye, Info, LogOut, Pencil, UserMinus } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
+import { RowMenuButton } from '@/components/common/layout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,21 +17,18 @@ import {
 import { useChangeRole, useRemoveMember, useTransferOwnership } from '@/hooks/useTrips'
 import { getErrorMessage } from '@/lib/api'
 import { ROLE_DESCRIPTION, ROLE_LABEL } from '@/lib/labels'
-import { cn } from '@/lib/utils'
 import type { TripMemberResponse, TripRole } from '@/types/trip'
 import { ConfirmDialog } from './ConfirmDialog'
 import { UserAvatar } from './UserAvatar'
 
-const ROLE_BADGE: Record<TripRole, string> = {
-  OWNER: 'bg-amber-100 text-amber-900 border-amber-300 shadow-clay-badge',
-  EDITOR: 'bg-rose-100 text-rose-800 border-rose-300 shadow-clay-badge',
-  VIEWER: 'bg-zinc-100 text-zinc-700 border-zinc-300 shadow-clay-badge',
+/** Trưởng nhóm → bạn → còn lại theo tên (P3-TV-02). */
+function sortMembers(members: TripMemberResponse[], currentUserId: number) {
+  const rank = (m: TripMemberResponse) => (m.role === 'OWNER' ? 0 : m.userId === currentUserId ? 1 : 2)
+  return [...members].sort((a, b) => rank(a) - rank(b) || a.displayName.localeCompare(b.displayName, 'vi'))
 }
 
 type PendingAction =
-  | { kind: 'transfer'; member: TripMemberResponse }
-  | { kind: 'remove'; member: TripMemberResponse }
-  | { kind: 'leave' }
+  { kind: 'transfer'; member: TripMemberResponse } | { kind: 'remove'; member: TripMemberResponse } | { kind: 'leave' }
 
 interface MemberListProps {
   tripId: number
@@ -61,7 +59,7 @@ export function MemberList({ tripId, members, currentUserId, myRole }: MemberLis
     if (action.kind === 'transfer') {
       transfer.mutate(action.member.userId, {
         onSuccess: () => {
-          toast.success(`Đã chuyển quyền trưởng nhóm cho ${action.member.displayName}`)
+          toast.success(`Đã chuyển quyền ${ROLE_LABEL.OWNER.toLowerCase()} cho ${action.member.displayName}`)
           done()
         },
         onError,
@@ -89,130 +87,134 @@ export function MemberList({ tripId, members, currentUserId, myRole }: MemberLis
   const isPending = changeRole.isPending || transfer.isPending || remove.isPending
 
   return (
-        <Card className="rounded-[28px] shadow-clay-card border border-border/60 bg-card">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <span>Thành viên</span>
-              <span className="rounded-full bg-muted/80 px-2.5 py-0.5 text-xs font-bold text-muted-foreground shadow-clay-badge">
-                {members.length}
-              </span>
-            </CardTitle>
-            {!isOwner && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-destructive rounded-full"
-                onClick={() => setAction({ kind: 'leave' })}
-              >
-                <LogOut className="size-4" />
-                Rời nhóm
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-              <ul className="divide-y divide-border/40" role="list">
-                {members.map((member) => {
-                  const isMe = member.userId === currentUserId
-                  const canManage = isOwner && !isMe
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2">
+          <span>Thành viên</span>
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
+            {members.length}
+          </span>
+        </CardTitle>
+        {!isOwner && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-destructive"
+            onClick={() => setAction({ kind: 'leave' })}
+          >
+            <LogOut />
+            Rời nhóm
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <p className="flex gap-2 text-xs text-muted-foreground">
+          <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+          <span>
+            {ROLE_LABEL.OWNER}: {ROLE_DESCRIPTION.OWNER.toLowerCase()}. {ROLE_LABEL.EDITOR}:{' '}
+            {ROLE_DESCRIPTION.EDITOR.toLowerCase()}. {ROLE_LABEL.VIEWER}: {ROLE_DESCRIPTION.VIEWER.toLowerCase()}.
+          </span>
+        </p>
+        <ul className="divide-y divide-border" role="list">
+          {sortMembers(members, currentUserId).map((member) => {
+            const isMe = member.userId === currentUserId
+            const canManage = isOwner && !isMe
 
-                  return (
-                          <li key={member.userId} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <UserAvatar userId={member.userId} name={member.displayName} avatarUrl={member.avatarUrl} size="default" />
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-bold text-foreground">
-                                  {member.displayName}
-                                  {isMe && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(bạn)</span>}
-                                </p>
-                                <p className="text-xs text-muted-foreground">{ROLE_DESCRIPTION[member.role]}</p>
-                              </div>
-                            </div>
+            return (
+              <li key={member.userId} className="flex min-h-14 items-center justify-between gap-2 py-2.5">
+                <div className="flex min-w-0 items-center gap-3">
+                  <UserAvatar
+                    userId={member.userId}
+                    name={member.displayName}
+                    avatarUrl={member.avatarUrl}
+                    size="default"
+                  />
+                  <p className="min-w-0 truncate text-sm font-bold text-foreground">
+                    {member.displayName}
+                    {isMe && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(bạn)</span>}
+                  </p>
+                </div>
 
-                            <div className="flex shrink-0 items-center gap-2">
-                              <Badge
-                                className={cn(
-                                  'rounded-full px-2.5 py-0.5 text-xs font-semibold border',
-                                  ROLE_BADGE[member.role],
-                                )}
-                              >
-                                {member.role === 'OWNER' && <Crown className="size-3 mr-1 text-amber-600 inline" />}
-                                {ROLE_LABEL[member.role]}
-                              </Badge>
+                <div className="flex shrink-0 items-center gap-1">
+                  {member.role === 'OWNER' && (
+                    <Badge variant="secondary">
+                      <Crown aria-hidden="true" />
+                      {ROLE_LABEL.OWNER}
+                    </Badge>
+                  )}
+                  {member.role === 'VIEWER' && (
+                    <Badge variant="outline" className="bg-muted text-muted-foreground">
+                      <Eye aria-hidden="true" />
+                      {ROLE_LABEL.VIEWER}
+                    </Badge>
+                  )}
+                  {member.role === 'EDITOR' && <span className="sr-only">{ROLE_LABEL.EDITOR}</span>}
 
-                              {canManage && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="size-8 rounded-full text-muted-foreground hover:text-foreground"
-                                      aria-label={`Tùy chọn cho ${member.displayName}`}
-                                    >
-                                      <MoreVertical className="size-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>{member.displayName}</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {member.role !== 'EDITOR' && (
-                                      <DropdownMenuItem onSelect={() => setRole(member, 'EDITOR')}>
-                                        <Pencil /> Đặt làm Biên tập viên
-                                      </DropdownMenuItem>
-                                    )}
-                                    {member.role !== 'VIEWER' && (
-                                      <DropdownMenuItem onSelect={() => setRole(member, 'VIEWER')}>
-                                        <Eye /> Đặt làm Người xem
-                                      </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onSelect={() => setAction({ kind: 'transfer', member })}>
-                                      <Crown className="text-amber-500" /> Chuyển quyền trưởng nhóm
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      variant="destructive"
-                                      onSelect={() => setAction({ kind: 'remove', member })}
-                                    >
-                                      <UserMinus /> Mời ra khỏi nhóm
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </div>
-                          </li>
-                          )
+                  {canManage && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <RowMenuButton label={`Tùy chọn cho ${member.displayName}`} />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>{member.displayName}</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {member.role !== 'EDITOR' && (
+                          <DropdownMenuItem onSelect={() => setRole(member, 'EDITOR')}>
+                            <Pencil /> Đặt làm {ROLE_LABEL.EDITOR}
+                          </DropdownMenuItem>
+                        )}
+                        {member.role !== 'VIEWER' && (
+                          <DropdownMenuItem onSelect={() => setRole(member, 'VIEWER')}>
+                            <Eye /> Đặt làm {ROLE_LABEL.VIEWER}
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={() => setAction({ kind: 'transfer', member })}>
+                          <Crown /> Chuyển quyền {ROLE_LABEL.OWNER.toLowerCase()}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" onSelect={() => setAction({ kind: 'remove', member })}>
+                          <UserMinus /> Mời ra khỏi nhóm
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              </li>
+            )
           })}
-                        </ul>
-                      </CardContent>
+        </ul>
+        {isOwner && (
+          <p className="text-xs text-muted-foreground">
+            {members.length > 1
+              ? `Muốn rời nhóm? Chuyển quyền ${ROLE_LABEL.OWNER.toLowerCase()} cho người khác trước (menu ⋮ cạnh tên).`
+              : `${ROLE_LABEL.OWNER} không thể rời nhóm khi chưa có ai để chuyển quyền.`}
+          </p>
+        )}
+      </CardContent>
 
-                      <ConfirmDialog
-                        open={Boolean(action)}
-                        onOpenChange={(open) => !open && setAction(null)}
-                        title={
-                          action?.kind === 'transfer'
-                            ? `Chuyển quyền trưởng nhóm cho ${action.member.displayName}?`
-                            : action?.kind === 'remove'
-                              ? `Mời ${action.member.displayName} ra khỏi nhóm?`
-                              : 'Rời chuyến đi này?'
-                        }
-                        description={
-                          action?.kind === 'transfer'
-                            ? 'Bạn sẽ trở thành Biên tập viên và không còn toàn quyền quản lý chuyến đi.'
-                            : action?.kind === 'remove'
-                              ? 'Thành viên này sẽ không thể xem hoặc chỉnh sửa chuyến đi nữa.'
-                              : 'Bạn cần được mời lại nếu muốn tham gia tiếp.'
-                        }
-                        confirmLabel={
-                          action?.kind === 'transfer'
-                            ? 'Chuyển quyền'
-                            : action?.kind === 'remove'
-                              ? 'Mời ra'
-                              : 'Rời nhóm'
-                        }
-                        destructive={action?.kind !== 'transfer'}
-                        pending={isPending}
-                        onConfirm={confirm}
-                      />
-                    </Card>
-                  )
-                }
+      <ConfirmDialog
+        open={Boolean(action)}
+        onOpenChange={(open) => !open && setAction(null)}
+        title={
+          action?.kind === 'transfer'
+            ? `Chuyển quyền ${ROLE_LABEL.OWNER.toLowerCase()} cho ${action.member.displayName}?`
+            : action?.kind === 'remove'
+              ? `Mời ${action.member.displayName} ra khỏi nhóm?`
+              : 'Rời chuyến đi này?'
+        }
+        description={
+          action?.kind === 'transfer'
+            ? `Bạn sẽ trở thành ${ROLE_LABEL.EDITOR} và không còn toàn quyền quản lý chuyến đi.`
+            : action?.kind === 'remove'
+              ? 'Thành viên này sẽ không thể xem hoặc chỉnh sửa chuyến đi nữa.'
+              : 'Bạn cần được mời lại nếu muốn tham gia tiếp.'
+        }
+        confirmLabel={action?.kind === 'transfer' ? 'Chuyển quyền' : action?.kind === 'remove' ? 'Mời ra' : 'Rời nhóm'}
+        destructive={action?.kind !== 'transfer'}
+        pending={isPending}
+        onConfirm={confirm}
+      />
+    </Card>
+  )
+}

@@ -3,16 +3,7 @@ import type { ChecklistCategory } from './checklist'
 
 /** com.tripplanner.weather.Condition */
 export type WeatherCondition =
-  | 'CLEAR'
-  | 'PARTLY_CLOUDY'
-  | 'CLOUDY'
-  | 'FOG'
-  | 'DRIZZLE'
-  | 'RAIN'
-  | 'HEAVY_RAIN'
-  | 'SNOW'
-  | 'THUNDERSTORM'
-  | 'UNKNOWN'
+  'CLEAR' | 'PARTLY_CLOUDY' | 'CLOUDY' | 'FOG' | 'DRIZZLE' | 'RAIN' | 'HEAVY_RAIN' | 'SNOW' | 'THUNDERSTORM' | 'UNKNOWN'
 
 /** com.tripplanner.weather.WeatherStatus */
 export type WeatherStatus = 'FORECAST' | 'TOO_FAR' | 'PAST' | 'NO_DATE' | 'NO_LOCATION' | 'UNAVAILABLE'

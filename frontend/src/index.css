@@ -1,652 +1,473 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource/be-vietnam-pro/400.css";
-@import "@fontsource/be-vietnam-pro/500.css";
-@import "@fontsource/be-vietnam-pro/600.css";
-@import "@fontsource/be-vietnam-pro/700.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource/be-vietnam-pro/400.css';
+@import '@fontsource/be-vietnam-pro/500.css';
+@import '@fontsource/be-vietnam-pro/600.css';
+@import '@fontsource/be-vietnam-pro/700.css';
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * Design tokens (docs/ui-slop-audit.md, Phase 0). App chỉ có giao diện sáng.
+ * Quy tắc:
+ * - Không viết cứng palette Tailwind (rose-500, emerald-100…) trong component: dùng token ngữ nghĩa
+ *   (success, warning, info, money-*, avail-*, status-*, avatar-*).
+ * - Không dùng rounded-[Npx] / text-[Npx]: ESLint chặn. Dùng rounded-control/item/surface/overlay, text-2xs.
+ * - Bóng: dùng thang theo vai trò shadow-flat/raised/cta/overlay/sunken/pressed.
+ * - Chữ có màu chủ đạo và nút có chữ: dùng primary-strong (đạt AA). primary (coral sáng) dùng cho mảng màu, viền, nền nhạt.
+ */
 
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Be Vietnam Pro', system-ui, sans-serif;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
-    --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+  --font-heading: var(--font-sans);
+  --font-sans: 'Be Vietnam Pro', system-ui, sans-serif;
 
-    /* 3D Tactile Clay Shadow Tokens */
-    --shadow-clay-card: var(--clay-card);
-    --shadow-clay-card-hover: var(--clay-card-hover);
-    --shadow-clay-btn-primary: var(--clay-btn-primary);
-    --shadow-clay-btn-secondary: var(--clay-btn-secondary);
-    --shadow-clay-btn-outline: var(--clay-btn-outline);
-    --shadow-clay-pressed: var(--clay-pressed);
-    --shadow-clay-sunken: var(--clay-sunken);
-    --shadow-clay-badge: var(--clay-badge);
-    --shadow-clay-dock: var(--clay-dock);
-    --shadow-clay-floating: var(--clay-floating);
+  /* Shadcn */
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-strong-foreground: var(--primary-strong-foreground);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  /* Màu ngữ nghĩa: X = nền đặc (chữ X-foreground), X-soft = nền nhạt (chữ X-soft-foreground). Đều ≥ 4,5:1. */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-foreground: var(--info-soft-foreground);
+
+  /* Tiền: chữ trên nền sáng (luôn kèm dấu +/−, không chỉ dựa vào màu) */
+  --color-money-in: var(--money-in);
+  --color-money-out: var(--money-out);
+
+  /* Lịch rảnh */
+  --color-avail-yes: var(--avail-yes);
+  --color-avail-yes-foreground: var(--avail-yes-foreground);
+  --color-avail-yes-soft: var(--avail-yes-soft);
+  --color-avail-yes-soft-foreground: var(--avail-yes-soft-foreground);
+  --color-avail-maybe: var(--avail-maybe);
+  --color-avail-maybe-foreground: var(--avail-maybe-foreground);
+  --color-avail-maybe-soft: var(--avail-maybe-soft);
+  --color-avail-maybe-soft-foreground: var(--avail-maybe-soft-foreground);
+  --color-avail-no: var(--avail-no);
+  --color-avail-no-foreground: var(--avail-no-foreground);
+  --color-avail-no-soft: var(--avail-no-soft);
+  --color-avail-no-soft-foreground: var(--avail-no-soft-foreground);
+
+  /* Trạng thái chuyến (nền nhạt + chữ) */
+  --color-status-planning: var(--status-planning);
+  --color-status-planning-foreground: var(--status-planning-foreground);
+  --color-status-upcoming: var(--status-upcoming);
+  --color-status-upcoming-foreground: var(--status-upcoming-foreground);
+  --color-status-ongoing: var(--status-ongoing);
+  --color-status-ongoing-foreground: var(--status-ongoing-foreground);
+  --color-status-completed: var(--status-completed);
+  --color-status-completed-foreground: var(--status-completed-foreground);
+
+  /* Avatar chữ cái (UserAvatar) */
+  --color-avatar-1: var(--avatar-1);
+  --color-avatar-1-foreground: var(--avatar-1-foreground);
+  --color-avatar-2: var(--avatar-2);
+  --color-avatar-2-foreground: var(--avatar-2-foreground);
+  --color-avatar-3: var(--avatar-3);
+  --color-avatar-3-foreground: var(--avatar-3-foreground);
+  --color-avatar-4: var(--avatar-4);
+  --color-avatar-4-foreground: var(--avatar-4-foreground);
+  --color-avatar-5: var(--avatar-5);
+  --color-avatar-5-foreground: var(--avatar-5-foreground);
+  --color-avatar-6: var(--avatar-6);
+  --color-avatar-6-foreground: var(--avatar-6-foreground);
+  --color-avatar-7: var(--avatar-7);
+  --color-avatar-7-foreground: var(--avatar-7-foreground);
+  --color-avatar-8: var(--avatar-8);
+  --color-avatar-8-foreground: var(--avatar-8-foreground);
+
+  /* Lớp phủ kem trên video nền */
+  --color-overlay-video: var(--overlay-video);
+
+  /* Bo góc: thang gốc + tên theo vai trò */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-control: calc(infinity * 1px); /* nút, input, chip */
+  --radius-item: calc(var(--radius) * 1.4); /* option, menu item, dòng, ô nhỏ (22,4px) */
+  --radius-surface: calc(var(--radius) * 1.8); /* card (28,8px) */
+  --radius-overlay: calc(var(--radius) * 2.2); /* dialog, alert, sheet (35,2px) */
+
+  /* Chữ nhỏ nhất được phép (chỉ cho nhãn phụ; nội dung đọc tối thiểu text-xs) */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1.4;
+
+  /* Bóng đổ dưới hình trang trí PNG (FloatingBackground) */
+  --drop-shadow-decor: 0 10px 18px rgb(120 60 40 / 0.18);
+
+  /* Chuyển động */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-press: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Bóng theo vai trò */
+  --shadow-flat: var(--elevation-flat); /* badge, chip, avatar, dòng trong list */
+  --shadow-raised: var(--elevation-raised); /* card */
+  --shadow-cta: var(--elevation-cta); /* chỉ nút default */
+  --shadow-cta-destructive: var(--elevation-cta-destructive); /* chỉ nút destructive */
+  --shadow-overlay: var(--elevation-overlay); /* dialog, popover, dock */
+  --shadow-sunken: var(--elevation-sunken); /* input */
+  --shadow-pressed: var(--elevation-pressed); /* trạng thái bấm */
 }
 
 :root {
-    /* Pastel: coral hồng chủ đạo, tím lavender phụ */
-    --background: oklch(0.985 0.008 350);
-    --foreground: oklch(0.24 0.03 340);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.24 0.03 340);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.24 0.03 340);
-    --primary: oklch(0.66 0.17 12);
-    --primary-foreground: oklch(0.99 0.005 350);
-    --secondary: oklch(0.96 0.025 350);
-    --secondary-foreground: oklch(0.38 0.09 355);
-    --muted: oklch(0.97 0.012 340);
-    --muted-foreground: oklch(0.53 0.03 340);
-    --accent: oklch(0.95 0.035 305);
-    --accent-foreground: oklch(0.38 0.11 300);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.925 0.02 345);
-    --input: oklch(0.925 0.02 345);
-    --ring: oklch(0.78 0.11 12);
-    --chart-1: oklch(0.66 0.17 12);
-    --chart-2: oklch(0.7 0.14 300);
-    --chart-3: oklch(0.75 0.12 200);
-    --chart-4: oklch(0.8 0.13 80);
-    --chart-5: oklch(0.7 0.14 150);
-    --radius: 1rem;
-    --sidebar: oklch(0.985 0.008 350);
-    --sidebar-foreground: oklch(0.24 0.03 340);
-    --sidebar-primary: oklch(0.66 0.17 12);
-    --sidebar-primary-foreground: oklch(0.99 0.005 350);
-    --sidebar-accent: oklch(0.95 0.035 305);
-    --sidebar-accent-foreground: oklch(0.38 0.11 300);
-    --sidebar-border: oklch(0.925 0.02 345);
-    --sidebar-ring: oklch(0.78 0.11 12);
+  color-scheme: light;
 
-    /* Tactile Clay & Pill UI 3D Shadows */
-    --clay-card: 0 14px 28px -4px rgba(220, 175, 185, 0.28), 0 4px 10px -2px rgba(0, 0, 0, 0.04), inset 2px 3px 6px rgba(255, 255, 255, 0.95), inset -2px -3px 6px rgba(210, 160, 170, 0.1);
-    --clay-card-hover: 0 20px 38px -4px rgba(220, 165, 175, 0.38), 0 6px 14px -2px rgba(0, 0, 0, 0.06), inset 2px 3px 6px rgba(255, 255, 255, 1), inset -2px -3px 6px rgba(210, 160, 170, 0.12);
-    --clay-btn-primary: 0 8px 18px -2px color-mix(in oklch, var(--primary) 45%, transparent), 0 3px 6px -1px rgba(0, 0, 0, 0.08), inset 0 2.5px 3px rgba(255, 255, 255, 0.45), inset 0 -3.5px 4px rgba(0, 0, 0, 0.2);
-    --clay-btn-secondary: 0 6px 14px -2px rgba(220, 175, 185, 0.3), 0 2px 5px -1px rgba(0, 0, 0, 0.04), inset 0 2.5px 3px rgba(255, 255, 255, 0.95), inset 0 -2.5px 3px rgba(190, 145, 155, 0.14);
-    --clay-btn-outline: 0 4px 12px -2px rgba(220, 175, 185, 0.25), inset 0 2px 3px rgba(255, 255, 255, 0.9), inset 0 -2px 3px rgba(190, 145, 155, 0.12);
-    --clay-pressed: 0 2px 4px rgba(0, 0, 0, 0.08), inset 0 3px 6px rgba(0, 0, 0, 0.25);
-    --clay-sunken: inset 2px 3px 6px rgba(190, 145, 155, 0.18), inset -1px -2px 4px rgba(255, 255, 255, 0.9);
-    --clay-badge: 0 3px 8px -1px rgba(210, 160, 170, 0.25), inset 0 1.5px 2px rgba(255, 255, 255, 0.7);
-    --clay-dock: 0 16px 36px -6px rgba(210, 150, 165, 0.35), 0 6px 16px -3px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.95), inset 0 -2px 4px rgba(190, 140, 150, 0.1);
-    --clay-floating: 0 24px 48px -8px rgba(210, 150, 165, 0.42), 0 8px 18px -4px rgba(0, 0, 0, 0.08), inset 2px 3px 8px rgba(255, 255, 255, 1);
+  /* Pastel: coral hồng chủ đạo, tím lavender phụ */
+  --background: oklch(0.985 0.008 350);
+  --foreground: oklch(0.24 0.03 340);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.03 340);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.03 340);
+  /* Coral sáng: mảng màu, viền, nền nhạt. Chữ trắng trên nó chỉ 3,3:1 nên không dùng cho nút có chữ. */
+  --primary: oklch(0.66 0.17 12);
+  --primary-foreground: oklch(0.99 0.005 350);
+  /* Coral đậm: chữ màu chủ đạo (4,9:1 trên nền) và nút có chữ (chữ trắng 5,1:1) */
+  --primary-strong: oklch(0.56 0.17 12);
+  --primary-strong-foreground: oklch(0.99 0.005 350);
+  --secondary: oklch(0.96 0.025 350);
+  --secondary-foreground: oklch(0.38 0.09 355);
+  --muted: oklch(0.97 0.012 340);
+  --muted-foreground: oklch(0.53 0.03 340);
+  --accent: oklch(0.95 0.035 305);
+  --accent-foreground: oklch(0.38 0.11 300);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.925 0.02 345);
+  --input: oklch(0.925 0.02 345);
+  /* Vòng focus: 4,1:1 trên nền (≥ 3:1 theo WCAG 1.4.11). Dùng đặc, không pha /50. */
+  --ring: oklch(0.6 0.15 12);
+  --chart-1: oklch(0.66 0.17 12);
+  --chart-2: oklch(0.7 0.14 300);
+  --chart-3: oklch(0.75 0.12 200);
+  --chart-4: oklch(0.8 0.13 80);
+  --chart-5: oklch(0.7 0.14 150);
+  --radius: 1rem;
+
+  --success: oklch(0.53 0.12 163);
+  --success-foreground: oklch(0.99 0 0);
+  --success-soft: oklch(0.95 0.052 163);
+  --success-soft-foreground: oklch(0.38 0.077 169);
+  --warning: oklch(0.56 0.15 50);
+  --warning-foreground: oklch(0.99 0 0);
+  --warning-soft: oklch(0.962 0.059 95.6);
+  --warning-soft-foreground: oklch(0.414 0.112 46);
+  --info: oklch(0.52 0.14 242);
+  --info-foreground: oklch(0.99 0 0);
+  --info-soft: oklch(0.951 0.026 237);
+  --info-soft-foreground: oklch(0.391 0.09 240.9);
+
+  /* "Phải trả" tách hẳn khỏi hue của primary (12) để không lẫn với màu thương hiệu */
+  --money-in: oklch(0.5 0.118 165.6);
+  --money-out: oklch(0.5 0.17 35);
+
+  /* "Bận" là xám xanh trung tính, không dùng hồng vì sẽ trùng primary */
+  --avail-yes: var(--success);
+  --avail-yes-foreground: var(--success-foreground);
+  --avail-yes-soft: oklch(0.905 0.093 164);
+  --avail-yes-soft-foreground: oklch(0.38 0.077 169);
+  --avail-maybe: oklch(0.879 0.169 91.6);
+  --avail-maybe-foreground: oklch(0.279 0.077 45.6);
+  --avail-maybe-soft: var(--warning-soft);
+  --avail-maybe-soft-foreground: var(--warning-soft-foreground);
+  --avail-no: oklch(0.52 0.045 257);
+  --avail-no-foreground: oklch(0.99 0 0);
+  --avail-no-soft: oklch(0.929 0.013 255.5);
+  --avail-no-soft-foreground: oklch(0.372 0.044 257);
+
+  --status-planning: var(--warning-soft);
+  --status-planning-foreground: var(--warning-soft-foreground);
+  --status-upcoming: var(--info-soft);
+  --status-upcoming-foreground: var(--info-soft-foreground);
+  --status-ongoing: var(--success-soft);
+  --status-ongoing-foreground: var(--success-soft-foreground);
+  --status-completed: oklch(0.967 0.001 286);
+  --status-completed-foreground: oklch(0.37 0.013 286);
+
+  /* Cùng hue với 8 màu Tailwind cũ (rose, fuchsia, violet, sky, teal, amber, orange, lime); chữ ≥ 5,3:1 */
+  --avatar-1: oklch(0.94 0.05 12);
+  --avatar-1-foreground: oklch(0.46 0.13 12);
+  --avatar-2: oklch(0.94 0.05 323);
+  --avatar-2-foreground: oklch(0.46 0.13 323);
+  --avatar-3: oklch(0.94 0.05 293);
+  --avatar-3-foreground: oklch(0.46 0.13 293);
+  --avatar-4: oklch(0.94 0.05 237);
+  --avatar-4-foreground: oklch(0.46 0.13 237);
+  --avatar-5: oklch(0.94 0.05 181);
+  --avatar-5-foreground: oklch(0.46 0.13 181);
+  --avatar-6: oklch(0.94 0.05 70);
+  --avatar-6-foreground: oklch(0.46 0.13 70);
+  --avatar-7: oklch(0.94 0.05 47);
+  --avatar-7-foreground: oklch(0.46 0.13 47);
+  --avatar-8: oklch(0.94 0.05 131);
+  --avatar-8-foreground: oklch(0.46 0.13 131);
+
+  /* Lớp phủ kem 60% (chủ dự án chốt, không blur). Chữ vẫn phải đặt trên card/header, không đặt thẳng lên video. */
+  --overlay-video: color-mix(in oklch, #fdf8f5 60%, transparent);
+
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+
+  /* Thang bóng theo vai trò: vẫn chất Clay nhưng chỉ CTA và overlay nổi khối đậm. Tint lấy từ --primary. */
+  --elevation-flat: 0 1px 3px color-mix(in oklch, var(--primary) 14%, transparent);
+  --elevation-raised:
+    0 10px 24px -6px color-mix(in oklch, var(--primary) 20%, transparent), 0 2px 6px -2px rgb(0 0 0 / 0.05),
+    inset 0 2px 4px rgb(255 255 255 / 0.9);
+  --elevation-cta:
+    0 8px 18px -2px color-mix(in oklch, var(--primary) 45%, transparent), 0 3px 6px -1px rgb(0 0 0 / 0.08),
+    inset 0 2.5px 3px rgb(255 255 255 / 0.45), inset 0 -3.5px 4px rgb(0 0 0 / 0.2);
+  --elevation-cta-destructive:
+    0 8px 18px -2px color-mix(in oklch, var(--destructive) 40%, transparent), 0 3px 6px -1px rgb(0 0 0 / 0.08),
+    inset 0 2.5px 3px rgb(255 255 255 / 0.4), inset 0 -3.5px 4px rgb(0 0 0 / 0.2);
+  --elevation-overlay:
+    0 16px 36px -6px color-mix(in oklch, var(--primary) 28%, transparent), 0 6px 16px -3px rgb(0 0 0 / 0.08),
+    inset 0 2px 4px rgb(255 255 255 / 0.95);
+  --elevation-sunken:
+    inset 2px 3px 6px color-mix(in oklch, var(--primary) 14%, transparent), inset -1px -2px 4px rgb(255 255 255 / 0.9);
+  --elevation-pressed: 0 2px 4px rgb(0 0 0 / 0.08), inset 0 3px 6px rgb(0 0 0 / 0.25);
 }
 
-.dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-
-    /* Dark Mode Clay Shadows */
-    --clay-card: 0 14px 28px -4px rgba(0, 0, 0, 0.5), 0 4px 10px -2px rgba(0, 0, 0, 0.3), inset 1px 2px 4px rgba(255, 255, 255, 0.1), inset -1px -2px 4px rgba(0, 0, 0, 0.4);
-    --clay-card-hover: 0 20px 38px -4px rgba(0, 0, 0, 0.6), 0 6px 14px -2px rgba(0, 0, 0, 0.35), inset 1px 2px 4px rgba(255, 255, 255, 0.15), inset -1px -2px 4px rgba(0, 0, 0, 0.5);
-    --clay-btn-primary: 0 8px 20px -2px rgba(0, 0, 0, 0.6), inset 0 2px 3px rgba(255, 255, 255, 0.3), inset 0 -3px 4px rgba(0, 0, 0, 0.4);
-    --clay-btn-secondary: 0 6px 14px -2px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.12), inset 0 -2px 3px rgba(0, 0, 0, 0.4);
-    --clay-btn-outline: 0 4px 12px -2px rgba(0, 0, 0, 0.4), inset 0 1.5px 2px rgba(255, 255, 255, 0.1), inset 0 -1.5px 2px rgba(0, 0, 0, 0.3);
-    --clay-pressed: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 3px 6px rgba(0, 0, 0, 0.5);
-    --clay-sunken: inset 2px 3px 6px rgba(0, 0, 0, 0.5), inset -1px -2px 4px rgba(255, 255, 255, 0.05);
-    --clay-badge: 0 3px 8px -1px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.15);
-    --clay-dock: 0 16px 36px -6px rgba(0, 0, 0, 0.7), inset 0 1.5px 3px rgba(255, 255, 255, 0.15), inset 0 -2px 4px rgba(0, 0, 0, 0.5);
-    --clay-floating: 0 24px 48px -8px rgba(0, 0, 0, 0.8), inset 1.5px 2px 6px rgba(255, 255, 255, 0.2);
-}
-
-/* Keyframes cho background hoạt họa du lịch (hình động) */
-@keyframes mesh-blob-1 {
-    0%, 100% {
-        transform: translate(0, 0) scale(1) rotate(0deg);
-    }
-    33% {
-        transform: translate(90px, 70px) scale(1.18) rotate(45deg);
-    }
-    66% {
-        transform: translate(-60px, 100px) scale(0.9) rotate(90deg);
-    }
-}
-
-@keyframes mesh-blob-2 {
-    0%, 100% {
-        transform: translate(0, 0) scale(1) rotate(0deg);
-    }
-    33% {
-        transform: translate(-100px, -70px) scale(1.15) rotate(-40deg);
-    }
-    66% {
-        transform: translate(70px, -50px) scale(0.92) rotate(-80deg);
-    }
-}
-
-@keyframes mesh-blob-3 {
-    0%, 100% {
-        transform: translate(0, 0) scale(1);
-    }
-    50% {
-        transform: translate(80px, -80px) scale(1.22);
-    }
-}
-
-@keyframes mesh-blob-4 {
-    0%, 100% {
-        transform: translate(0, 0) scale(1);
-    }
-    50% {
-        transform: translate(-70px, 60px) scale(0.88);
-    }
-}
-
+/* Hình trang trí bay (FloatingBackground) và vài điểm nhấn: chỉ các keyframe còn được dùng */
 @keyframes cloud-drift-right {
-    0% {
-        transform: translateX(-220px) translateY(0);
-    }
-    50% {
-        transform: translateX(calc(50vw)) translateY(-18px);
-    }
-    100% {
-        transform: translateX(calc(100vw + 220px)) translateY(0);
-    }
-}
-
-@keyframes cloud-drift-left {
-    0% {
-        transform: translateX(calc(100vw + 240px)) translateY(0);
-    }
-    50% {
-        transform: translateX(calc(50vw)) translateY(16px);
-    }
-    100% {
-        transform: translateX(-240px) translateY(0);
-    }
-}
-
-@keyframes camper-van-bounce {
-    0%, 100% {
-        transform: translateY(0px) rotate(0deg);
-    }
-    50% {
-        transform: translateY(-5px) rotate(-1.5deg);
-    }
+  0% {
+    transform: translateX(-220px) translateY(0);
+  }
+  50% {
+    transform: translateX(calc(50vw)) translateY(-18px);
+  }
+  100% {
+    transform: translateX(calc(100vw + 220px)) translateY(0);
+  }
 }
 
 @keyframes campfire-flicker {
-    0%, 100% {
-        transform: scale(1) translateY(0);
-        opacity: 0.9;
-    }
-    33% {
-        transform: scale(1.16) translateY(-2px) skewX(2deg);
-        opacity: 1;
-    }
-    66% {
-        transform: scale(0.94) translateY(1px) skewX(-2deg);
-        opacity: 0.85;
-    }
-}
-
-@keyframes spark-rise {
-    0% {
-        transform: translate3d(0, 0, 0) scale(1);
-        opacity: 1;
-    }
-    100% {
-        transform: translate3d(-16px, -42px, 0) scale(0.3);
-        opacity: 0;
-    }
-}
-
-@keyframes footstep-pulse {
-    0%, 100% {
-        opacity: 0.35;
-        transform: scale(0.95);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.15);
-    }
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 0.9;
+  }
+  33% {
+    transform: scale(1.16) translateY(-2px) skewX(2deg);
+    opacity: 1;
+  }
+  66% {
+    transform: scale(0.94) translateY(1px) skewX(-2deg);
+    opacity: 0.85;
+  }
 }
 
 @keyframes heart-float {
-    0%, 100% {
-        transform: translateY(0) scale(1) rotate(0deg);
-    }
-    50% {
-        transform: translateY(-8px) scale(1.18) rotate(6deg);
-    }
+  0%,
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.18) rotate(6deg);
+  }
 }
 
 @keyframes star-twinkle {
-    0%, 100% {
-        transform: scale(0.85) rotate(0deg);
-        opacity: 0.55;
-    }
-    50% {
-        transform: scale(1.22) rotate(45deg);
-        opacity: 1;
-    }
-}
-
-@keyframes exhaust-puff {
-    0% {
-        transform: translate3d(0, 0, 0) scale(0.5);
-        opacity: 0.8;
-    }
-    100% {
-        transform: translate3d(-24px, -14px, 0) scale(1.6);
-        opacity: 0;
-    }
-}
-
-@keyframes balloon-sway {
-    0%, 100% {
-        transform: translateY(0px) rotate(-5deg);
-    }
-    50% {
-        transform: translateY(-34px) rotate(6deg);
-    }
-}
-
-@keyframes plane-glide {
-    0% {
-        transform: translate(-140px, 90px) rotate(18deg);
-        opacity: 0;
-    }
-    8% {
-        opacity: 0.95;
-    }
-    85% {
-        opacity: 0.95;
-    }
-    100% {
-        transform: translate(calc(100vw + 160px), -100px) rotate(8deg);
-        opacity: 0;
-    }
-}
-
-@keyframes sun-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes wave-sway {
-    0%, 100% {
-        transform: translateY(0) scaleY(1);
-    }
-    50% {
-        transform: translateY(-12px) scaleY(1.08);
-    }
-}
-
-@keyframes bubble-drift {
-    0%, 100% {
-        transform: translateY(0) translateX(0) scale(1);
-    }
-    33% {
-        transform: translateY(-28px) translateX(18px) scale(1.12);
-    }
-    66% {
-        transform: translateY(-50px) translateX(-14px) scale(0.92);
-    }
+  0%,
+  100% {
+    transform: scale(0.85) rotate(0deg);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.22) rotate(45deg);
+    opacity: 1;
+  }
 }
 
 @keyframes float-slow {
-    0%, 100% {
-        transform: translateY(0px) rotate(0deg);
-    }
-    50% {
-        transform: translateY(-20px) rotate(4deg);
-    }
-}
-
-@keyframes float-medium {
-    0%, 100% {
-        transform: translateY(0px) rotate(0deg);
-    }
-    50% {
-        transform: translateY(-16px) rotate(-3deg);
-    }
-}
-
-@keyframes float-reverse {
-    0%, 100% {
-        transform: translateY(0px) rotate(0deg);
-    }
-    50% {
-        transform: translateY(18px) rotate(4deg);
-    }
-}
-
-@keyframes drift-sway {
-    0%, 100% {
-        transform: translate(0, 0) rotate(-18deg);
-    }
-    33% {
-        transform: translate(12px, -18px) rotate(-13deg);
-    }
-    66% {
-        transform: translate(-10px, -12px) rotate(-22deg);
-    }
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(4deg);
+  }
 }
 
 @keyframes pulse-gentle {
-    0%, 100% {
-        transform: scale(1);
-        opacity: 0.6;
-    }
-    50% {
-        transform: scale(1.18);
-        opacity: 0.95;
-    }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0.95;
+  }
 }
 
-@keyframes spin-slow {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-
+/*
+ * Hiện dần khi mount: ngắn, không blur, fill-mode backwards. Chạy xong thì không giữ transform,
+ * nên không đè lên transform inline (dnd-kit), và vẫn hiện nội dung nếu animation bị tắt.
+ */
 @keyframes detail-unfold {
-    0% {
-        opacity: 0;
-        transform: translateY(24px) scale(0.95);
-        filter: blur(6px);
-    }
-    60% {
-        opacity: 0.92;
-        transform: translateY(-2px) scale(1.008);
-        filter: blur(0px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0px);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 @keyframes tab-fade {
-    0% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-    }
-}
-
-@keyframes float-gentle-1 {
-    0%, 100% {
-        transform: translateY(0px) rotate(0deg);
-    }
-    50% {
-        transform: translateY(-10px) rotate(1deg);
-    }
-}
-
-@keyframes float-gentle-2 {
-    0%, 100% {
-        transform: translateY(0px) rotate(-1deg);
-    }
-    50% {
-        transform: translateY(-12px) rotate(1.5deg);
-    }
-}
-
-@keyframes float-gentle-3 {
-    0%, 100% {
-        transform: translateY(0px) rotate(0deg);
-    }
-    50% {
-        transform: translateY(-8px) rotate(-1deg);
-    }
-}
-
-@keyframes float-gentle-4 {
-    0%, 100% {
-        transform: translateY(0px) rotate(0.5deg);
-    }
-    50% {
-        transform: translateY(-9px) rotate(-0.5deg);
-    }
+  from {
+    opacity: 0;
+  }
 }
 
 @layer utilities {
-    .animate-float-gentle-1 {
-        animation: float-gentle-1 5s ease-in-out infinite;
-    }
-    .animate-float-gentle-2 {
-        animation: float-gentle-2 5.6s ease-in-out infinite;
-    }
-    .animate-float-gentle-3 {
-        animation: float-gentle-3 4.8s ease-in-out infinite;
-    }
-    .animate-float-gentle-4 {
-        animation: float-gentle-4 4.2s ease-in-out infinite;
-    }
-    .animate-mesh-1 {
-        animation: mesh-blob-1 14s ease-in-out infinite;
-    }
-    .animate-mesh-2 {
-        animation: mesh-blob-2 18s ease-in-out infinite;
-    }
-    .animate-mesh-3 {
-        animation: mesh-blob-3 16s ease-in-out infinite;
-    }
-    .animate-mesh-4 {
-        animation: mesh-blob-4 12s ease-in-out infinite;
-    }
-    .animate-cloud-drift-1 {
-        animation: cloud-drift-right 22s linear infinite;
-    }
-    .animate-cloud-drift-2 {
-        animation: cloud-drift-left 28s linear infinite;
-    }
-    .animate-cloud-drift-3 {
-        animation: cloud-drift-right 34s linear infinite;
-    }
-    .animate-balloon-sway {
-        animation: balloon-sway 6s ease-in-out infinite;
-    }
-    .animate-plane-glide {
-        animation: plane-glide 14s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-    }
-    .animate-sun-spin {
-        animation: sun-spin 20s linear infinite;
-    }
-    .animate-wave-sway {
-        animation: wave-sway 8s ease-in-out infinite;
-    }
-    .animate-bubble-drift {
-        animation: bubble-drift 7s ease-in-out infinite;
-    }
-    .animate-float-slow {
-        animation: float-slow 6s ease-in-out infinite;
-    }
-    .animate-float-medium {
-        animation: float-medium 5s ease-in-out infinite;
-    }
-    .animate-float-reverse {
-        animation: float-reverse 7s ease-in-out infinite;
-    }
-    .animate-drift-sway {
-        animation: drift-sway 8s ease-in-out infinite;
-    }
-    .animate-pulse-gentle {
-        animation: pulse-gentle 3.5s ease-in-out infinite;
-    }
-    .animate-spin-slow {
-        animation: spin-slow 20s linear infinite;
-    }
-    .animate-camper-bounce {
-        animation: camper-van-bounce 3s ease-in-out infinite;
-    }
-    .animate-campfire-flicker {
-        animation: campfire-flicker 1.8s ease-in-out infinite;
-    }
-    .animate-spark-1 {
-        animation: spark-rise 2s ease-out infinite;
-    }
-    .animate-spark-2 {
-        animation: spark-rise 2.4s ease-out infinite 0.6s;
-    }
-    .animate-spark-3 {
-        animation: spark-rise 2.1s ease-out infinite 1.2s;
-    }
-    .animate-heart-float {
-        animation: heart-float 3.5s ease-in-out infinite;
-    }
-    .animate-star-twinkle {
-        animation: star-twinkle 2.8s ease-in-out infinite;
-    }
-    .animate-exhaust-puff {
-        animation: exhaust-puff 2s ease-out infinite;
-    }
-    .animate-tab-unfold {
-        animation: tab-fade 0.4s ease-out both;
-    }
-    .animate-cascade > * {
-        animation: detail-unfold 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    .animate-cascade > *:nth-child(1) { animation-delay: 0.06s; }
-    .animate-cascade > *:nth-child(2) { animation-delay: 0.18s; }
-    .animate-cascade > *:nth-child(3) { animation-delay: 0.30s; }
-    .animate-cascade > *:nth-child(4) { animation-delay: 0.42s; }
-    .animate-cascade > *:nth-child(5) { animation-delay: 0.54s; }
-    .animate-cascade > *:nth-child(6) { animation-delay: 0.66s; }
-    .animate-cascade > *:nth-child(7) { animation-delay: 0.78s; }
-    .animate-cascade > *:nth-child(n+8) { animation-delay: 0.90s; }
+  .animate-cloud-drift-1 {
+    animation: cloud-drift-right 22s linear infinite;
+  }
+  .animate-float-slow {
+    animation: float-slow 6s ease-in-out infinite;
+  }
+  .animate-pulse-gentle {
+    animation: pulse-gentle 3.5s ease-in-out infinite;
+  }
+  .animate-campfire-flicker {
+    animation: campfire-flicker 1.8s ease-in-out infinite;
+  }
+  .animate-heart-float {
+    animation: heart-float 3.5s ease-in-out infinite;
+  }
+  .animate-star-twinkle {
+    animation: star-twinkle 2.8s ease-in-out infinite;
+  }
+  .animate-tab-unfold {
+    animation: tab-fade var(--duration-fast) ease-out backwards;
+  }
 
-    .stagger-list > * {
-        animation: detail-unfold 0.68s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    .stagger-list > *:nth-child(1) { animation-delay: 0.08s; }
-    .stagger-list > *:nth-child(2) { animation-delay: 0.18s; }
-    .stagger-list > *:nth-child(3) { animation-delay: 0.28s; }
-    .stagger-list > *:nth-child(4) { animation-delay: 0.38s; }
-    .stagger-list > *:nth-child(5) { animation-delay: 0.48s; }
-    .stagger-list > *:nth-child(6) { animation-delay: 0.58s; }
-    .stagger-list > *:nth-child(7) { animation-delay: 0.68s; }
-    .stagger-list > *:nth-child(8) { animation-delay: 0.78s; }
-    .stagger-list > *:nth-child(9) { animation-delay: 0.88s; }
-    .stagger-list > *:nth-child(n+10) { animation-delay: 0.98s; }
-
-    .clay-bg-dots {
-        background-image: radial-gradient(color-mix(in oklch, var(--primary) 18%, transparent) 1.5px, transparent 1.5px);
-        background-size: 28px 28px;
-    }
+  /* Trễ tối đa 160ms dù danh sách dài bao nhiêu */
+  .animate-cascade > *,
+  .stagger-list > * {
+    animation: detail-unfold var(--duration-base) var(--ease-out-soft) backwards;
+  }
+  .animate-cascade > *:nth-child(2),
+  .stagger-list > *:nth-child(2) {
+    animation-delay: 40ms;
+  }
+  .animate-cascade > *:nth-child(3),
+  .stagger-list > *:nth-child(3) {
+    animation-delay: 80ms;
+  }
+  .animate-cascade > *:nth-child(4),
+  .stagger-list > *:nth-child(4) {
+    animation-delay: 120ms;
+  }
+  .animate-cascade > *:nth-child(n + 5),
+  .stagger-list > *:nth-child(n + 5) {
+    animation-delay: 160ms;
+  }
 }
 
+/*
+ * Mở rộng vùng chạm thêm 8px mỗi phía (28px hiển thị → 44px chạm) mà không đổi kích thước.
+ * Phần tử phải được định vị (relative/absolute); không tự set position để không đè class absolute.
+ */
+@utility touch-target {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -0.5rem;
+  }
+}
+
+/* Bề mặt kính có chủ đích: chỉ cho header, dock, hero. Card mặc định dùng nền đặc. */
+@utility surface-glass {
+  background-color: color-mix(in oklch, var(--card) 90%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+/*
+ * Nền đọc cho chữ đặt trên video (landing): kem gần đặc + blur nhẹ, để mô tả không lẫn vào họa tiết nền.
+ * Chỉ dùng cho khối chữ lớn nằm ngoài card; card đã có nền đặc.
+ */
+@utility reading-surface {
+  background-color: color-mix(in oklch, var(--background) 88%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+  border-radius: var(--radius-surface);
+}
+
+/*
+ * Người dùng bật giảm chuyển động: tắt mọi CSS animation/transition (kể cả hover scale, animate-pulse/bounce).
+ * Video nền không phải CSS animation nên vẫn chạy (chủ dự án chốt). Vòng rAF của FloatingBackground tự kiểm.
+ */
 @media (prefers-reduced-motion: reduce) {
-    .animate-mesh-1,
-    .animate-mesh-2,
-    .animate-mesh-3,
-    .animate-mesh-4,
-    .animate-cloud-drift-1,
-    .animate-cloud-drift-2,
-    .animate-cloud-drift-3,
-    .animate-balloon-sway,
-    .animate-plane-glide,
-    .animate-sun-spin,
-    .animate-wave-sway,
-    .animate-bubble-drift,
-    .animate-float-slow,
-    .animate-float-medium,
-    .animate-float-reverse,
-    .animate-drift-sway,
-    .animate-pulse-gentle,
-    .animate-spin-slow,
-    .animate-float-gentle-1,
-    .animate-float-gentle-2,
-    .animate-float-gentle-3,
-    .animate-float-gentle-4,
-    .animate-tab-unfold,
-    .animate-cascade > *,
-    .stagger-list > * {
-        animation: none !important;
-    }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer base {
+  /*
+   * Lưới không khai báo cột: cột ngầm định là `auto`, giãn theo nội dung rộng nhất (vd thanh tab cuộn ngang, bảng lịch rảnh)
+   * và đẩy card tràn khỏi màn 360px. Mặc định một cột co được; grid-cols-* (lớp utilities) vẫn ghi đè.
+   */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
   * {
-    @apply border-border outline-ring/50;
-    }
+    @apply border-border outline-ring;
+  }
   body {
     @apply bg-background text-foreground;
-    }
-  button:not(:disabled), [role="button"]:not(:disabled) {
+  }
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
     cursor: pointer;
-    }
+  }
   html {
-    @apply font-sans scroll-smooth;
-    scroll-behavior: smooth;
+    @apply font-sans;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
     }
+  }
 }

@@ -4,10 +4,7 @@ import type { NotificationCategory } from '@/types/notification'
  * Đọc phạm vi trong token huỷ nhận (phần payload không bí mật: "u1|{userId}|{scope}") để hiện trước khi người
  * dùng bấm xác nhận. Chỉ để hiển thị; backend mới là nơi kiểm tra chữ ký.
  */
-export type UnsubscribeScope =
-  | { kind: 'ALL' }
-  | { kind: 'CATEGORY'; category: NotificationCategory }
-  | { kind: 'TRIP' }
+export type UnsubscribeScope = { kind: 'ALL' } | { kind: 'CATEGORY'; category: NotificationCategory } | { kind: 'TRIP' }
 
 const CATEGORIES: NotificationCategory[] = ['COUNTDOWN', 'MEMBER', 'EXPENSE']
 

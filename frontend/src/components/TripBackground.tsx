@@ -4,8 +4,7 @@ const VIDEO_SRC = '/trip-bg.mp4'
 const POSTER_SRC = '/trip-bg-poster.webp'
 
 /** Người dùng bật "Tiết kiệm dữ liệu" (Chrome/Android) → không tải video ~430KB. */
-const saveData = () =>
-  (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true
+const saveData = () => (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true
 
 /**
  * Nền video toàn trang (gắn 1 lần ở root, không tải lại khi chuyển trang).
@@ -47,7 +46,7 @@ export function TripBackground() {
           tabIndex={-1}
         />
       )}
-      <div className="absolute inset-0 bg-[#fdf8f5]/45 backdrop-blur-[1px]" />
+      <div className="absolute inset-0 bg-overlay-video" />
     </div>
   )
 }

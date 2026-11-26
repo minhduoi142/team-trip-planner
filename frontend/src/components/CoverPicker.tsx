@@ -22,7 +22,7 @@ export function CoverPicker({ value, onChange, error }: CoverPickerProps) {
         key={value}
         coverImageUrl={value || null}
         seed={0}
-        className="h-32 rounded-2xl border border-border/70 shadow-clay-card"
+        className="h-32 rounded-item border border-border/70"
       />
 
       <div className="grid grid-cols-6 gap-2" role="radiogroup" aria-label="Ảnh bìa mặc định">
@@ -38,9 +38,9 @@ export function CoverPicker({ value, onChange, error }: CoverPickerProps) {
               title={preset.label}
               onClick={() => onChange(presetValue(preset.key))}
               className={cn(
-                'relative aspect-square rounded-2xl bg-gradient-to-br shadow-clay-badge transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none',
+                'relative aspect-square rounded-item bg-gradient-to-br transition-shadow duration-150 focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none',
                 preset.gradient,
-                selected && 'ring-3 ring-primary shadow-clay-btn-primary scale-105',
+                selected && 'ring-3 ring-primary-strong ring-offset-2 ring-offset-card',
               )}
             >
               {selected && <Check className="absolute inset-0 m-auto size-5 text-white drop-shadow-md stroke-[3]" />}
@@ -54,15 +54,20 @@ export function CoverPicker({ value, onChange, error }: CoverPickerProps) {
           <Link2 className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={isUrl ? value : ''}
+            aria-label="Link ảnh bìa"
             placeholder="Dán link ảnh bìa (http/https)..."
-            className="pl-10 text-xs sm:text-sm"
+            className="pl-10"
             onChange={(e) => onChange(e.target.value)}
           />
         </div>
         <ImageUploadButton purpose="TRIP_COVER" onUploaded={onChange} />
       </div>
 
-      {error && <p className="text-xs font-medium text-destructive">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

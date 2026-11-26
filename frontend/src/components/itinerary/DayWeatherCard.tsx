@@ -1,5 +1,6 @@
 import { CloudOff, Droplets, MapPin, Sun, Wind } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { formatShortDate } from '@/lib/date'
 import type { IsoInstant } from '@/types/api'
 import type { DayWeatherResponse } from '@/types/weather'
@@ -18,106 +19,133 @@ function fetchedTime(fetchedAt: IsoInstant | null): string | null {
   return new Date(fetchedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
 }
 
+/** Dòng ghi công nguồn: bắt buộc theo CC BY 4.0 của Open-Meteo, không được bỏ. */
+function Attribution({ time }: { time: string | null }) {
+  return (
+    <p className="text-xs text-muted-foreground">
+      {time && `Cập nhật ${time} · `}
+      Dữ liệu thời tiết:{' '}
+      <a
+        href="https://open-meteo.com/"
+        target="_blank"
+        rel="noreferrer"
+        className="rounded-sm underline underline-offset-2 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring"
+      >
+        Open-Meteo.com
+      </a>
+    </p>
+  )
+}
+
 interface DayWeatherCardProps {
   tripId: number
   weather: DayWeatherResponse | undefined
   fetchedAt: IsoInstant | null
+  /** Đang tải lần đầu và ngày nằm trong khoảng có dự báo: giữ chỗ bằng skeleton để nội dung không bị đẩy xuống */
+  loading?: boolean
   canEdit: boolean
   /** Ngày có vị trí riêng (khác vị trí của chuyến) → hiện tên nơi đó */
   ownPlace: boolean
   /** Mở form sửa chuyến để chọn vị trí điểm đến */
   onEditTrip?: () => void
-  /** Mở hộp thoại sửa ngày để đặt vị trí riêng cho ngày này */
+  /** Mở hộp thoại thông tin ngày, focus vào ô địa điểm */
   onEditDayPlace?: () => void
 }
 
-/** Thời tiết đầu mỗi ngày trong tab Lịch trình. PAST / NO_DATE / đang tải lần đầu → không hiện gì. */
+/**
+ * Phần thời tiết trong dải tóm tắt của ngày (docs/ui-slop-audit.md P3-LT-10): không có vỏ card riêng,
+ * ItineraryTab bọc chung với dress code. PAST / NO_DATE → không hiện gì.
+ */
 export function DayWeatherCard(props: DayWeatherCardProps) {
-  const { tripId, weather, fetchedAt, canEdit, ownPlace, onEditTrip, onEditDayPlace } = props
-  if (!weather) return null
+  const { tripId, weather, fetchedAt, loading, canEdit, ownPlace, onEditTrip, onEditDayPlace } = props
+  if (!weather) {
+    return loading ? (
+      <div className="flex items-center gap-3 p-4" aria-busy="true" aria-label="Đang tải dự báo thời tiết">
+        <Skeleton className="size-11 shrink-0 rounded-item" />
+        <div className="grid flex-1 gap-2">
+          <Skeleton className="h-5 w-40 rounded-control" />
+          <Skeleton className="h-4 w-56 max-w-full rounded-control" />
+        </div>
+      </div>
+    ) : null
+  }
 
   switch (weather.status) {
     case 'FORECAST': {
       const f = weather.forecast
       if (!f) return null
-      const time = fetchedTime(fetchedAt)
       return (
-        <div className="grid gap-2">
-        <section
-          aria-label="Dự báo thời tiết"
-          className="flex min-h-24 items-center gap-4 rounded-[28px] border-2 border-white/80 bg-gradient-to-br from-sky-50/95 via-card/95 to-amber-50/90 p-4 shadow-clay-card"
-        >
-          <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-white/80 shadow-clay-badge">
-            <WeatherIcon condition={f.condition} className="size-8" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-              <p className="font-bold text-foreground">{f.label}</p>
-              {f.tempMin != null && f.tempMax != null && (
-                <p className="text-lg font-extrabold tabular-nums text-foreground">
-                  {round(f.tempMin)}–{round(f.tempMax)}°C
-                </p>
-              )}
+        <section aria-label="Dự báo thời tiết" className="grid gap-3 p-4">
+          <div className="flex items-start gap-3">
+            <span className="grid size-11 shrink-0 place-items-center rounded-item bg-muted/60">
+              <WeatherIcon condition={f.condition} className="size-6" />
+            </span>
+            <div className="grid min-w-0 flex-1 gap-1">
+              <p className="flex flex-wrap items-baseline gap-x-2">
+                <span className="font-semibold text-foreground">{f.label}</span>
+                {f.tempMin != null && f.tempMax != null && (
+                  <span className="font-bold tabular-nums text-foreground">
+                    {round(f.tempMin)}–{round(f.tempMax)}°C
+                  </span>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                {f.precipProbability != null && (
+                  <span className="inline-flex items-center gap-1">
+                    <Droplets className="size-3.5 text-info" aria-hidden="true" />
+                    Mưa {f.precipProbability}%
+                    {f.precipSum != null && f.precipSum >= RAIN_SUM_NOTICE_MM && ` · ${f.precipSum.toFixed(1)} mm`}
+                  </span>
+                )}
+                {f.windMax != null && f.windMax >= WIND_NOTICE_KMH && (
+                  <span className="inline-flex items-center gap-1 font-medium text-warning-soft-foreground">
+                    <Wind className="size-3.5" aria-hidden="true" />
+                    Gió mạnh {round(f.windMax)} km/h
+                  </span>
+                )}
+                {f.uvMax != null && f.uvMax >= UV_NOTICE && (
+                  <span className="inline-flex items-center gap-1 font-medium text-warning-soft-foreground">
+                    <Sun className="size-3.5" aria-hidden="true" />
+                    UV {round(f.uvMax)} (rất cao)
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-muted-foreground">
-              {f.precipProbability != null && (
-                <span className="inline-flex items-center gap-1">
-                  <Droplets className="size-3.5 text-sky-500" />
-                  Mưa {f.precipProbability}%
-                  {f.precipSum != null && f.precipSum >= RAIN_SUM_NOTICE_MM && ` · ${f.precipSum.toFixed(1)} mm`}
-                </span>
-              )}
-              {f.windMax != null && f.windMax >= WIND_NOTICE_KMH && (
-                <span className="inline-flex items-center gap-1 text-amber-700">
-                  <Wind className="size-3.5" />
-                  Gió mạnh {round(f.windMax)} km/h
-                </span>
-              )}
-              {f.uvMax != null && f.uvMax >= UV_NOTICE && (
-                <span className="inline-flex items-center gap-1 text-orange-700">
-                  <Sun className="size-3.5" />
-                  UV {round(f.uvMax)} (rất cao)
-                </span>
-              )}
+          </div>
+
+          {(ownPlace && weather.placeName) || (canEdit && onEditDayPlace) ? (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               {ownPlace && weather.placeName && (
-                <span className="inline-flex min-w-0 items-center gap-1 text-foreground">
-                  <MapPin className="size-3.5 shrink-0" />
-                  <span className="truncate">{weather.placeName}</span>
+                <span className="inline-flex min-w-0 items-center gap-1 text-sm text-foreground">
+                  <MapPin className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className="break-words">{weather.placeName}</span>
                 </span>
               )}
-            </div>
-            <p className="mt-1.5 text-[11px] text-muted-foreground/80">
-              {time && `Cập nhật ${time} · `}
-              Dữ liệu thời tiết:{' '}
-              <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="underline underline-offset-2">
-                Open-Meteo.com
-              </a>
               {canEdit && onEditDayPlace && (
-                <>
-                  {' · '}
-                  <button type="button" onClick={onEditDayPlace} className="underline underline-offset-2">
-                    {ownPlace ? 'Đổi địa điểm ngày này' : 'Ngày này ở nơi khác?'}
-                  </button>
-                </>
+                <Button variant="ghost" size="sm" onClick={onEditDayPlace} className="-ml-2 text-primary-strong">
+                  <MapPin />
+                  {ownPlace ? 'Đổi địa điểm' : 'Ngày này ở nơi khác?'}
+                </Button>
               )}
-            </p>
-          </div>
+            </div>
+          ) : null}
+
+          <WeatherAdviceList tripId={tripId} advice={f.advice} canEdit={canEdit} />
+          <Attribution time={fetchedTime(fetchedAt)} />
         </section>
-        <WeatherAdviceList tripId={tripId} advice={f.advice} canEdit={canEdit} />
-        </div>
       )
     }
     case 'TOO_FAR':
       return weather.availableFrom ? (
-        <p className="flex items-center gap-2 px-1 text-sm text-muted-foreground">
-          <WeatherIcon condition="PARTLY_CLOUDY" className="size-4" />
+        <p className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+          <WeatherIcon condition="PARTLY_CLOUDY" className="size-4" colored={false} />
           Dự báo thời tiết có từ {formatShortDate(weather.availableFrom)}
         </p>
       ) : null
     case 'NO_LOCATION':
       return canEdit && onEditTrip ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-[24px] border-2 border-dashed border-sky-200 bg-sky-50/70 px-4 py-3 text-sm shadow-clay-card">
-          <p className="text-sky-900">Gắn vị trí điểm đến để xem dự báo thời tiết từng ngày.</p>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+          <p className="text-muted-foreground">Gắn vị trí điểm đến để xem dự báo thời tiết từng ngày.</p>
           <Button size="sm" variant="outline" onClick={onEditTrip}>
             <MapPin />
             Chọn vị trí
@@ -126,8 +154,8 @@ export function DayWeatherCard(props: DayWeatherCardProps) {
       ) : null
     case 'UNAVAILABLE':
       return (
-        <p className="flex items-center gap-2 px-1 text-sm text-muted-foreground">
-          <CloudOff className="size-4" />
+        <p className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+          <CloudOff className="size-4 shrink-0" aria-hidden="true" />
           Chưa lấy được dự báo thời tiết, thử lại sau nhé.
         </p>
       )

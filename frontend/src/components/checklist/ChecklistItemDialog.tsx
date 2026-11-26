@@ -30,7 +30,9 @@ interface ChecklistItemDialogProps {
 export function ChecklistItemDialog(props: ChecklistItemDialogProps) {
   return (
     <Dialog open={props.item !== null} onOpenChange={props.onOpenChange}>
-      <DialogContent className="sm:max-w-md">{props.item && <ItemForm key={props.item.id} {...props} item={props.item} />}</DialogContent>
+      <DialogContent className="sm:max-w-md">
+        {props.item && <ItemForm key={props.item.id} {...props} item={props.item} />}
+      </DialogContent>
     </Dialog>
   )
 }

@@ -1,803 +1,535 @@
-import { useState } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
+import dayjs from 'dayjs'
 import {
   ArrowRight,
   ArrowUp,
-  CalendarCheck2,
-  Camera,
-  CheckCircle2,
-  ChevronDown,
-  Clock,
-  Heart,
+  BedDouble,
+  CloudSun,
+  Images,
   LogIn,
   Mail,
   MapPin,
   Menu,
   MessageCircle,
   QrCode,
-  Share2,
-  Sparkles,
-  Ticket,
+  Shirt,
+  ThumbsUp,
+  UserPlus,
   Users,
-  Wallet,
-  X,
+  type LucideIcon,
 } from 'lucide-react'
-import { toast } from 'sonner'
 import { useAuth } from '@/auth/useAuth'
 import { BrandLogo } from '@/components/BrandLogo'
+import { CountdownLabel } from '@/components/CountdownLabel'
+import { FieldError } from '@/components/common/layout'
 import { FullPageSpinner } from '@/components/FullPageSpinner'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/StatusBadge'
+import { TripCover } from '@/components/TripCover'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Card } from '@/components/ui/card'
 import { FloatingBackground } from '@/components/ui/FloatingBackground'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { CONTACT_EMAIL, CONTACT_GMAIL_URL, CONTACT_ZALO_URL } from '@/lib/config'
+import { formatDateRange } from '@/lib/date'
 import { extractInviteCode } from '@/lib/inviteCode'
+import { cn } from '@/lib/utils'
 
 /**
- * Trang giới thiệu (Landing Page) cho ứng dụng Team Trip Planner:
- * - Chuẩn hóa theo thiết kế Tactile Clay & Pill UI (nền ấm áp pastel, bo tròn mềm mại, đổ bóng 3D).
- * - Tự động điều hướng user đã đăng nhập vào /trips.
- * - 5 Section: Sticky Navbar, Hero + UI Mockup Card, Giới thiệu (#about), Tính năng (#features), Liên hệ & Footer (#contact).
+ * Trang giới thiệu cho khách chưa đăng nhập (người đã đăng nhập được chuyển tới /trips).
+ * Bố cục: header, hero (CTA + ô mã mời + ví dụ chuyến đi), "Cách nhóm bạn dùng" (4 bước thật), liên hệ, footer.
+ * Copy phải khớp hành vi thật của app (docs/ui-slop-audit.md P3-LD-05): không số liệu bịa, không tên công nghệ nội bộ.
  */
+const NAV_LINKS = [
+  { id: 'features', label: 'Cách dùng' },
+  { id: 'contact', label: 'Liên hệ' },
+] as const
+
+const INVITE_ERROR_ID = 'landing-invite-error'
+
+/** Ngày ví dụ tính theo hôm nay để thẻ mẫu không bao giờ là chuyến đã qua */
+const SAMPLE_START = dayjs().add(12, 'day')
+const SAMPLE_DAYS = [0, 1, 2].map((i) => SAMPLE_START.add(i, 'day'))
+const SAMPLE_TRIP = {
+  status: 'UPCOMING' as const,
+  startDate: SAMPLE_DAYS[0].format('YYYY-MM-DD'),
+  endDate: SAMPLE_DAYS[2].format('YYYY-MM-DD'),
+  plannedStartDate: null,
+}
+
 export function LandingPage() {
   const { status } = useAuth()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
   const navigate = useNavigate()
   // Ô "Có mã mời?": người được mời tự gõ tên miền vẫn vào thẳng trang tham gia
   const [inviteInput, setInviteInput] = useState('')
+  const [inviteError, setInviteError] = useState<string | null>(null)
 
-  // 1. Kiểm tra luồng Auth:
-  // Đang tải dữ liệu session -> hiển thị spinner
-  if (status === 'loading') {
-    return <FullPageSpinner />
-  }
+  if (status === 'loading') return <FullPageSpinner />
+  if (status === 'authenticated') return <Navigate to="/trips" replace />
 
-  // Đã đăng nhập -> redirect thẳng vào trang quản lý chuyến đi /trips
-  if (status === 'authenticated') {
-    return <Navigate to="/trips" replace />
-  }
-
-  const goToInvite = (e: React.FormEvent) => {
+  const goToInvite = (e: FormEvent) => {
     e.preventDefault()
     const code = extractInviteCode(inviteInput)
     if (code.length < 4) {
-      toast.error('Nhập mã mời hoặc dán link mời bạn bè gửi nhé')
+      setInviteError('Nhập mã mời (8 ký tự) hoặc dán link mời bạn bè gửi.')
       return
     }
     navigate(`/join/${code}`)
   }
 
-  /**
-   * Cuộn mượt mà có kiểm soát thời gian (không bị snap/nhảy tức thì).
-   * Sử dụng cubic easing curve tạo cảm giác trôi từ từ, êm ái.
-   */
-  const smoothScrollTo = (targetId: string, duration = 900) => {
-    const target = document.getElementById(targetId)
-    if (!target) return
-
-    const headerOffset = 72 // Trừ hao chiều cao của sticky navbar
-    const targetPosition = target.getBoundingClientRect().top + window.scrollY - headerOffset
-    const startPosition = window.scrollY
-    const distance = targetPosition - startPosition
-
-    if (Math.abs(distance) < 2) return
-
-    let startTime: number | null = null
-
-    // easeInOutCubic: bắt đầu êm ái, lướt đều và hãm phanh nhẹ nhàng ở đích
-    const easeInOutCubic = (t: number) => {
-      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-    }
-
-    const step = (currentTime: number) => {
-      if (startTime === null) startTime = currentTime
-      const timeElapsed = currentTime - startTime
-      const progress = Math.min(timeElapsed / duration, 1)
-      const ease = easeInOutCubic(progress)
-
-      window.scrollTo(0, startPosition + distance * ease)
-
-      if (timeElapsed < duration) {
-        requestAnimationFrame(step)
-      }
-    }
-
-    requestAnimationFrame(step)
-  }
-
-  const scrollToTop = (duration = 800) => {
-    const startPosition = window.scrollY
-    if (startPosition < 2) return
-
-    let startTime: number | null = null
-    const easeInOutCubic = (t: number) => {
-      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-    }
-
-    const step = (currentTime: number) => {
-      if (startTime === null) startTime = currentTime
-      const timeElapsed = currentTime - startTime
-      const progress = Math.min(timeElapsed / duration, 1)
-      const ease = easeInOutCubic(progress)
-
-      window.scrollTo(0, startPosition * (1 - ease))
-
-      if (timeElapsed < duration) {
-        requestAnimationFrame(step)
-      }
-    }
-
-    requestAnimationFrame(step)
-  }
-
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
-    e.preventDefault()
-    if (mobileMenuOpen) {
-      setMobileMenuOpen(false)
-    }
-    smoothScrollTo(targetId)
-  }
-
   return (
-    <div className="relative min-h-svh overflow-x-hidden selection:bg-rose-200 selection:text-rose-900">
+    <div id="top" className="relative min-h-svh overflow-x-clip selection:bg-primary/20 selection:text-foreground">
       {/* Hình trang trí bay bổng; nền video là TripBackground ở App */}
       <FloatingBackground />
 
-      {/* ========================================================= */}
-      {/* 1. STICKY NAVBAR                                         */}
-      {/* ========================================================= */}
-      <header className="sticky top-0 z-40 w-full border-b border-white/70 bg-background/80 backdrop-blur-md shadow-clay-badge transition-all">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo */}
-          <Link to="/" aria-label="Team Trip Planner Home" className="flex items-center">
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-background">
+        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
+          <Link to="/" aria-label="Team Trip Planner: trang giới thiệu" className="flex items-center rounded-item">
             <BrandLogo />
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1.5 rounded-full bg-white/70 p-1.5 shadow-clay-badge border border-white/80 backdrop-blur-sm">
-            <a
-              href="#about"
-              onClick={(e) => handleNavClick(e, 'about')}
-              className="rounded-full px-4 py-1.5 text-sm font-medium text-foreground/80 hover:text-primary hover:bg-white/90 transition-all duration-150"
-            >
-              Giới thiệu
-            </a>
-            <a
-              href="#features"
-              onClick={(e) => handleNavClick(e, 'features')}
-              className="rounded-full px-4 py-1.5 text-sm font-medium text-foreground/80 hover:text-primary hover:bg-white/90 transition-all duration-150"
-            >
-              Tính năng
-            </a>
-            <a
-              href="#contact"
-              onClick={(e) => handleNavClick(e, 'contact')}
-              className="rounded-full px-4 py-1.5 text-sm font-medium text-foreground/80 hover:text-primary hover:bg-white/90 transition-all duration-150"
-            >
-              Liên hệ
-            </a>
+          <nav aria-label="Các mục trên trang" className="hidden items-center gap-1 md:flex">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.id}
+                href={`#${link.id}`}
+                className="inline-flex min-h-10 items-center rounded-full px-4 text-sm font-medium text-foreground/80 transition-colors hover:bg-muted/70 hover:text-primary-strong"
+              >
+                {link.label}
+              </a>
+            ))}
           </nav>
 
-          {/* Desktop CTA Buttons */}
-          <div className="hidden sm:flex items-center gap-2.5">
-            <Button asChild variant="outline" size="sm" className="rounded-full shadow-clay-btn-outline">
+          <div className="hidden items-center gap-2 md:flex">
+            <Button asChild variant="outline" size="sm">
               <Link to="/login">
-                <LogIn className="size-4" />
+                <LogIn />
                 Đăng nhập
               </Link>
             </Button>
-            <Button asChild size="sm" className="rounded-full shadow-clay-btn-primary">
-              <Link to="/register">
-                Bắt đầu ngay
-              </Link>
+            <Button asChild size="sm">
+              <Link to="/register">Tạo tài khoản</Link>
             </Button>
           </div>
 
-          {/* Mobile Hamburger Button */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex sm:hidden size-10 items-center justify-center rounded-2xl bg-white/80 shadow-clay-badge border border-white/80 text-foreground transition-all active:scale-95"
-            aria-label={mobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
+          {/* Menu mobile: DropdownMenu của Radix có sẵn Esc, chạm ra ngoài để đóng, giữ focus */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="size-11 md:hidden" aria-label="Mở menu">
+                <Menu className="size-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60">
+              {NAV_LINKS.map((link) => (
+                <DropdownMenuItem key={link.id} asChild className="min-h-11 text-base">
+                  <a href={`#${link.id}`}>{link.label}</a>
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild className="min-h-11 text-base">
+                <Link to="/login">
+                  <LogIn />
+                  Đăng nhập
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="min-h-11 text-base font-semibold text-primary-strong">
+                <Link to="/register">
+                  <UserPlus />
+                  Tạo tài khoản
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-
-        {/* Mobile Menu Dropdown */}
-        {mobileMenuOpen && (
-          <div className="sm:hidden border-t border-white/60 bg-background/95 backdrop-blur-xl px-4 py-4 shadow-clay-card animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="flex flex-col gap-2">
-              <a
-                href="#about"
-                onClick={(e) => handleNavClick(e, 'about')}
-                className="rounded-xl px-3.5 py-2.5 text-base font-medium text-foreground hover:bg-white/80 hover:text-primary transition-all"
-              >
-                Giới thiệu
-              </a>
-              <a
-                href="#features"
-                onClick={(e) => handleNavClick(e, 'features')}
-                className="rounded-xl px-3.5 py-2.5 text-base font-medium text-foreground hover:bg-white/80 hover:text-primary transition-all"
-              >
-                Tính năng nổi bật
-              </a>
-              <a
-                href="#contact"
-                onClick={(e) => handleNavClick(e, 'contact')}
-                className="rounded-xl px-3.5 py-2.5 text-base font-medium text-foreground hover:bg-white/80 hover:text-primary transition-all"
-              >
-                Liên hệ & Góp ý
-              </a>
-              <div className="my-2 h-px bg-border/60" />
-              <div className="grid grid-cols-2 gap-2">
-                <Button asChild variant="outline" size="default" className="rounded-full shadow-clay-btn-outline w-full">
-                  <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                    <LogIn className="size-4" />
-                    Đăng nhập
-                  </Link>
-                </Button>
-                <Button asChild size="default" className="rounded-full shadow-clay-btn-primary w-full">
-                  <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
-                    Bắt đầu ngay
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </header>
 
-      {/* Main Content Sections */}
-      <main className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        {/* ========================================================= */}
-        {/* 2. HERO SECTION                                          */}
-        {/* ========================================================= */}
-        <section className="pt-10 pb-16 sm:pt-16 sm:pb-24 lg:pt-20 lg:pb-28">
+      <main className="relative z-10 mx-auto w-full max-w-5xl px-4 sm:px-6">
+        {/* HERO */}
+        <section className="pt-10 pb-16 sm:pt-16 sm:pb-20">
           <div className="grid items-center gap-10 lg:grid-cols-12 lg:gap-12">
-            {/* Left Column: Heading & Value Proposition */}
-            <div className="text-center lg:col-span-7 lg:text-left">
-              <div className="inline-flex items-center gap-2 rounded-full bg-rose-100/90 px-4 py-1.5 text-xs sm:text-sm font-semibold text-rose-600 shadow-clay-badge border border-rose-200/80 mb-6 animate-pulse-gentle">
-                <Sparkles className="size-4 text-rose-500" />
-                Giải pháp du lịch nhóm số 1 cho hội bạn thân
-              </div>
-
-              <h1 className="text-3xl sm:text-5xl lg:text-5xl/tight font-bold tracking-tight text-foreground">
-                Lên kèo đi chơi nhóm,{' '}
-                <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-violet-500 bg-clip-text text-transparent">
-                  không còn ai phải đau đầu
-                </span>
+            <div className="reading-surface px-5 py-8 text-center sm:px-8 lg:col-span-7 lg:text-left">
+              <h1 className="text-3xl font-bold tracking-tight text-balance text-foreground sm:text-5xl lg:text-5xl/tight">
+                Lên kèo đi chơi nhóm, <span className="text-primary-strong">không còn ai phải đau đầu</span>
               </h1>
 
-              <p className="mt-5 text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                Quên đi cảnh hỏi 10 lần không ai rep, chốt ngày trùng lịch vất vả hay tranh cãi tính tiền sau mỗi chuyến đi.
-                <strong className="text-foreground font-semibold"> Team Trip Planner</strong> gom trọn khảo sát ngày rảnh, lịch trình,
-                chia tiền VietQR và kho ảnh chung vào một không gian xinh xắn.
+              <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-foreground/80 sm:text-lg lg:mx-0">
+                Hỏi ngày rảnh, chốt lịch trình, ghi lại ai trả gì và chia tiền: cả nhóm làm chung trên một trang thay vì
+                lục lại tin nhắn trong nhóm chat.
               </p>
 
-              {/* Action Buttons */}
-              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5">
-                <Button asChild size="lg" className="w-full sm:w-auto rounded-full h-13 px-8 text-base shadow-clay-btn-primary">
+              <div className="mx-auto mt-8 grid max-w-md gap-2 lg:mx-0">
+                <Button asChild size="lg" className="w-full sm:w-auto sm:justify-self-center lg:justify-self-start">
                   <Link to="/register">
-                    Bắt đầu miễn phí
-                    <ArrowRight className="ml-1.5 size-5" />
+                    Tạo chuyến đi
+                    <ArrowRight />
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto rounded-full h-13 px-7 text-base shadow-clay-btn-outline">
-                  <a href="#about" onClick={(e) => handleNavClick(e, 'about')}>
-                    Tìm hiểu thêm
-                    <ChevronDown className="ml-1 size-4" />
-                  </a>
-                </Button>
+                <p className="text-sm text-foreground/75">
+                  Miễn phí. Đã có tài khoản?{' '}
+                  <Link to="/login" className="font-semibold text-primary-strong hover:underline">
+                    Đăng nhập
+                  </Link>
+                </p>
               </div>
 
               {/* Có mã mời? → trang tham gia (không cần đăng nhập trước) */}
-              <form
-                onSubmit={goToInvite}
-                className="mt-6 mx-auto lg:mx-0 flex max-w-md items-center gap-2 rounded-full border-2 border-white/90 bg-card/90 p-1.5 pl-4 shadow-clay-card"
-              >
-                <Ticket className="size-4 shrink-0 text-primary" />
-                <Input
-                  value={inviteInput}
-                  onChange={(e) => setInviteInput(e.target.value)}
-                  placeholder="Có mã mời? Nhập mã hoặc dán link"
-                  aria-label="Mã mời hoặc link mời"
-                  autoCapitalize="characters"
-                  className="h-10 min-w-0 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
-                />
-                <Button type="submit" size="sm" className="h-10 shrink-0 rounded-full px-4 shadow-clay-btn-primary">
-                  Vào nhóm
-                </Button>
+              <form onSubmit={goToInvite} noValidate className="mx-auto mt-8 grid max-w-md gap-2 text-left lg:mx-0">
+                <Label htmlFor="landing-invite" className="text-base font-semibold">
+                  Có mã mời?
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="landing-invite"
+                    value={inviteInput}
+                    onChange={(e) => {
+                      setInviteInput(e.target.value)
+                      setInviteError(null)
+                    }}
+                    placeholder="Mã hoặc link mời"
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    aria-invalid={inviteError ? true : undefined}
+                    aria-describedby={inviteError ? INVITE_ERROR_ID : undefined}
+                    className="h-11 min-w-0 flex-1 bg-card"
+                  />
+                  <Button type="submit" variant="outline" className="h-11 shrink-0">
+                    Vào nhóm
+                  </Button>
+                </div>
+                <FieldError id={INVITE_ERROR_ID}>{inviteError}</FieldError>
               </form>
-
-              {/* Micro-props / Trust Indicators */}
-              <div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs sm:text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-4 text-emerald-500" />
-                  <span>100% Miễn phí</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-4 text-emerald-500" />
-                  <span>Không quảng cáo</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-4 text-emerald-500" />
-                  <span>Mượt mà trên điện thoại</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-4 text-emerald-500" />
-                  <span>Chia tiền VietQR 1 chạm</span>
-                </div>
-              </div>
             </div>
 
-            {/* Right Column: Tactile Clay UI Mockup Card */}
             <div className="lg:col-span-5">
-              <div className="relative mx-auto max-w-md lg:max-w-none">
-                {/* Aura Glow Behind Preview */}
-                <div className="absolute -inset-2 rounded-4xl bg-gradient-to-r from-rose-200/40 via-amber-200/30 to-violet-200/40 blur-xl opacity-80" />
-
-                {/* Main Mockup Card */}
-                <Card className="relative rounded-3xl bg-card/90 backdrop-blur-md shadow-clay-floating border-2 border-white/90 p-5 sm:p-6 transition-transform duration-300 hover:scale-[1.01]">
-                  {/* Trip Header Mockup */}
-                  <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">🌸</span>
-                        <h3 className="font-heading text-lg font-bold text-foreground">
-                          Vi vu Đà Lạt săn mây
-                        </h3>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1.5">
-                        <CalendarCheck2 className="size-3.5 text-primary" />
-                        15/11 – 17/11 (3 ngày 2 đêm) • 8 bạn
-                      </p>
-                    </div>
-                    <Badge variant="default" className="bg-emerald-500 text-white shadow-xs">
-                      Đã chốt ngày
-                    </Badge>
-                  </div>
-
-                  {/* Section 1: Availability Highlight */}
-                  <div className="mt-4 rounded-2xl bg-amber-50/70 p-3.5 border border-amber-200/60 shadow-clay-sunken">
-                    <div className="flex items-center justify-between text-xs font-semibold text-amber-900 mb-2">
-                      <span className="flex items-center gap-1.5">
-                        <Sparkles className="size-3.5 text-amber-600" />
-                        Khung ngày vàng đông đủ nhất
-                      </span>
-                      <span className="text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full text-[11px]">
-                        100% rảnh
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
-                      <div className="rounded-xl bg-white/90 py-1.5 border border-amber-200/50 shadow-xs font-medium">
-                        T6 15/11 <span className="block text-[10px] text-emerald-600 font-bold">8/8 rảnh</span>
-                      </div>
-                      <div className="rounded-xl bg-white/90 py-1.5 border border-amber-200/50 shadow-xs font-medium">
-                        T7 16/11 <span className="block text-[10px] text-emerald-600 font-bold">8/8 rảnh</span>
-                      </div>
-                      <div className="rounded-xl bg-white/90 py-1.5 border border-amber-200/50 shadow-xs font-medium">
-                        CN 17/11 <span className="block text-[10px] text-emerald-600 font-bold">7/8 rảnh</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Section 2: Itinerary Timeline Sample */}
-                  <div className="mt-4 space-y-2">
-                    <div className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>LỊCH TRÌNH NGÀY 1</span>
-                      <span className="text-[11px] text-primary font-medium">Xem chi tiết &gt;</span>
-                    </div>
-
-                    <div className="flex items-center gap-3 rounded-2xl bg-white/80 p-2.5 shadow-clay-badge border border-white/80">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 font-bold text-xs">
-                        08:00
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-xs font-semibold text-foreground">
-                          Cà phê săn mây Đồi Gió
-                        </div>
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <MapPin className="size-3 text-rose-500" /> Cầu Đất, Đà Lạt
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-[10px] bg-rose-50 text-rose-600 border-rose-200">
-                        Check-in
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center gap-3 rounded-2xl bg-white/80 p-2.5 shadow-clay-badge border border-white/80">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 font-bold text-xs">
-                        12:30
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-xs font-semibold text-foreground">
-                          Lẩu gà lá é Tao Ngộ
-                        </div>
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <Clock className="size-3 text-amber-500" /> Bữa trưa nhóm
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
-                        Ăn uống
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Section 3: Expense Split Highlight */}
-                  <div className="mt-4 rounded-2xl bg-gradient-to-r from-violet-50 to-pink-50 p-3.5 border border-violet-100 shadow-clay-badge flex items-center justify-between">
-                    <div>
-                      <div className="text-[11px] text-muted-foreground font-medium">Chia tiền đợt 1 (Ăn trưa & Vé)</div>
-                      <div className="text-sm font-bold text-foreground">
-                        4.800.000đ <span className="text-xs font-normal text-muted-foreground">→ 600.000đ/người</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 shadow-clay-btn-outline text-xs font-semibold text-purple-700 border border-purple-200">
-                      <QrCode className="size-3.5" />
-                      VietQR
-                    </div>
-                  </div>
-                </Card>
-              </div>
+              <SampleTripCard />
             </div>
           </div>
         </section>
 
-        {/* ========================================================= */}
-        {/* 3. MỤC GIỚI THIỆU (#about)                                 */}
-        {/* ========================================================= */}
-        <section id="about" className="scroll-mt-20 py-16 sm:py-24 border-t border-white/60">
-          <div className="text-center max-w-3xl mx-auto">
-            <Badge variant="outline" className="bg-white/80 text-primary border-primary/30 mb-3.5">
-              Về Team Trip Planner
-            </Badge>
-            <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
-              Không gian riêng dành trọn cho nhóm bạn 5 – 15 người
-            </h2>
-            <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
-              Mỗi chuyến du lịch đáng nhớ đều khởi đầu từ câu hỏi quen thuộc: <em>&ldquo;Hôm nào cả nhóm mình rảnh đi đâu đó đi!&rdquo;</em>.
-              Nhưng tin nhắn trôi đi, người bận người quên, kế hoạch cứ thế lỡ dở. Chúng tôi tạo nên Team Trip Planner để biến
-              chuyến đi trong mơ thành hiện thực một cách nhẹ nhàng nhất.
+        {/* CÁCH NHÓM BẠN DÙNG */}
+        <section id="features" className="scroll-mt-20 border-t border-border/60 py-16 sm:py-20">
+          <div className="reading-surface max-w-2xl px-5 py-6 sm:px-6">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Cách nhóm bạn dùng</h2>
+            <p className="mt-3 text-base leading-relaxed text-foreground/80">
+              Một người tạo chuyến đi, những người còn lại vào bằng link mời. Sau đó mọi việc đi theo bốn bước.
             </p>
           </div>
 
-          {/* 3 Story / Value Pillars */}
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <Card className="rounded-3xl bg-card/85 backdrop-blur-md shadow-clay-card border-2 border-white/80 p-6 transition-all duration-200 hover:-translate-y-1">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 shadow-clay-badge border border-amber-200/80 mb-5">
-                <CalendarCheck2 className="size-6" />
-              </div>
-              <CardTitle className="text-lg font-bold text-foreground">
-                Từ &ldquo;Hôm nào rảnh&rdquo; đến &ldquo;Chốt ngày liền&rdquo;
-              </CardTitle>
-              <CardDescription className="mt-2.5 text-sm text-muted-foreground leading-relaxed">
-                Không ai phải gõ đi gõ lại trong nhóm chat. Mỗi người chỉ mất 15 giây chấm ngày rảnh trực quan trên điện thoại.
-                Hệ thống tự động tính điểm và gợi ý khoảng thời gian vàng có đông đủ thành viên nhất.
-              </CardDescription>
-            </Card>
+          <ol className="mt-12 grid gap-14 sm:gap-16">
+            <Step
+              index={1}
+              title="Gửi link mời vào nhóm chat"
+              body="Mở link là thấy tên chuyến, ai chưa có tài khoản thì đăng ký xong được đưa thẳng vào nhóm."
+              illustration={<InviteIllustration />}
+            />
+            <Step
+              index={2}
+              reverse
+              title="Mỗi người chấm ngày rảnh"
+              body="Chọn Rảnh, Có thể hoặc Bận rồi kéo ngón tay qua các ngày. App gợi ý ba khoảng ngày nhiều người rảnh nhất để trưởng nhóm chốt."
+              illustration={<AvailabilityIllustration />}
+            />
+            <Step
+              index={3}
+              title="Lên lịch trình từng ngày"
+              body="Thêm hoạt động có giờ thì tự xếp đúng chỗ, kéo thả để đổi thứ tự. Ý tưởng chưa chắc thì để vào wishlist cho cả nhóm thả tim."
+              illustration={<ItineraryIllustration />}
+            />
+            <Step
+              index={4}
+              reverse
+              title="Ghi chi tiêu, chia tiền"
+              body="Ai trả khoản nào thì ghi lại, chia đều hoặc chọn người. App tính sẵn ai cần chuyển cho ai, kèm mã VietQR để quét."
+              illustration={<ExpenseIllustration />}
+            />
+          </ol>
 
-            <Card className="rounded-3xl bg-card/85 backdrop-blur-md shadow-clay-card border-2 border-white/80 p-6 transition-all duration-200 hover:-translate-y-1">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 shadow-clay-badge border border-rose-200/80 mb-5">
-                <MapPin className="size-6" />
-              </div>
-              <CardTitle className="text-lg font-bold text-foreground">
-                Một nguồn thông tin duy nhất (Single Source of Truth)
-              </CardTitle>
-              <CardDescription className="mt-2.5 text-sm text-muted-foreground leading-relaxed">
-                Tất cả lịch trình, địa điểm tham quan, ghi chú Google Maps dẫn đường, ý tưởng ăn chơi (Wishlist) và danh sách đồ cần chuẩn bị
-                được gom về một màn hình duy nhất, rõ ràng theo từng ngày.
-              </CardDescription>
-            </Card>
-
-            <Card className="rounded-3xl bg-card/85 backdrop-blur-md shadow-clay-card border-2 border-white/80 p-6 transition-all duration-200 hover:-translate-y-1 sm:col-span-2 lg:col-span-1">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 shadow-clay-badge border border-violet-200/80 mb-5">
-                <Wallet className="size-6" />
-              </div>
-              <CardTitle className="text-lg font-bold text-foreground">
-                Đi chơi hết mình, chia tiền phân minh
-              </CardTitle>
-              <CardDescription className="mt-2.5 text-sm text-muted-foreground leading-relaxed">
-                Ai trả tiền thì ghi lại trong 5 giây. Thuật toán tự động cân đối bù trừ để số lần chuyển tiền là ít nhất,
-                tích hợp mã VietQR chuyển khoản tức thì, không bao giờ phải ngại ngùng chuyện nhắc nợ.
-              </CardDescription>
-            </Card>
+          <div className="reading-surface mt-16 p-5 sm:p-6">
+            <h3 className="text-lg font-bold text-foreground">Ngoài ra</h3>
+            <ul className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+              <Extra icon={Images} title="Album ảnh">
+                Gom link ảnh Google Drive của cả nhóm, gắn theo từng ngày.
+              </Extra>
+              <Extra icon={BedDouble} title="Chia phòng">
+                Xếp từng người vào phòng, không vượt quá sức chứa.
+              </Extra>
+              <Extra icon={Shirt} title="Dress code và checklist">
+                Bảng màu trang phục cho mỗi ngày, danh sách đồ cần mang có người phụ trách.
+              </Extra>
+              <Extra icon={ThumbsUp} title="Bình chọn">
+                Hỏi ý cả nhóm khi cần chọn một phương án.
+              </Extra>
+              <Extra icon={CloudSun} title="Thời tiết">
+                Dự báo cho từng ngày khi chuyến đi đã gần.
+              </Extra>
+              <Extra icon={Mail} title="Email nhắc">
+                Báo khi có người vào nhóm, có khoản chi mới và đếm ngược trước ngày đi. Tắt được bất cứ lúc nào.
+              </Extra>
+            </ul>
           </div>
         </section>
 
-        {/* ========================================================= */}
-        {/* 4. MỤC TÍNH NĂNG NỔI BẬT (#features)                      */}
-        {/* ========================================================= */}
-        <section id="features" className="scroll-mt-20 py-16 sm:py-24 border-t border-white/60">
-          <div className="text-center max-w-3xl mx-auto">
-            <Badge variant="outline" className="bg-white/80 text-primary border-primary/30 mb-3.5">
-              Tính năng cốt lõi
-            </Badge>
-            <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
-              Tất cả công cụ bạn cần cho chuyến đi hoàn hảo
-            </h2>
-            <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
-              Thiết kế theo chuẩn Tactile Clay & Pill UI: tròn trịa, màu sắc tươi sáng, chạm vuốt sướng tay và tối ưu 100% cho điện thoại.
+        {/* LIÊN HỆ */}
+        <section id="contact" className="scroll-mt-20 border-t border-border/60 py-16 sm:py-20">
+          <Card className="max-w-2xl gap-0 p-6 sm:p-8">
+            <h2 className="text-xl font-bold text-foreground sm:text-2xl">Góp ý / báo lỗi</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Gặp lỗi hoặc muốn có thêm tính năng? Nhắn qua kênh bạn quen dùng.
             </p>
-          </div>
-
-          {/* Grid 4 Feature Cards */}
-          <div className="mt-12 grid gap-6 sm:grid-cols-2">
-            {/* Feature 1 */}
-            <Card className="rounded-3xl bg-card/85 backdrop-blur-md shadow-clay-card border-2 border-white/80 p-6 sm:p-7 transition-all duration-200 hover:-translate-y-1">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex size-13 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 to-orange-400 text-white shadow-clay-badge">
-                  <CalendarCheck2 className="size-6" />
-                </div>
-                <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
-                  Thuật toán gợi ý
-                </Badge>
-              </div>
-              <h3 className="font-heading text-xl font-bold text-foreground">
-                1. Chốt lịch rảnh thông minh
-              </h3>
-              <p className="mt-2.5 text-sm sm:text-base text-muted-foreground leading-relaxed">
-                Khảo sát ngày rảnh của từng thành viên với thanh cọ vẽ (Brush Bar) quét chọn nhanh trên màn hình cảm ứng.
-                Hệ thống tự động chấm điểm và gợi ý top 3 khung ngày vàng có đông bạn rảnh nhất để chốt lịch đi chơi.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <span className="rounded-full bg-white/80 px-3 py-1 shadow-xs border border-white">✓ Quét chọn Rảnh/Có thể/Bận</span>
-                <span className="rounded-full bg-white/80 px-3 py-1 shadow-xs border border-white">✓ Khóa lịch 1 chạm</span>
-              </div>
-            </Card>
-
-            {/* Feature 2 */}
-            <Card className="rounded-3xl bg-card/85 backdrop-blur-md shadow-clay-card border-2 border-white/80 p-6 sm:p-7 transition-all duration-200 hover:-translate-y-1">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex size-13 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-pink-500 text-white shadow-clay-badge">
-                  <MapPin className="size-6" />
-                </div>
-                <Badge variant="secondary" className="bg-rose-100 text-rose-800 border-rose-200">
-                  Kéo thả sắp xếp
-                </Badge>
-              </div>
-              <h3 className="font-heading text-xl font-bold text-foreground">
-                2. Lịch trình & Địa điểm trực quan
-              </h3>
-              <p className="mt-2.5 text-sm sm:text-base text-muted-foreground leading-relaxed">
-                Gom toàn bộ lịch trình chi tiết theo từng ngày (Day 1, Day 2...), đính kèm link bản đồ Google Maps dẫn đường,
-                gợi ý bảng màu trang phục (Dress code) và bảng danh sách chuẩn bị đồ dùng cá nhân/nhóm.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <span className="rounded-full bg-white/80 px-3 py-1 shadow-xs border border-white">✓ Tự chèn theo mốc giờ</span>
-                <span className="rounded-full bg-white/80 px-3 py-1 shadow-xs border border-white">✓ Wishlist bình chọn ý tưởng</span>
-              </div>
-            </Card>
-
-            {/* Feature 3 */}
-            <Card className="rounded-3xl bg-card/85 backdrop-blur-md shadow-clay-card border-2 border-white/80 p-6 sm:p-7 transition-all duration-200 hover:-translate-y-1">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex size-13 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-clay-badge">
-                  <QrCode className="size-6" />
-                </div>
-                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                  Thanh toán 1 chạm
-                </Badge>
-              </div>
-              <h3 className="font-heading text-xl font-bold text-foreground">
-                3. Chia tiền minh bạch & VietQR
-              </h3>
-              <p className="mt-2.5 text-sm sm:text-base text-muted-foreground leading-relaxed">
-                Ghi nhận nhanh mọi khoản chi tiêu của nhóm, tự động tính toán bù trừ để số người phải chuyển khoản là ít nhất.
-                Tạo sẵn mã VietQR chuẩn xác kèm số tài khoản ngân hàng và số tiền cần chuyển.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <span className="rounded-full bg-white/80 px-3 py-1 shadow-xs border border-white">✓ Tự tạo mã VietQR chuẩn</span>
-                <span className="rounded-full bg-white/80 px-3 py-1 shadow-xs border border-white">✓ Chia đều hoặc chọn người</span>
-              </div>
-            </Card>
-
-            {/* Feature 4 */}
-            <Card className="rounded-3xl bg-card/85 backdrop-blur-md shadow-clay-card border-2 border-white/80 p-6 sm:p-7 transition-all duration-200 hover:-translate-y-1">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex size-13 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-400 to-purple-500 text-white shadow-clay-badge">
-                  <Camera className="size-6" />
-                </div>
-                <Badge variant="secondary" className="bg-violet-100 text-violet-800 border-violet-200">
-                  Google Drive & MinIO
-                </Badge>
-              </div>
-              <h3 className="font-heading text-xl font-bold text-foreground">
-                4. Album kỷ niệm & Mời 1 chạm
-              </h3>
-              <p className="mt-2.5 text-sm sm:text-base text-muted-foreground leading-relaxed">
-                Gửi link mời bạn bè tham gia phòng chuyến đi chỉ với 1 cú click. Tích hợp album lưu giữ kho ảnh, video chất lượng gốc
-                qua Google Drive và MinIO, kèm sơ đồ xếp phòng ngủ tiện nghi cho cả nhóm.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <span className="rounded-full bg-white/80 px-3 py-1 shadow-xs border border-white inline-flex items-center gap-1">
-                  <Share2 className="size-3 text-violet-500" /> Link mời 1 chạm
-                </span>
-                <span className="rounded-full bg-white/80 px-3 py-1 shadow-xs border border-white">✓ Giữ nguyên chất lượng ảnh gốc</span>
-                <span className="rounded-full bg-white/80 px-3 py-1 shadow-xs border border-white">✓ Sắp xếp phòng ngủ thông minh</span>
-              </div>
-            </Card>
-          </div>
-        </section>
-
-        {/* ========================================================= */}
-        {/* 5. MỤC LIÊN HỆ & GÓP Ý (#contact)                         */}
-        {/* ========================================================= */}
-        <section id="contact" className="scroll-mt-20 py-16 sm:py-24 border-t border-white/60">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <Badge variant="outline" className="bg-white/80 text-primary border-primary/30 mb-3.5">
-              Liên hệ & Đóng góp ý kiến
-            </Badge>
-            <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
-              Chúng tôi luôn đồng hành cùng chuyến đi của bạn
-            </h2>
-            <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
-              Bạn có góp ý tính năng, phát hiện điều cần tối ưu hoặc muốn hợp tác? Đội ngũ phát triển luôn sẵn lòng lắng nghe bạn!
-            </p>
-          </div>
-
-          <div className="grid gap-8 lg:grid-cols-12">
-            {/* Left Column: Author & Company Info Card */}
-            <div className="lg:col-span-5">
-              <Card className="rounded-3xl bg-card/90 backdrop-blur-md shadow-clay-card border-2 border-white/90 p-6 sm:p-7 h-full flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-fuchsia-400 text-white shadow-clay-badge">
-                      <Heart className="size-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-heading text-lg font-bold text-foreground">
-                        Công Ty TNHH Mai Mối
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        Đội ngũ phát triển Team Trip Planner
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 text-sm text-foreground/90">
-                    <div className="flex items-start gap-3 rounded-2xl bg-white/70 p-3 shadow-xs border border-white">
-                      <Users className="size-4.5 text-primary shrink-0 mt-0.5" />
-                      <div>
-                        <div className="text-xs text-muted-foreground font-medium">Tác giả dự án</div>
-                        <div className="font-semibold text-foreground">Các thành viên mai mối</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 rounded-2xl bg-white/70 p-3 shadow-xs border border-white">
-                      <Mail className="size-4.5 text-primary shrink-0 mt-0.5" />
-                      <div>
-                        <div className="text-xs text-muted-foreground font-medium">Email hỗ trợ & Hợp tác</div>
-                        <a href={`mailto:${CONTACT_EMAIL}`} className="font-semibold text-primary hover:underline break-all">
-                          {CONTACT_EMAIL}
-                        </a>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 rounded-2xl bg-white/70 p-3 shadow-xs border border-white">
-                      <MapPin className="size-4.5 text-primary shrink-0 mt-0.5" />
-                      <div>
-                        <div className="text-xs text-muted-foreground font-medium">Địa điểm</div>
-                        <div className="font-semibold text-foreground">Hà Nội, Việt Nam</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-border/60">
-                  <p className="text-xs text-muted-foreground italic leading-relaxed">
-                    &ldquo;Kết nối những chuyến đi, gắn kết những kỷ niệm đẹp đẽ bên bạn bè và người thương.&rdquo;
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Badge variant="outline" className="text-[11px] bg-rose-50/80 text-rose-600 border-rose-200">
-                      Phiên bản 1.0
-                    </Badge>
-                    <Badge variant="outline" className="text-[11px] bg-violet-50/80 text-violet-600 border-violet-200">
-                      Trip Planner
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            </div>
-
-            {/* Right Column: liên hệ nhanh qua Zalo / Gmail (không qua backend) */}
-            <div className="lg:col-span-7">
-              <Card className="h-full rounded-3xl bg-card/90 backdrop-blur-md shadow-clay-card border-2 border-white/90 p-6 sm:p-7">
-                <CardHeader className="p-0 mb-6">
-                  <CardTitle className="text-xl font-bold text-foreground">
-                    Nhắn cho đội phát triển
-                  </CardTitle>
-                  <CardDescription className="text-sm text-muted-foreground">
-                    Góp ý tính năng, báo lỗi hay muốn hợp tác? Chọn kênh bạn quen dùng, tụi mình sẽ phản hồi sớm nhất.
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="grid gap-3.5 p-0 sm:grid-cols-2">
-                  {CONTACT_ZALO_URL && (
-                    <a
-                      href={CONTACT_ZALO_URL}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="group flex items-center gap-3.5 rounded-3xl border-2 border-white/90 bg-sky-50/90 p-4 shadow-clay-card transition-transform duration-200 hover:-translate-y-0.5 active:scale-98"
-                    >
-                      <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 text-white shadow-clay-badge">
-                        <MessageCircle className="size-6" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block font-bold text-foreground">Nhắn Zalo</span>
-                        <span className="block text-xs text-muted-foreground">Trả lời nhanh nhất</span>
-                      </span>
-                      <ArrowRight className="ml-auto size-4 shrink-0 text-sky-600 transition-transform group-hover:translate-x-0.5" />
-                    </a>
-                  )}
-                  <a
-                    href={CONTACT_GMAIL_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="group flex items-center gap-3.5 rounded-3xl border-2 border-white/90 bg-rose-50/90 p-4 shadow-clay-card transition-transform duration-200 hover:-translate-y-0.5 active:scale-98"
-                  >
-                    <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-red-500 text-white shadow-clay-badge">
-                      <Mail className="size-6" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block font-bold text-foreground">Gửi Gmail</span>
-                      <span className="block truncate text-xs text-muted-foreground">{CONTACT_EMAIL}</span>
-                    </span>
-                    <ArrowRight className="ml-auto size-4 shrink-0 text-rose-600 transition-transform group-hover:translate-x-0.5" />
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              {CONTACT_ZALO_URL && (
+                <Button asChild variant="outline" size="lg">
+                  <a href={CONTACT_ZALO_URL} target="_blank" rel="noreferrer">
+                    <MessageCircle />
+                    Nhắn Zalo
                   </a>
-                  <p className="text-xs text-muted-foreground sm:col-span-2">
-                    Không dùng Gmail?{' '}
-                    <a href={`mailto:${CONTACT_EMAIL}`} className="font-semibold text-primary hover:underline">
-                      Mở ứng dụng email khác
-                    </a>
-                  </p>
-                </CardContent>
-              </Card>
+                </Button>
+              )}
+              <Button asChild variant="outline" size="lg">
+                <a href={CONTACT_GMAIL_URL} target="_blank" rel="noreferrer">
+                  <Mail />
+                  Gửi Gmail
+                </a>
+              </Button>
             </div>
-          </div>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Hoặc gửi thư tới{' '}
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="font-semibold break-all text-primary-strong hover:underline"
+              >
+                {CONTACT_EMAIL}
+              </a>
+            </p>
+          </Card>
         </section>
       </main>
 
-      {/* ========================================================= */}
-      {/* FOOTER & SCROLL TO TOP                                    */}
-      {/* ========================================================= */}
-      <footer className="relative z-10 border-t border-white/70 bg-background/85 backdrop-blur-md shadow-clay-dock mt-12 py-8">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            {/* Left: Brand & Copyright */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+      <footer className="relative z-10 mt-12 border-t border-border bg-background/95 py-8">
+        <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
+          <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
+            <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
               <BrandLogo />
-              <div className="hidden sm:block h-4 w-px bg-border/60" />
+              <div className="hidden h-4 w-px bg-border/60 sm:block" />
               <p className="text-xs text-muted-foreground">
-                © 2026 Team Trip Planner • Phát triển bởi <strong className="text-foreground">Minhduoi</strong> - <strong className="text-foreground">Công Ty TNHH Mai Mối</strong>.
+                © 2026 Team Trip Planner • Phát triển bởi <strong className="text-foreground">Minhduoi</strong> -{' '}
+                <strong className="text-foreground">Công Ty TNHH Mai Mối</strong>.
               </p>
             </div>
 
-            {/* Right: Quick Links & Scroll to top */}
             <div className="flex items-center gap-4">
-              <nav className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
-                <a href="#about" onClick={(e) => handleNavClick(e, 'about')} className="hover:text-primary transition-colors">Giới thiệu</a>
-                <a href="#features" onClick={(e) => handleNavClick(e, 'features')} className="hover:text-primary transition-colors">Tính năng</a>
-                <a href="#contact" onClick={(e) => handleNavClick(e, 'contact')} className="hover:text-primary transition-colors">Liên hệ</a>
+              <nav
+                aria-label="Liên kết cuối trang"
+                className="flex items-center gap-1 text-sm font-medium text-muted-foreground"
+              >
+                {NAV_LINKS.map((link) => (
+                  <a
+                    key={link.id}
+                    href={`#${link.id}`}
+                    className="inline-flex min-h-11 items-center px-2 transition-colors hover:text-primary-strong"
+                  >
+                    {link.label}
+                  </a>
+                ))}
               </nav>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => scrollToTop()}
-                className="rounded-full shadow-clay-btn-outline gap-1.5 text-xs"
-                aria-label="Cuộn lên đầu trang"
-              >
-                <ArrowUp className="size-3.5" />
-                <span className="hidden sm:inline">Lên đầu trang</span>
+              <Button asChild variant="outline" size="sm">
+                <a href="#top" aria-label="Lên đầu trang">
+                  <ArrowUp />
+                  <span className="hidden sm:inline">Lên đầu trang</span>
+                </a>
               </Button>
             </div>
           </div>
         </div>
       </footer>
     </div>
+  )
+}
+
+/** Thẻ chuyến đi mẫu dựng từ component thật (TripCover, StatusBadge, CountdownLabel); số liệu khớp nhau. */
+function SampleTripCard() {
+  return (
+    <figure className="mx-auto max-w-md lg:max-w-none">
+      <div aria-hidden="true" className="overflow-hidden rounded-surface border border-border/60 bg-card shadow-raised">
+        <TripCover coverImageUrl="preset:mountain" seed={0} withOverlay className="h-40">
+          <div className="flex h-full flex-col justify-between p-4 text-white">
+            <StatusBadge status="UPCOMING" className="self-start" />
+            <p className="text-xl leading-tight font-bold drop-shadow">Đà Lạt săn mây</p>
+          </div>
+        </TripCover>
+        <div className="grid gap-3 p-4">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="size-4" />
+              Đà Lạt, Lâm Đồng
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Users className="size-4" />8 thành viên
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-medium text-foreground">
+              {formatDateRange(SAMPLE_TRIP.startDate, SAMPLE_TRIP.endDate)}
+            </span>
+            <CountdownLabel trip={SAMPLE_TRIP} />
+          </div>
+        </div>
+      </div>
+      <figcaption className="reading-surface mx-auto mt-2 w-fit rounded-control px-3 py-1 text-center text-xs text-foreground/75">
+        Ví dụ một chuyến đi trong app
+      </figcaption>
+    </figure>
+  )
+}
+
+function Step({
+  index,
+  title,
+  body,
+  illustration,
+  reverse = false,
+}: {
+  index: number
+  title: string
+  body: string
+  illustration: ReactNode
+  reverse?: boolean
+}) {
+  return (
+    <li className="grid items-center gap-6 md:grid-cols-2 md:gap-10">
+      <div className={cn('reading-surface p-5', reverse && 'md:order-2')}>
+        <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-bold text-primary-strong">
+          {index}
+        </span>
+        <h3 className="mt-3 text-xl font-bold text-foreground">{title}</h3>
+        <p className="mt-2 text-base leading-relaxed text-foreground/80">{body}</p>
+      </div>
+      {/* Minh hoạ tĩnh, không bấm được: ẩn với trình đọc màn hình vì đã có đoạn mô tả ở trên */}
+      <div aria-hidden="true" className={reverse ? 'md:order-1' : undefined}>
+        <div className="rounded-surface border border-border/60 bg-card p-4 shadow-raised">{illustration}</div>
+      </div>
+    </li>
+  )
+}
+
+function InviteIllustration() {
+  return (
+    <div className="grid gap-3">
+      <p className="text-sm font-semibold text-foreground">Link mời</p>
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1 truncate rounded-control border border-border bg-muted/50 px-3 py-2 font-mono text-sm text-muted-foreground">
+          …/join/K7MP4QXT
+        </div>
+        <span className="rounded-control bg-primary-strong px-3 py-2 text-sm font-semibold text-primary-strong-foreground">
+          Chép
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Ai có link đều vào được, trưởng nhóm có thể đổi mã bất cứ lúc nào.
+      </p>
+    </div>
+  )
+}
+
+const AVAIL_STYLE = {
+  yes: 'bg-avail-yes-soft text-avail-yes-soft-foreground',
+  maybe: 'bg-avail-maybe-soft text-avail-maybe-soft-foreground',
+  no: 'bg-avail-no-soft text-avail-no-soft-foreground',
+} as const
+const AVAIL_LABEL = { yes: 'Rảnh', maybe: 'Có thể', no: 'Bận' } as const
+const AVAIL_ROWS: { name: string; days: (keyof typeof AVAIL_STYLE)[] }[] = [
+  { name: 'Linh', days: ['yes', 'yes', 'yes'] },
+  { name: 'Mai', days: ['yes', 'yes', 'maybe'] },
+  { name: 'Lan', days: ['no', 'yes', 'yes'] },
+]
+
+function AvailabilityIllustration() {
+  return (
+    <div className="grid gap-2 text-xs">
+      <div className="grid grid-cols-[3.5rem_repeat(3,1fr)] gap-1.5 text-center font-medium text-muted-foreground">
+        <span />
+        {SAMPLE_DAYS.map((d) => (
+          <span key={d.valueOf()}>{d.format('DD/MM')}</span>
+        ))}
+      </div>
+      {AVAIL_ROWS.map((row) => (
+        <div key={row.name} className="grid grid-cols-[3.5rem_repeat(3,1fr)] items-center gap-1.5 text-center">
+          <span className="truncate text-left text-sm font-medium text-foreground">{row.name}</span>
+          {row.days.map((value, i) => (
+            <span key={i} className={`rounded-control py-2 font-semibold ${AVAIL_STYLE[value]}`}>
+              {AVAIL_LABEL[value]}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ItineraryIllustration() {
+  const items = [
+    { time: '05:30', title: 'Săn mây đồi chè Cầu Đất', note: 'Cầu Đất' },
+    { time: '12:00', title: 'Lẩu gà lá é', note: 'Bữa trưa cả nhóm' },
+    { time: '19:00', title: 'Chợ đêm Đà Lạt', note: 'Trung tâm' },
+  ]
+  return (
+    <div className="grid gap-2">
+      <p className="text-sm font-semibold text-foreground">Ngày 1 · {SAMPLE_DAYS[0].format('DD/MM')}</p>
+      {items.map((item) => (
+        <div key={item.time} className="flex items-center gap-3 rounded-item border border-border/60 p-2.5">
+          <span className="shrink-0 rounded-control bg-secondary px-2 py-1 text-xs font-bold text-secondary-foreground tabular-nums">
+            {item.time}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
+            <p className="truncate text-xs text-muted-foreground">{item.note}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ExpenseIllustration() {
+  return (
+    <div className="grid gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-foreground">Lẩu gà lá é</p>
+          <p className="text-xs text-muted-foreground">Linh trả · chia đều 8 người</p>
+        </div>
+        <span className="shrink-0 text-sm font-bold text-foreground tabular-nums">4.800.000đ</span>
+      </div>
+      <div className="flex items-center justify-between gap-3 rounded-item bg-muted/50 p-3">
+        <p className="min-w-0 text-sm text-foreground">
+          Mai chuyển cho Linh <span className="font-bold text-money-out tabular-nums">600.000đ</span>
+        </p>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-control border border-border bg-card px-2 py-1 text-xs font-semibold text-foreground">
+          <QrCode className="size-3.5" />
+          VietQR
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function Extra({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
+  return (
+    <li className="flex gap-3">
+      <Icon className="mt-0.5 size-5 shrink-0 text-primary-strong" aria-hidden="true" />
+      <div>
+        <p className="font-semibold text-foreground">{title}</p>
+        <p className="text-sm text-foreground/75">{children}</p>
+      </div>
+    </li>
   )
 }

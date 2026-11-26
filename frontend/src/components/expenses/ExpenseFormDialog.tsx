@@ -1,10 +1,11 @@
 import dayjs from 'dayjs'
-import { X } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { Check } from 'lucide-react'
+import { useLayoutEffect, useRef, useState, type ComponentProps, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { FormField } from '@/components/FormField'
 import { ImageUploadButton } from '@/components/ImageUploadButton'
 import { UserAvatar } from '@/components/UserAvatar'
+import { ChoiceChips } from '@/components/common/ChoiceChips'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -16,6 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import { EXPENSE_CATEGORIES, formatVnd } from '@/lib/tripContent'
 import { cn } from '@/lib/utils'
@@ -46,6 +48,59 @@ export function ExpenseFormDialog(props: ExpenseFormDialogProps) {
 
 const digitsOnly = (value: string) => value.replace(/\D/g, '').slice(0, 10)
 const fmt = (value: string) => (value ? Number(value).toLocaleString('vi-VN') : '')
+
+const SPLIT_MODES: { value: SplitMode; label: string }[] = [
+  { value: 'EQUAL', label: 'Chia đều' },
+  { value: 'CUSTOM', label: 'Tự nhập' },
+]
+
+/**
+ * Ô nhập tiền VND: hiển thị "1.200.000" nhưng giữ đúng vị trí con trỏ khi format lại (P3-CP-19).
+ * `value` là chuỗi chữ số thô.
+ */
+function MoneyInput({
+  value,
+  onValueChange,
+  ...props
+}: Omit<ComponentProps<typeof Input>, 'value' | 'onChange'> & {
+  value: string
+  onValueChange: (digits: string) => void
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+  // Số chữ số bên trái con trỏ sau lần gõ gần nhất; null = không cần đặt lại con trỏ
+  const caretDigits = useRef<number | null>(null)
+  const display = fmt(value)
+
+  useLayoutEffect(() => {
+    const input = ref.current
+    const digitsLeft = caretDigits.current
+    caretDigits.current = null
+    if (!input || digitsLeft === null || document.activeElement !== input) return
+    let pos = 0
+    let seen = 0
+    while (pos < display.length && seen < digitsLeft) {
+      if (/\d/.test(display[pos])) seen++
+      pos++
+    }
+    input.setSelectionRange(pos, pos)
+  })
+
+  return (
+    <Input
+      {...props}
+      ref={ref}
+      inputMode="numeric"
+      autoComplete="off"
+      value={display}
+      onChange={(e) => {
+        const raw = e.target.value
+        const caret = e.target.selectionStart ?? raw.length
+        caretDigits.current = digitsOnly(raw.slice(0, caret)).length
+        onValueChange(digitsOnly(raw))
+      }}
+    />
+  )
+}
 
 function ExpenseForm({
   expense,
@@ -82,11 +137,14 @@ function ExpenseForm({
   const customSum = Object.values(custom).reduce((sum, v) => sum + Number(v || 0), 0)
   const diff = total - customSum
 
-  const toggleParticipant = (userId: number) =>
-    setSelection((prev) => ({
-      ...prev,
-      ids: prev.ids.includes(userId) ? prev.ids.filter((id) => id !== userId) : [...prev.ids, userId],
-    }))
+  const setParticipants = (values: string[]) => {
+    const on = new Set(values.map(Number))
+    setSelection((prev) =>
+      prev.kind === 'include'
+        ? { kind: 'include', ids: [...on] }
+        : { kind: 'exclude', ids: members.map((m) => m.userId).filter((id) => !on.has(id)) },
+    )
+  }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -110,8 +168,8 @@ function ExpenseForm({
         shares:
           mode === 'CUSTOM'
             ? Object.entries(custom)
-              .filter(([, v]) => Number(v || 0) > 0)
-              .map(([userId, v]) => ({ userId: Number(userId), amount: Number(v) }))
+                .filter(([, v]) => Number(v || 0) > 0)
+                .map(([userId, v]) => ({ userId: Number(userId), amount: Number(v) }))
             : null,
         note: note.trim() || null,
         receiptUrl: receiptUrl || null,
@@ -131,15 +189,14 @@ function ExpenseForm({
       </DialogHeader>
 
       <FormField id="exp-amount" label="Số tiền (₫)" error={errors.amount}>
-        <Input
+        <MoneyInput
           id="exp-amount"
           autoFocus
-          inputMode="numeric"
           placeholder="VD: 1.200.000"
-          className="text-xl font-bold tracking-tight text-foreground"
-          value={fmt(amount)}
+          className="text-xl font-bold tracking-tight text-foreground tabular-nums"
+          value={amount}
           aria-invalid={Boolean(errors.amount)}
-          onChange={(e) => setAmount(digitsOnly(e.target.value))}
+          onValueChange={setAmount}
         />
       </FormField>
 
@@ -154,40 +211,28 @@ function ExpenseForm({
         />
       </FormField>
 
-      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Loại chi">
-        {EXPENSE_CATEGORIES.map((c) => (
-          <button
-            key={c.value}
-            type="button"
-            role="radio"
-            aria-checked={category === c.value}
-            onClick={() => setCategory(c.value)}
-            className={cn(
-              'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 border-2',
-              category === c.value
-                ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white border-rose-300 shadow-clay-btn-primary -translate-y-0.5'
-                : 'bg-card text-foreground border-white/70 shadow-clay-card hover:-translate-y-0.5 hover:shadow-clay-card-hover',
-            )}
-          >
-            <c.icon className="size-4" />
-            {c.label}
-          </button>
-        ))}
+      <div className="grid gap-2">
+        <p className="text-sm font-medium text-foreground">Loại chi</p>
+        <ChoiceChips label="Loại chi" options={EXPENSE_CATEGORIES} value={category} onChange={setCategory} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <FormField id="exp-payer" label="Người trả">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <FormField
+          id="exp-payer"
+          label="Người trả"
+          hint={canChoosePayer ? undefined : 'Chỉ trưởng nhóm ghi hộ được người khác'}
+        >
           <Select value={paidBy} onValueChange={setPaidBy} disabled={!canChoosePayer}>
-              <SelectTrigger id="exp-payer" className="w-full rounded-full shadow-clay-card">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {members.map((m) => (
-                  <SelectItem key={m.userId} value={String(m.userId)}>
-                    {m.userId === myUserId ? `${m.displayName} (bạn)` : m.displayName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+            <SelectTrigger id="exp-payer" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {members.map((m) => (
+                <SelectItem key={m.userId} value={String(m.userId)}>
+                  {m.userId === myUserId ? `${m.displayName} (bạn)` : m.displayName}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </FormField>
         <FormField id="exp-date" label="Ngày chi">
@@ -195,112 +240,100 @@ function ExpenseForm({
         </FormField>
       </div>
 
-        <div className="grid gap-2.5">
-          <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-foreground">Chia cho</p>
-              <label className="flex items-center gap-2 text-xs font-semibold text-foreground cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="size-4 rounded accent-primary cursor-pointer"
-                  checked={mode === 'CUSTOM'}
-                  onChange={(e) => setMode(e.target.checked ? 'CUSTOM' : 'EQUAL')}
+      <div className="grid gap-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-medium text-foreground">Chia cho</p>
+          <ChoiceChips label="Cách chia" size="sm" options={SPLIT_MODES} value={mode} onChange={setMode} />
+        </div>
+
+        {mode === 'EQUAL' ? (
+          <>
+            <ToggleGroup
+              type="multiple"
+              aria-label="Người cùng chia"
+              value={participants.map(String)}
+              onValueChange={setParticipants}
+            >
+              {members.map((m) => {
+                const on = participants.includes(m.userId)
+                return (
+                  <ToggleGroupItem key={m.userId} value={String(m.userId)} className="min-h-11 pl-1.5">
+                    <UserAvatar userId={m.userId} name={m.displayName} avatarUrl={m.avatarUrl} size="sm" />
+                    <span className="max-w-32 truncate">{m.displayName}</span>
+                    {on && <Check aria-hidden="true" />}
+                  </ToggleGroupItem>
+                )
+              })}
+            </ToggleGroup>
+            <div className="flex items-center justify-between gap-2 pt-1 text-sm text-muted-foreground">
+              <span className="tabular-nums">
+                {participants.length > 0 && total > 0
+                  ? `≈ ${formatVnd(Math.floor(total / participants.length))} / người`
+                  : 'Chọn người tham gia'}
+              </span>
+              <Button type="button" variant="link" size="sm" onClick={() => setSelection({ kind: 'exclude', ids: [] })}>
+                Chọn tất cả
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="grid gap-2 rounded-item border border-border bg-muted/40 p-3">
+            {members.map((m) => (
+              <div key={m.userId} className="flex items-center gap-2">
+                <UserAvatar userId={m.userId} name={m.displayName} avatarUrl={m.avatarUrl} size="sm" />
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{m.displayName}</span>
+                <MoneyInput
+                  placeholder="0"
+                  className="w-36 text-right font-semibold tabular-nums"
+                  aria-label={`Phần của ${m.displayName}`}
+                  value={custom[m.userId] ?? ''}
+                  onValueChange={(digits) => setCustom((prev) => ({ ...prev, [m.userId]: digits }))}
                 />
-                Chia không đều
-              </label>
+              </div>
+            ))}
+            <p
+              aria-live="polite"
+              className={cn(
+                'flex items-center justify-end gap-1 pt-1 text-right text-sm font-semibold tabular-nums',
+                diff === 0 ? 'text-success-soft-foreground' : 'text-warning-soft-foreground',
+              )}
+            >
+              {diff === 0 && <Check className="size-4" aria-hidden="true" />}
+              {diff === 0 ? 'Đã khớp tổng' : diff > 0 ? `Còn thiếu ${formatVnd(diff)}` : `Thừa ${formatVnd(-diff)}`}
+            </p>
           </div>
-
-          {mode === 'EQUAL' ? (
-            <>
-              <div className="flex flex-wrap gap-2">
-                {members.map((m) => {
-                  const on = participants.includes(m.userId)
-                  return (
-                    <button
-                      key={m.userId}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => toggleParticipant(m.userId)}
-                      className={cn(
-                        'flex items-center gap-1.5 rounded-full py-1 pr-3 pl-1 text-xs font-bold transition-all duration-200 border-2 active:scale-95',
-                        on
-                          ? 'bg-rose-50 border-rose-400 text-rose-700 shadow-clay-badge -translate-y-0.5'
-                          : 'bg-card border-white/70 text-muted-foreground shadow-clay-card opacity-60',
-                      )}
-                    >
-                      <UserAvatar userId={m.userId} name={m.displayName} avatarUrl={m.avatarUrl} size="sm" />
-                      {m.displayName}
-                    </button>
-                  )
-                })}
-              </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground font-medium pt-1">
-                  <span>
-                    {participants.length > 0 && total > 0
-                      ? `≈ ${formatVnd(Math.floor(total / participants.length))} / người`
-                      : 'Chọn người tham gia'}
-                  </span>
-                  <button
-                    type="button"
-                    className="text-primary font-bold hover:underline"
-                    onClick={() => setSelection({ kind: 'exclude', ids: [] })}
-                  >
-                    Chọn tất cả
-                  </button>
-                </div>
-              </>
-              ) : (
-                <div className="grid gap-2 rounded-2xl border border-white/80 bg-muted/30 p-3 shadow-clay-sunken">
-                  {members.map((m) => (
-                    <div key={m.userId} className="flex items-center gap-2">
-                      <UserAvatar userId={m.userId} name={m.displayName} avatarUrl={m.avatarUrl} size="sm" />
-                      <span className="min-w-0 flex-1 truncate text-xs font-bold text-foreground">{m.displayName}</span>
-                      <Input
-                        inputMode="numeric"
-                        placeholder="0"
-                        className="w-36 text-right font-semibold"
-                        aria-label={`Phần của ${m.displayName}`}
-                        value={fmt(custom[m.userId] ?? '')}
-                        onChange={(e) => setCustom((prev) => ({ ...prev, [m.userId]: digitsOnly(e.target.value) }))}
-                      />
-                    </div>
-                  ))}
-                    <p className={cn('text-right text-xs font-bold pt-1', diff === 0 ? 'text-emerald-700' : 'text-amber-700')}>
-                      {diff === 0 ? 'Đã khớp tổng ✓' : diff > 0 ? `Còn thiếu ${formatVnd(diff)}` : `Thừa ${formatVnd(-diff)}`}
-                    </p>
-                </div>
         )}
-                {errors.participants && <p className="text-xs font-semibold text-destructive">{errors.participants}</p>}
-              </div>
+        {errors.participants && (
+          <p role="alert" className="text-sm text-destructive">
+            {errors.participants}
+          </p>
+        )}
+      </div>
 
-              <FormField id="exp-note" label="Ghi chú" optional>
-                <Input id="exp-note" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
-              </FormField>
+      <FormField id="exp-note" label="Ghi chú" optional>
+        <Input id="exp-note" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
+      </FormField>
 
-              <div className="flex items-center gap-3">
-                <ImageUploadButton purpose="RECEIPT" label="Ảnh hóa đơn" size="sm" onUploaded={setReceiptUrl} />
-                {receiptUrl && (
-                  <div className="relative">
-                    <img src={receiptUrl} alt="Hóa đơn" className="size-14 rounded-2xl object-cover border-2 border-white shadow-clay-card" />
-                    <button
-                      type="button"
-                      aria-label="Bỏ ảnh hóa đơn"
-                      onClick={() => setReceiptUrl('')}
-                      className="absolute -top-2 -right-2 rounded-full bg-foreground p-1 text-background shadow-clay-badge hover:scale-110 transition-transform"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </div>
-                )}
-              </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <ImageUploadButton purpose="RECEIPT" label="Ảnh hóa đơn" size="sm" onUploaded={setReceiptUrl} />
+        {receiptUrl && (
+          <>
+            <img src={receiptUrl} alt="Hóa đơn" className="size-14 rounded-control border border-border object-cover" />
+            <Button type="button" variant="ghost" size="sm" onClick={() => setReceiptUrl('')}>
+              Bỏ ảnh
+            </Button>
+          </>
+        )}
+      </div>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" disabled={pending} onClick={() => onOpenChange(false)}>
-                  Hủy
-                </Button>
-                <Button type="submit" disabled={pending}>
-                  {pending ? 'Đang lưu…' : expense ? 'Lưu' : 'Thêm'}
-                </Button>
-              </DialogFooter>
-            </form>
-          )
+      <DialogFooter sticky>
+        <Button type="button" variant="outline" disabled={pending} onClick={() => onOpenChange(false)}>
+          Hủy
+        </Button>
+        <Button type="submit" disabled={pending}>
+          {pending ? 'Đang lưu…' : expense ? 'Lưu' : 'Thêm'}
+        </Button>
+      </DialogFooter>
+    </form>
+  )
 }

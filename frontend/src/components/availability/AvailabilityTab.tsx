@@ -1,12 +1,13 @@
-import { CalendarPlus, RotateCw } from 'lucide-react'
-import { useState } from 'react'
+import { CalendarPlus, CalendarRange } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { EmptyState, TabErrorState, TabSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useAvailability } from '@/hooks/useAvailability'
 import { useAvailabilityEditor, type Brush } from '@/hooks/useAvailabilityEditor'
-import { getErrorMessage } from '@/lib/api'
 import { roleAtLeast } from '@/lib/labels'
+import { cn } from '@/lib/utils'
 import type { AvailabilityStatus } from '@/types/availability'
 import type { TripRole } from '@/types/trip'
 import { AvailabilityGrid } from './AvailabilityGrid'
@@ -30,117 +31,139 @@ export function AvailabilityTab({ tripId, myUserId, myRole, onEditTrip }: Availa
   const canEditTrip = roleAtLeast(myRole, 'EDITOR')
   const isOwner = myRole === 'OWNER'
 
-  if (matrix.isPending) {
-    return (
-        <div className="grid gap-6">
-          <Skeleton className="h-48 rounded-[28px]" />
-          <Skeleton className="h-64 rounded-[28px]" />
-        </div>
-        )
+  const data = matrix.data
+  const serverStatus = new Map<string, AvailabilityStatus>()
+  for (const entry of data?.entries ?? []) {
+    serverStatus.set(`${entry.userId}|${entry.date}`, entry.status)
   }
-
-        if (matrix.isError) {
-    return (
-          <div className="rounded-[32px] border-2 border-dashed border-destructive/40 bg-card/80 p-8 text-center shadow-clay-card">
-            <p className="text-muted-foreground">{getErrorMessage(matrix.error)}</p>
-              <Button variant="outline" className="mt-4 rounded-full" onClick={() => matrix.refetch()}>
-                <RotateCw />
-                Thử lại
-              </Button>
-          </div>
-          )
-  }
-
-          const data = matrix.data
-
-          if (!data.rangeStart || !data.rangeEnd) {
-    return (
-              <div className="rounded-[32px] border-2 border-dashed border-rose-300/80 bg-card/90 backdrop-blur-xs px-6 py-14 text-center shadow-clay-card">
-                <div className="inline-flex size-20 items-center justify-center rounded-full bg-rose-100 shadow-clay-badge animate-float-slow text-4xl mb-4">
-                  🗓️
-                </div>
-                <h2 className="text-xl font-bold text-foreground">Chưa có khoảng ngày dự kiến</h2>
-                <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground leading-relaxed">
-                  {canEditTrip
-                    ? 'Nhập khoảng ngày cả nhóm có thể đi (vd: cả tháng 7), mọi người sẽ khai rảnh/bận trong khoảng đó.'
-                    : 'Nhờ trưởng nhóm nhập khoảng ngày dự kiến để cả nhóm bắt đầu khai lịch nhé.'}
-                </p>
-                {canEditTrip && (
-                    <Button size="lg" className="mt-6 gap-2" onClick={onEditTrip}>
-                      <CalendarPlus className="size-4" />
-                      Đặt ngày dự kiến
-                    </Button>
-        )}
-                  </div>
-                )
-                }
-
-  const dates = data.days.map((d) => d.date)
-                const serverStatus = new Map<string, AvailabilityStatus>()
-                for (const entry of data.entries) {
-                  serverStatus.set(`${entry.userId}|${entry.date}`, entry.status)
-                }
   const statusOf = (userId: number, date: string): AvailabilityStatus | null => {
     if (userId === myUserId && editor.pending.has(date)) {
       return editor.pending.get(date) ?? null
     }
-                return serverStatus.get(`${userId}|${date}`) ?? null
+    return serverStatus.get(`${userId}|${date}`) ?? null
   }
   const myStatus = (date: string) => statusOf(myUserId, date)
-                const editable = !data.locked
 
-                return (
-                  <div className="grid gap-6 animate-cascade">
-                    {data.locked && data.startDate && data.endDate ? (
-                      <LockedBanner tripId={tripId} startDate={data.startDate} endDate={data.endDate} canUnlock={isOwner} />
-                    ) : (
-                      <SuggestionPanel tripId={tripId} matrix={data} canEditLength={canEditTrip} canLock={isOwner} />
-                    )}
+  // Nút "Hoàn tác" trong toast chạy sau vài render: luôn so với trạng thái mới nhất
+  const myStatusRef = useRef(myStatus)
+  useEffect(() => {
+    myStatusRef.current = myStatus
+  })
 
-                      <Card className="rounded-[28px] shadow-clay-card border border-border/60 bg-card p-1 sm:p-2">
-                        <CardHeader>
-                          <CardTitle className="text-lg font-bold flex items-center gap-2">
-                            <span>Lịch rảnh của cả nhóm</span>
-                            <span className="text-sm font-normal text-muted-foreground">🎨</span>
-                          </CardTitle>
-                          <CardDescription>
-                            {editable
-                              ? 'Chọn trạng thái ở thanh bên dưới rồi chạm hoặc kéo trên hàng "Bạn". Tự động lưu.'
-                              : 'Đã chốt ngày nên bảng chỉ để xem. Cột tô đậm là các ngày đi.'}
-                          </CardDescription>
-                        </CardHeader>
-                          <CardContent className="grid gap-4">
-                            <AvailabilityGrid
-                              matrix={data}
-                              dates={dates}
-                              myUserId={myUserId}
-                              editable={editable}
-                              statusOf={statusOf}
-                              onPaint={(date) => editor.paint([date], brush, myStatus)}
-                            />
-                              <ul className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground font-semibold pt-1 border-t border-border/40" aria-label="Chú thích">
-                                {(['AVAILABLE', 'MAYBE', 'BUSY', 'NONE'] as const).map((key) => (
-                                  <li key={key} className="flex items-center gap-1.5">
-                                    <span
-                                      className={`flex size-5 items-center justify-center rounded-lg text-xs font-bold ${STATUS_CELL[key].className}`}
-                                    >
-                                      {STATUS_CELL[key].symbol}
-                                    </span>
-                                    {STATUS_CELL[key].label}
-                                  </li>
-                                ))}
-                              </ul>
-                          </CardContent>
-                      </Card>
+  if (matrix.isPending) {
+    return (
+      <div className="grid gap-6">
+        <TabSkeleton variant="list" rows={2} />
+        <TabSkeleton variant="grid" rows={2} />
+      </div>
+    )
+  }
 
-                      {editable && (
-                        <BrushBar
-                          brush={brush}
-                          onBrushChange={setBrush}
-                          onFillAll={() => editor.paint(dates, 'AVAILABLE', myStatus)}
-                          saveState={editor.saveState}
-                        />
-                      )}
-                  </div>
-                  )
+  if (matrix.isError || !data) {
+    return <TabErrorState error={matrix.error} onRetry={() => matrix.refetch()} />
+  }
+
+  if (!data.rangeStart || !data.rangeEnd) {
+    return (
+      <EmptyState
+        icon={CalendarRange}
+        title="Chưa có khoảng ngày dự kiến"
+        description={
+          canEditTrip
+            ? 'Nhập khoảng ngày cả nhóm có thể đi (vd: cả tháng 7), mọi người sẽ khai rảnh/bận trong khoảng đó.'
+            : 'Nhờ trưởng nhóm nhập khoảng ngày dự kiến để cả nhóm bắt đầu khai lịch nhé.'
+        }
+        action={
+          canEditTrip && (
+            <Button onClick={onEditTrip}>
+              <CalendarPlus />
+              Đặt ngày dự kiến
+            </Button>
+          )
+        }
+      />
+    )
+  }
+
+  const dates = data.days.map((d) => d.date)
+  const editable = !data.locked
+
+  /** Tô "Rảnh" cả hàng, kèm "Hoàn tác" khôi phục đúng trạng thái từng ngày trước đó. */
+  const fillAll = () => {
+    const previous = new Map<string, AvailabilityStatus | null>()
+    for (const date of dates) {
+      const status = myStatus(date)
+      if (status !== 'AVAILABLE') previous.set(date, status)
+    }
+    if (previous.size === 0) {
+      toast('Bạn đã rảnh tất cả các ngày')
+      return
+    }
+    editor.paint(dates, 'AVAILABLE', myStatus)
+    toast(`Đã đánh dấu rảnh ${previous.size} ngày`, {
+      action: {
+        label: 'Hoàn tác',
+        onClick: () => {
+          const groups = new Map<Brush, string[]>()
+          previous.forEach((status, date) => {
+            const key: Brush = status ?? 'CLEAR'
+            groups.set(key, [...(groups.get(key) ?? []), date])
+          })
+          groups.forEach((groupDates, key) => editor.paint(groupDates, key, (d) => myStatusRef.current(d)))
+        },
+      },
+    })
+  }
+
+  return (
+    <div className="grid gap-6">
+      {data.locked && data.startDate && data.endDate ? (
+        <LockedBanner tripId={tripId} startDate={data.startDate} endDate={data.endDate} canUnlock={isOwner} />
+      ) : (
+        <SuggestionPanel tripId={tripId} matrix={data} canEditLength={canEditTrip} canLock={isOwner} />
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-bold">Lịch rảnh của cả nhóm</CardTitle>
+          <CardDescription>
+            {editable
+              ? 'Chọn trạng thái ở thanh bên dưới rồi chạm hoặc kéo trên hàng của bạn (hàng đầu tiên). Tự động lưu.'
+              : 'Đã chốt ngày nên bảng chỉ để xem. Các cột nền hồng là những ngày đi.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 px-0 sm:px-(--card-spacing)">
+          <AvailabilityGrid
+            matrix={data}
+            dates={dates}
+            myUserId={myUserId}
+            editable={editable}
+            statusOf={statusOf}
+            onPaint={(date) => editor.paint([date], brush, myStatus)}
+          />
+          <ul
+            className="mx-(--card-spacing) flex flex-wrap gap-x-4 gap-y-2 border-t border-border pt-3 text-xs font-semibold text-muted-foreground sm:mx-0"
+            aria-label="Chú thích"
+          >
+            {(['AVAILABLE', 'MAYBE', 'BUSY', 'NONE'] as const).map((key) => {
+              const Icon = STATUS_CELL[key].icon
+              return (
+                <li key={key} className="flex items-center gap-1.5">
+                  <span
+                    className={cn('flex size-5 items-center justify-center rounded-md', STATUS_CELL[key].className)}
+                    aria-hidden="true"
+                  >
+                    {Icon && <Icon className="size-3.5" strokeWidth={3} />}
+                  </span>
+                  {STATUS_CELL[key].label}
+                </li>
+              )
+            })}
+          </ul>
+        </CardContent>
+      </Card>
+
+      {editable && <BrushBar brush={brush} onBrushChange={setBrush} onFillAll={fillAll} saveState={editor.saveState} />}
+    </div>
+  )
 }

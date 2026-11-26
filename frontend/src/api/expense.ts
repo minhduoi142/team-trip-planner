@@ -11,7 +11,6 @@ export const expenseApi = {
   remove: (expenseId: number) => api.delete<ExpenseSummaryResponse>(`/expenses/${expenseId}`).then((r) => r.data),
   createSettlement: (tripId: number, body: SettlementRequest) =>
     api.post<ExpenseSummaryResponse>(`/trips/${tripId}/settlements`, body).then((r) => r.data),
-  confirmSettlement: (id: number) =>
-    api.post<ExpenseSummaryResponse>(`/settlements/${id}/confirm`).then((r) => r.data),
+  confirmSettlement: (id: number) => api.post<ExpenseSummaryResponse>(`/settlements/${id}/confirm`).then((r) => r.data),
   deleteSettlement: (id: number) => api.delete<ExpenseSummaryResponse>(`/settlements/${id}`).then((r) => r.data),
 }

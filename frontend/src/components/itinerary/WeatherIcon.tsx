@@ -14,23 +14,24 @@ import {
 import { cn } from '@/lib/utils'
 import type { WeatherCondition } from '@/types/weather'
 
+/** Chỉ icon mang màu, lấy từ token (docs/ui-slop-audit.md P3-LT-15): nắng = warning, mưa/tuyết = info, mây = muted. */
 const ICONS: Record<WeatherCondition, { icon: LucideIcon; color: string }> = {
-  CLEAR: { icon: Sun, color: 'text-amber-500' },
-  PARTLY_CLOUDY: { icon: CloudSun, color: 'text-amber-500' },
-  CLOUDY: { icon: Cloud, color: 'text-slate-500' },
-  FOG: { icon: CloudFog, color: 'text-slate-500' },
-  DRIZZLE: { icon: CloudDrizzle, color: 'text-sky-500' },
-  RAIN: { icon: CloudRain, color: 'text-sky-600' },
-  HEAVY_RAIN: { icon: CloudRainWind, color: 'text-blue-700' },
-  SNOW: { icon: Snowflake, color: 'text-cyan-500' },
-  THUNDERSTORM: { icon: CloudLightning, color: 'text-violet-600' },
+  CLEAR: { icon: Sun, color: 'text-warning' },
+  PARTLY_CLOUDY: { icon: CloudSun, color: 'text-warning' },
+  CLOUDY: { icon: Cloud, color: 'text-muted-foreground' },
+  FOG: { icon: CloudFog, color: 'text-muted-foreground' },
+  DRIZZLE: { icon: CloudDrizzle, color: 'text-info' },
+  RAIN: { icon: CloudRain, color: 'text-info' },
+  HEAVY_RAIN: { icon: CloudRainWind, color: 'text-info' },
+  SNOW: { icon: Snowflake, color: 'text-info' },
+  THUNDERSTORM: { icon: CloudLightning, color: 'text-warning' },
   UNKNOWN: { icon: Thermometer, color: 'text-muted-foreground' },
 }
 
 interface WeatherIconProps {
   condition: WeatherCondition
   className?: string
-  /** false: dùng màu chữ hiện tại (vd trên viên ngày đang chọn nền hồng) */
+  /** false: dùng màu chữ hiện tại (vd trên viên ngày đang chọn) */
   colored?: boolean
 }
 

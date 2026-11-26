@@ -23,8 +23,7 @@ export const notificationApi = {
   /** Public: mở từ link trong email */
   verifyEmail: (body: VerifyEmailRequest) =>
     api.post<VerifyEmailResponse>('/notifications/verify-email', body).then((r) => r.data),
-  tripMute: (tripId: number) =>
-    api.get<TripMuteResponse>(`/trips/${tripId}/notification-mute`).then((r) => r.data),
+  tripMute: (tripId: number) => api.get<TripMuteResponse>(`/trips/${tripId}/notification-mute`).then((r) => r.data),
   setTripMute: (tripId: number, body: TripMuteRequest) =>
     api.put<TripMuteResponse>(`/trips/${tripId}/notification-mute`, body).then((r) => r.data),
   /** Public: mở từ link trong email */

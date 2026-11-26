@@ -1,8 +1,11 @@
-import { HandHelping, MoreVertical, Pencil, Plus, RotateCw, Trash2, Undo2 } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { ChevronDown, HandHelping, ListChecks, Pencil, Plus, SearchX, Trash2, Undo2 } from 'lucide-react'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { UserAvatar } from '@/components/UserAvatar'
+import { ChoiceChips } from '@/components/common/ChoiceChips'
+import { RowMenuButton } from '@/components/common/layout'
+import { EmptyState, TabErrorState, TabSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -16,7 +19,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   useCheckItem,
   useChecklist,
@@ -63,253 +65,291 @@ export function ChecklistTab({ tripId, myUserId, canEdit, members }: ChecklistTa
   const [editing, setEditing] = useState<ChecklistItemResponse | null>(null)
   const [toDelete, setToDelete] = useState<ChecklistItemResponse | null>(null)
 
-  if (checklist.isPending) {
-    return (
-      <div className="grid gap-3">
-        <Skeleton className="h-24 rounded-3xl" />
-        <Skeleton className="h-64 rounded-3xl" />
-      </div>
-    )
-  }
-  if (checklist.isError) {
-    return (
-        <div className="rounded-3xl border-2 border-dashed border-rose-200/80 bg-card/80 p-8 text-center shadow-clay-card">
-          <p className="text-muted-foreground">{getErrorMessage(checklist.error)}</p>
-          <Button variant="outline" className="mt-4" onClick={() => checklist.refetch()}>
-            <RotateCw />
-            Thử lại
-          </Button>
-        </div>
-        )
-  }
+  if (checklist.isPending) return <TabSkeleton variant="form+list" />
+  if (checklist.isError) return <TabErrorState error={checklist.error} onRetry={() => checklist.refetch()} />
 
-        const data = checklist.data
+  const data = checklist.data
   const onError = (error: unknown) => toast.error(getErrorMessage(error))
-        const percent = data.total === 0 ? 0 : Math.round((data.checked / data.total) * 100)
+  const percent = data.total === 0 ? 0 : Math.round((data.checked / data.total) * 100)
   const visible = data.items.filter((item) =>
-        filter === 'mine' ? item.assignee?.userId === myUserId : filter === 'unassigned' ? item.assignee === null : true,
-        )
+    filter === 'mine' ? item.assignee?.userId === myUserId : filter === 'unassigned' ? item.assignee === null : true,
+  )
 
   const addItem = (event: FormEvent) => {
-          event.preventDefault()
+    event.preventDefault()
     const itemName = newName.trim()
-        if (!itemName) return
-        create.mutate(
-        {itemName, category: newCategory, quantity: 1, assigneeId: null },
-        {onSuccess: () => setNewName(''), onError },
-        )
+    if (!itemName) return
+    create.mutate(
+      { itemName, category: newCategory, quantity: 1, assigneeId: null },
+      { onSuccess: () => setNewName(''), onError },
+    )
   }
 
-        return (
-        <div className="grid gap-4 animate-cascade">
-              <Card className="rounded-[28px] border-2 border-white/80 bg-gradient-to-br from-teal-50/90 via-emerald-50/70 to-sky-50/90 shadow-clay-card">
-                <CardContent className="grid gap-3 p-5 sm:p-6">
-                  <div className="flex items-baseline justify-between">
-                      <p className="font-bold text-foreground text-base">
-                        {data.checked}/{data.total} món đã sẵn sàng
-                      </p>
-                      <p className="text-xs font-semibold text-emerald-800 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-200 shadow-clay-badge">
-                        {data.unassigned} món chưa ai nhận
-                      </p>
-                  </div>
-                  <Progress value={percent} aria-label="Tiến độ chuẩn bị" className="h-3 shadow-clay-sunken" />
-                </CardContent>
-              </Card>
+  const renderItem = (item: ChecklistItemResponse) => (
+    <ChecklistRow
+      key={item.id}
+      item={item}
+      myUserId={myUserId}
+      canEdit={canEdit}
+      claimPending={claim.isPending && claim.variables === item.id}
+      onCheck={(checked) => check.mutate({ itemId: item.id, checked }, { onError })}
+      onClaim={() =>
+        claim.mutate(item.id, {
+          onSuccess: () => toast.success(`Bạn mang "${item.itemName}"`),
+          onError,
+        })
+      }
+      onUnclaim={() => unclaim.mutate(item.id, { onError })}
+      onEdit={() => setEditing(item)}
+      onDelete={() => setToDelete(item)}
+    />
+  )
 
-              {canEdit && (
-                <form onSubmit={addItem} className="flex gap-2">
-                  <Input
-                    placeholder="Thêm món cần mang… (VD: Loa bluetooth)"
-                    maxLength={150}
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    aria-label="Tên món mới"
-                    className="min-w-0 flex-1"
-                  />
-                  <Select value={newCategory} onValueChange={(v) => setNewCategory(v as ChecklistCategory)}>
-                      <SelectTrigger className="w-36 shrink-0 rounded-full shadow-clay-card" aria-label="Nhóm đồ">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CHECKLIST_CATEGORIES.map((c) => (
-                          <SelectItem key={c.value} value={c.value}>
-                            {c.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                  </Select>
-                  <Button type="submit" size="icon" aria-label="Thêm" disabled={!newName.trim() || create.isPending}>
-                    <Plus />
-                  </Button>
-                </form>
+  return (
+    <div className="grid gap-4">
+      {data.total > 0 && (
+        <Card className="py-0">
+          <CardContent className="grid gap-3 p-5 sm:p-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-base font-bold text-foreground tabular-nums">
+                {data.checked}/{data.total} món đã sẵn sàng
+              </p>
+              {data.unassigned > 0 && (
+                <p className="rounded-full bg-warning-soft px-2.5 py-1 text-xs font-semibold text-warning-soft-foreground">
+                  {data.unassigned} món chưa ai nhận
+                </p>
               )}
+            </div>
+            <Progress value={percent} aria-label="Tiến độ chuẩn bị" className="h-3" />
+          </CardContent>
+        </Card>
+      )}
 
-              <div className="flex gap-2" role="radiogroup" aria-label="Lọc">
-                {FILTERS.map((f) => (
-                  <button
-                    key={f.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={filter === f.value}
-                    onClick={() => setFilter(f.value)}
-                    className={cn(
-                      'rounded-full px-4 py-1.5 text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 border-2',
-                      filter === f.value
-                        ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white border-rose-300 shadow-clay-btn-primary -translate-y-0.5'
-                        : 'bg-card text-foreground border-white/70 shadow-clay-card hover:-translate-y-0.5 hover:shadow-clay-card-hover',
-                    )}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
+      {canEdit && (
+        <form onSubmit={addItem} className="flex flex-wrap gap-2 sm:flex-nowrap">
+          <Input
+            placeholder="Thêm món… (VD: Loa)"
+            maxLength={150}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            aria-label="Tên món mới"
+            className="min-w-0 basis-full sm:flex-1 sm:basis-auto"
+          />
+          <Select value={newCategory} onValueChange={(v) => setNewCategory(v as ChecklistCategory)}>
+            <SelectTrigger className="min-w-0 flex-1 sm:w-40 sm:flex-none" aria-label="Nhóm đồ">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CHECKLIST_CATEGORIES.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button type="submit" size="icon" aria-label="Thêm món" disabled={!newName.trim() || create.isPending}>
+            <Plus />
+          </Button>
+        </form>
+      )}
 
-              {visible.length === 0 ? (
-                  <p className="rounded-[28px] border-2 border-dashed border-border/80 bg-card/60 px-4 py-10 text-center text-sm font-medium text-muted-foreground shadow-clay-card">
-                    {data.total === 0
-                      ? canEdit
-                        ? 'Chưa có món nào. Thêm những thứ cả nhóm cần mang nhé!'
-                        : 'Chưa có món nào trong danh sách.'
-                      : 'Không có món nào khớp bộ lọc.'}
-                  </p>
-                  ) : (
+      {data.total > 0 && <ChoiceChips label="Lọc món" options={FILTERS} value={filter} onChange={setFilter} />}
+
+      {data.total === 0 ? (
+        <EmptyState
+          icon={ListChecks}
+          title="Chưa có món nào"
+          description={
+            canEdit ? 'Thêm những thứ cả nhóm cần mang ở ô phía trên.' : 'Trưởng nhóm sẽ thêm những thứ cần mang.'
+          }
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          icon={SearchX}
+          title="Không có món nào khớp bộ lọc"
+          action={
+            <Button variant="outline" onClick={() => setFilter('all')}>
+              Xem tất cả
+            </Button>
+          }
+        />
+      ) : (
         CHECKLIST_CATEGORIES.map((category) => {
           const items = visible.filter((i) => i.category === category.value)
-                  if (items.length === 0) return null
-                  return (
-                      <section key={category.value} className="grid gap-2.5">
-                        <h3 className="flex items-center gap-2 text-sm font-bold text-foreground/80 px-1">
-                          <category.icon className="size-4 text-rose-500" />
-                          {category.label}
-                            <span className="font-semibold text-xs text-muted-foreground">
-                              ({items.filter((i) => i.checked).length}/{items.length})
-                            </span>
-                        </h3>
-                        <ul className="grid gap-2 stagger-list">
-                          {items.map((item) => {
-                            const isMine = item.assignee?.userId === myUserId
-                            const canCheck = isMine || canEdit
-                            return (
-                              <li
-                                key={item.id}
-                                className={cn(
-                                  'flex items-center gap-3 rounded-[22px] border-2 border-white/80 bg-card/95 px-4 py-3 shadow-clay-card transition-all duration-300 hover:shadow-clay-card-hover',
-                                  item.checked && 'bg-emerald-50/50 border-emerald-200/70 shadow-clay-sunken',
-                                )}
-                              >
-                                <Checkbox
-                                  checked={item.checked}
-                                  disabled={!canCheck}
-                                  aria-label={`Đã chuẩn bị ${item.itemName}`}
-                                  className="size-5 rounded-full border-2 border-primary shadow-clay-badge transition-transform active:scale-90"
-                                  onCheckedChange={(value) =>
-                                    check.mutate({ itemId: item.id, checked: value === true }, { onError })
-                                  }
-                                />
-                                <div className="min-w-0 flex-1">
-                                    <p className={cn('truncate font-bold text-foreground text-sm', item.checked && 'text-muted-foreground line-through font-normal')}>
-                                      {item.itemName}
-                                      {item.quantity > 1 && <span className="font-semibold text-xs text-muted-foreground"> ×{item.quantity}</span>}
-                                    </p>
-                                </div>
-
-                                {item.assignee ? (
-                                    <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold">
-                                      <UserAvatar
-                                        userId={item.assignee.userId}
-                                        name={item.assignee.displayName}
-                                        avatarUrl={item.assignee.avatarUrl}
-                                        size="sm"
-                                      />
-                                      <span className="hidden max-w-24 truncate sm:inline">{isMine ? 'Bạn' : item.assignee.displayName}</span>
-                                    </span>
-                                    ) : (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="shrink-0 rounded-full border-2 border-rose-200 bg-rose-50/80 text-rose-700 shadow-clay-card hover:bg-rose-100 hover:shadow-clay-card-hover hover:-translate-y-0.5 active:translate-y-0.5"
-                                      disabled={claim.isPending}
-                                      onClick={() =>
-                                        claim.mutate(item.id, { onSuccess: () => toast.success(`Bạn mang "${item.itemName}" nha 🙌`), onError })
-                                      }
-                                    >
-                                      <HandHelping />
-                                      Tôi mang
-                                    </Button>
-                      )}
-
-                                    {(canEdit || isMine) && (
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon-sm"
-                                              aria-label={`Tùy chọn ${item.itemName}`}
-                                              className="rounded-full border border-white/70 bg-white/60 shadow-clay-badge hover:bg-white"
-                                            >
-                                              <MoreVertical className="size-3.5" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                          {isMine && (
-                                            <DropdownMenuItem onSelect={() => unclaim.mutate(item.id, { onError })}>
-                                              <Undo2 />
-                                              Bỏ nhận
-                                            </DropdownMenuItem>
-                                          )}
-                                          {canEdit && (
-                                            <>
-                                              <DropdownMenuItem onSelect={() => setEditing(item)}>
-                                                <Pencil />
-                                                Sửa
-                                              </DropdownMenuItem>
-                                              <DropdownMenuSeparator />
-                                              <DropdownMenuItem variant="destructive" onSelect={() => setToDelete(item)}>
-                                                <Trash2 />
-                                                Xóa
-                                              </DropdownMenuItem>
-                                            </>
-                                          )}
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    )}
-                                  </li>
-                                )
-                })}
-                              </ul>
+          if (items.length === 0) return null
+          const todo = items.filter((i) => !i.checked)
+          const done = items.filter((i) => i.checked)
+          return (
+            <section key={category.value} className="grid gap-2" aria-label={category.label}>
+              <h3 className="flex items-center gap-2 px-1 text-sm font-bold text-foreground">
+                <category.icon className="size-4 text-primary-strong" aria-hidden="true" />
+                {category.label}
+                <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                  ({done.length}/{items.length})
+                </span>
+              </h3>
+              <Card className="py-0">
+                {todo.length > 0 && <ul className="divide-y divide-border">{todo.map(renderItem)}</ul>}
+                {done.length > 0 && (
+                  <DoneGroup count={done.length} bordered={todo.length > 0}>
+                    {done.map(renderItem)}
+                  </DoneGroup>
+                )}
+              </Card>
             </section>
-                      )
+          )
         })
       )}
 
-                      <ChecklistItemDialog
-                        item={editing}
-                        members={members}
-                        pending={update.isPending}
-                        onOpenChange={(open) => !open && setEditing(null)}
-                        onSubmit={async (body) => {
-                          if (!editing) return
-                          await update.mutateAsync({ itemId: editing.id, body })
-                          setEditing(null)
-                          toast.success('Đã lưu')
-                        }}
-                      />
-                      <ConfirmDialog
-                        open={toDelete !== null}
-                        onOpenChange={(open) => !open && setToDelete(null)}
-                        title="Xóa món này?"
-                        description={toDelete ? `"${toDelete.itemName}" sẽ bị xóa khỏi danh sách chuẩn bị.` : ''}
-                        confirmLabel="Xóa"
-                        destructive
-                        pending={remove.isPending}
-                        onConfirm={() =>
-                          toDelete &&
-                          remove.mutate(toDelete.id, {
-                            onSuccess: () => setToDelete(null),
-                            onError,
-                          })
-                        }
-                      />
-                    </div>
-                    )
+      <ChecklistItemDialog
+        item={editing}
+        members={members}
+        pending={update.isPending}
+        onOpenChange={(open) => !open && setEditing(null)}
+        onSubmit={async (body) => {
+          if (!editing) return
+          await update.mutateAsync({ itemId: editing.id, body })
+          setEditing(null)
+          toast.success('Đã lưu')
+        }}
+      />
+      <ConfirmDialog
+        open={toDelete !== null}
+        onOpenChange={(open) => !open && setToDelete(null)}
+        title="Xóa món này?"
+        description={toDelete ? `"${toDelete.itemName}" sẽ bị xóa khỏi danh sách chuẩn bị.` : ''}
+        confirmLabel="Xóa"
+        destructive
+        pending={remove.isPending}
+        onConfirm={() =>
+          toDelete &&
+          remove.mutate(toDelete.id, {
+            onSuccess: () => setToDelete(null),
+            onError,
+          })
+        }
+      />
+    </div>
+  )
+}
+
+/** Món đã xong gom lại, mặc định thu gọn (P3-CL-01). */
+function DoneGroup({ count, bordered, children }: { count: number; bordered: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const id = useId()
+  return (
+    <div className={cn(bordered && 'border-t border-border')}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => setOpen((v) => !v)}
+        className="flex min-h-11 w-full items-center gap-2 px-4 text-left text-sm font-medium text-muted-foreground outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
+      >
+        <ChevronDown className={cn('size-4 transition-transform', !open && '-rotate-90')} aria-hidden="true" />
+        Đã xong ({count})
+      </button>
+      <ul id={id} hidden={!open} className="divide-y divide-border border-t border-border">
+        {children}
+      </ul>
+    </div>
+  )
+}
+
+function ChecklistRow({
+  item,
+  myUserId,
+  canEdit,
+  claimPending,
+  onCheck,
+  onClaim,
+  onUnclaim,
+  onEdit,
+  onDelete,
+}: {
+  item: ChecklistItemResponse
+  myUserId: number
+  canEdit: boolean
+  claimPending: boolean
+  onCheck: (checked: boolean) => void
+  onClaim: () => void
+  onUnclaim: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const isMine = item.assignee?.userId === myUserId
+  const canCheck = isMine || canEdit
+  return (
+    <li className="flex items-center gap-3 px-4 py-3">
+      <Checkbox
+        checked={item.checked}
+        disabled={!canCheck}
+        aria-label={`Đã chuẩn bị ${item.itemName}`}
+        className="size-5 rounded-full"
+        onCheckedChange={(value) => onCheck(value === true)}
+      />
+      <div className="min-w-0 flex-1">
+        <p
+          className={cn(
+            'truncate text-sm font-semibold text-foreground',
+            item.checked && 'font-normal text-muted-foreground line-through',
+          )}
+        >
+          {item.itemName}
+          {item.quantity > 1 && <span className="text-xs font-medium text-muted-foreground"> ×{item.quantity}</span>}
+        </p>
+        {item.assignee && (
+          <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+            <span aria-hidden="true">
+              <UserAvatar
+                userId={item.assignee.userId}
+                name={item.assignee.displayName}
+                avatarUrl={item.assignee.avatarUrl}
+                size="sm"
+              />
+            </span>
+            <span className="truncate">
+              {isMine ? <b className="font-semibold text-foreground">Bạn</b> : item.assignee.displayName} mang
+            </span>
+          </p>
+        )}
+      </div>
+
+      {!item.assignee && (
+        <Button size="sm" variant="outline" className="shrink-0" disabled={claimPending} onClick={onClaim}>
+          <HandHelping />
+          Tôi mang
+        </Button>
+      )}
+
+      {(canEdit || isMine) && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <RowMenuButton label={`Tùy chọn cho ${item.itemName}`} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {isMine && (
+              <DropdownMenuItem onSelect={onUnclaim}>
+                <Undo2 />
+                Bỏ nhận
+              </DropdownMenuItem>
+            )}
+            {canEdit && (
+              <>
+                <DropdownMenuItem onSelect={onEdit}>
+                  <Pencil />
+                  Sửa
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+                  <Trash2 />
+                  Xóa
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </li>
+  )
 }

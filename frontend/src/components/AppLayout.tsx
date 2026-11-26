@@ -1,6 +1,5 @@
 import { LogOut, UserRound } from 'lucide-react'
-import { useState } from 'react'
-import { Link, Outlet } from 'react-router'
+import { Link, Outlet, useSearchParams } from 'react-router'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -13,20 +12,36 @@ import {
 import { useAuth } from '@/auth/useAuth'
 import { BrandLogo } from './BrandLogo'
 import { ProfileDialog } from './ProfileDialog'
+import { parseProfileSection, type ProfileSection } from './profile/sections'
 import { UserAvatar } from './UserAvatar'
 import { FloatingBackground } from '@/components/ui/FloatingBackground'
+import { PageContainer } from '@/components/common/layout'
 
 /** Khung chung cho các trang đã đăng nhập: header + nội dung + hình trang trí bay bổng (nền video là TripBackground ở App). */
 export function AppLayout() {
   const { user, logout } = useAuth()
-  const [profileOpen, setProfileOpen] = useState(false)
+  // Dialog Hồ sơ mở theo ?profile=<mục> (P3-PF-01): link từ email/trang xác minh mở thẳng đúng mục.
+  const [params, setParams] = useSearchParams()
+  const profileParam = params.get('profile')
+  const profileOpen = profileParam !== null
+  const profileSection = parseProfileSection(profileParam)
+  const setProfile = (section: ProfileSection | null) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (section) next.set('profile', section)
+        else next.delete('profile')
+        return next
+      },
+      { replace: true },
+    )
 
   return (
-    <div className="relative min-h-svh overflow-x-hidden">
-      <FloatingBackground />
-      <header className="sticky top-0 z-30 border-b border-white/70 bg-background/75 backdrop-blur-md shadow-clay-badge">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
-          <Link to="/trips" aria-label="Về trang chủ">
+    <div className="relative min-h-svh overflow-x-clip">
+      <FloatingBackground density="corners" />
+      <header className="sticky top-0 z-30 border-b border-border bg-background">
+        <PageContainer className="flex h-16 items-center justify-between">
+          <Link to="/trips" aria-label="Về danh sách chuyến đi" className="rounded-item">
             <BrandLogo />
           </Link>
           {user && (
@@ -38,9 +53,12 @@ export function AppLayout() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="truncate">Xin chào, {user.displayName} 👋</DropdownMenuLabel>
+                <DropdownMenuLabel className="grid gap-0.5">
+                  <span className="truncate text-sm text-foreground">{user.displayName}</span>
+                  {user.username && <span className="truncate font-normal">@{user.username}</span>}
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => setProfileOpen(true)}>
+                <DropdownMenuItem onSelect={() => setProfile('account')}>
                   <UserRound />
                   Hồ sơ
                 </DropdownMenuItem>
@@ -51,14 +69,22 @@ export function AppLayout() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-        </div>
+        </PageContainer>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-5xl px-4 pt-6 pb-16">
+      <PageContainer asMain className="relative z-10 pt-6 pb-16">
         <Outlet />
-      </main>
+      </PageContainer>
 
-      {user && <ProfileDialog user={user} open={profileOpen} onOpenChange={setProfileOpen} />}
+      {user && (
+        <ProfileDialog
+          user={user}
+          open={profileOpen}
+          section={profileSection}
+          onOpenChange={(open) => setProfile(open ? profileSection : null)}
+          onSectionChange={setProfile}
+        />
+      )}
     </div>
   )
 }

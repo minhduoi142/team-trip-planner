@@ -1,10 +1,10 @@
-import { ChevronDown, Plus, RotateCw, SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, Lightbulb, Plus } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
+import { EmptyState, TabErrorState, TabSkeleton } from '@/components/common/states'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   useCreateProposal,
   useDeleteProposal,
@@ -48,18 +48,8 @@ export function ProposalsPanel({ tripId, myUserId, members }: ProposalsPanelProp
 
   useEffect(() => () => window.clearTimeout(freezeTimer.current), [])
 
-  if (proposals.isPending) return <Skeleton className="h-64 rounded-3xl" />
-  if (proposals.isError) {
-    return (
-      <div className="rounded-3xl border-2 border-dashed border-rose-200/80 bg-card/80 p-8 text-center shadow-clay-card">
-        <p className="text-muted-foreground">{getErrorMessage(proposals.error)}</p>
-        <Button variant="outline" className="mt-4" onClick={() => proposals.refetch()}>
-          <RotateCw />
-          Thử lại
-        </Button>
-      </div>
-    )
-  }
+  if (proposals.isPending) return <TabSkeleton variant="form+list" />
+  if (proposals.isError) return <TabErrorState error={proposals.error} onRetry={() => proposals.refetch()} />
 
   const data = proposals.data
   const onError = (e: unknown) => toast.error(getErrorMessage(e))
@@ -105,30 +95,29 @@ export function ProposalsPanel({ tripId, myUserId, members }: ProposalsPanelProp
 
   return (
     <div className="grid gap-4">
-      <form onSubmit={quickAdd} className="flex gap-2">
-        <Input
-          placeholder="Đề xuất quán, homestay, chỗ check-in…"
-          maxLength={150}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          aria-label="Tên đề xuất mới"
-          className="min-w-0 flex-1"
-        />
-        <Button
+      <div className="grid gap-1">
+        <form onSubmit={quickAdd} className="flex gap-2">
+          <Input
+            placeholder="Đề xuất quán, homestay, chỗ check-in…"
+            maxLength={150}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            aria-label="Tên đề xuất mới"
+            className="min-w-0 flex-1"
+          />
+          <Button type="submit" disabled={!title.trim() || create.isPending}>
+            <Plus />
+            Thêm
+          </Button>
+        </form>
+        <button
           type="button"
-          variant="outline"
-          size="icon"
-          aria-label="Thêm kèm link, chi phí, ghi chú"
-          className="rounded-full"
           onClick={() => setFormFor({ initialTitle: title.trim() })}
+          className="relative touch-target justify-self-start text-sm font-semibold text-primary-strong hover:underline"
         >
-          <SlidersHorizontal />
-        </Button>
-        <Button type="submit" disabled={!title.trim() || create.isPending}>
-          <Plus />
-          Thêm
-        </Button>
-      </form>
+          Thêm chi tiết (link, chi phí, ghi chú)…
+        </button>
+      </div>
 
       {data.canSchedule && !data.tripLocked && serverWishlist.length > 0 && (
         <p className="text-xs font-medium text-muted-foreground">
@@ -137,17 +126,15 @@ export function ProposalsPanel({ tripId, myUserId, members }: ProposalsPanelProp
       )}
 
       {data.proposals.length === 0 ? (
-        <div className="rounded-[28px] border-2 border-dashed border-rose-200 bg-card/60 px-6 py-12 text-center shadow-clay-card">
-          <p className="animate-float-slow text-5xl">💡</p>
-          <h2 className="mt-4 text-lg font-bold text-foreground">Chưa có đề xuất nào</h2>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-            Thấy quán ngon, homestay xinh hay chỗ check-in đẹp? Thêm vào đây để cả nhóm thả tim nhé!
-          </p>
-        </div>
+        <EmptyState
+          icon={Lightbulb}
+          title="Chưa có đề xuất nào"
+          description="Thấy quán ngon, homestay xinh hay chỗ check-in đẹp? Thêm vào đây để cả nhóm thả tim nhé!"
+        />
       ) : (
         <>
           {wishlist.length === 0 ? (
-            <p className="text-sm font-medium text-muted-foreground">Mọi đề xuất đều đã được đưa vào lịch trình 🎉</p>
+            <p className="text-sm font-medium text-muted-foreground">Mọi đề xuất đều đã được đưa vào lịch trình.</p>
           ) : (
             <div className="grid gap-3">{wishlist.map(card)}</div>
           )}
@@ -158,7 +145,7 @@ export function ProposalsPanel({ tripId, myUserId, members }: ProposalsPanelProp
                 type="button"
                 aria-expanded={showScheduled}
                 onClick={() => setShowScheduled((v) => !v)}
-                className="flex items-center gap-1.5 justify-self-start rounded-full px-2 py-1 text-sm font-bold text-muted-foreground hover:text-foreground"
+                className="flex min-h-11 items-center gap-1.5 justify-self-start rounded-full px-2 text-sm font-bold text-muted-foreground hover:text-foreground"
               >
                 <ChevronDown className={cn('size-4 transition-transform', showScheduled && 'rotate-180')} />
                 Đã lên lịch ({scheduled.length})
@@ -192,7 +179,7 @@ export function ProposalsPanel({ tripId, myUserId, members }: ProposalsPanelProp
           if (!toSchedule) return
           await schedule.mutateAsync({ proposalId: toSchedule.id, body })
           setToSchedule(null)
-          toast.success(`Đã thêm vào ${dayText} 🎉`, { description: 'Xem ở tab Lịch trình' })
+          toast.success(`Đã thêm vào ${dayText}`, { description: 'Xem ở tab Lịch trình' })
         }}
       />
       <ConfirmDialog

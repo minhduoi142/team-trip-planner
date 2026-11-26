@@ -18,6 +18,7 @@ export function JoinCodeDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   const [value, setValue] = useState('')
 
   const code = extractInviteCode(value)
+  const invalid = value.trim() !== '' && !code
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -35,15 +36,25 @@ export function JoinCodeDialog({ open, onOpenChange }: { open: boolean; onOpenCh
             <DialogTitle>Nhập mã mời</DialogTitle>
             <DialogDescription>Mã gồm 8 ký tự, hoặc dán nguyên link mời vào đây.</DialogDescription>
           </DialogHeader>
-          <Input
-            autoFocus
-            autoCapitalize="characters"
-            autoComplete="off"
-            placeholder="VD: K7MP4QXT"
-            className="text-center font-mono text-lg tracking-[0.2em] uppercase"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-          />
+          <div className="grid gap-2">
+            <Input
+              autoFocus
+              autoCapitalize="characters"
+              autoComplete="off"
+              aria-label="Mã mời"
+              aria-invalid={invalid}
+              aria-describedby={invalid ? 'join-code-error' : undefined}
+              placeholder="VD: K7MP4QXT"
+              className="text-center font-mono text-lg tracking-widest uppercase"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+            {invalid && (
+              <p id="join-code-error" role="alert" className="text-sm text-destructive">
+                Mã chưa hợp lệ: mã gồm 8 ký tự, hoặc dán link /join/… hay /share/…
+              </p>
+            )}
+          </div>
           <DialogFooter>
             <Button type="submit" disabled={!code} className="w-full sm:w-auto">
               Tiếp tục
@@ -54,4 +65,3 @@ export function JoinCodeDialog({ open, onOpenChange }: { open: boolean; onOpenCh
     </Dialog>
   )
 }
-

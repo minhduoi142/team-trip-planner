@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
+import { ChoiceChips } from '@/components/common/ChoiceChips'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,7 +15,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import { ITINERARY_CATEGORIES } from '@/lib/tripContent'
-import { cn } from '@/lib/utils'
 import type { ItineraryCategory } from '@/types/itinerary'
 import type { ProposalRequest, ProposalResponse } from '@/types/proposal'
 
@@ -105,27 +105,10 @@ function ProposalForm({
       </div>
 
       <div className="grid gap-1.5">
-        <Label>Loại</Label>
-        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Loại đề xuất">
-          {ITINERARY_CATEGORIES.map((c) => (
-            <button
-              key={c.value}
-              type="button"
-              role="radio"
-              aria-checked={category === c.value}
-              onClick={() => setCategory(c.value)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-95',
-                category === c.value
-                  ? 'border-rose-300 bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-clay-btn-primary'
-                  : 'border-white/70 bg-card text-foreground shadow-clay-card',
-              )}
-            >
-              <c.icon className="size-3.5" />
-              {c.label}
-            </button>
-          ))}
-        </div>
+        <p className="text-sm leading-tight font-medium" aria-hidden="true">
+          Loại
+        </p>
+        <ChoiceChips label="Loại đề xuất" options={ITINERARY_CATEGORIES} value={category} onChange={setCategory} />
       </div>
 
       <div className="grid gap-1.5">

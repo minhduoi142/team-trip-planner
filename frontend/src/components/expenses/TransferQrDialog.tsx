@@ -1,4 +1,4 @@
-import { Check, Copy } from 'lucide-react'
+import { Check, Copy, Download } from 'lucide-react'
 import QRCode from 'qrcode'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -54,7 +54,7 @@ function QrContent({
   const bank = transfer.to.bank
   const content = toTransferContent(`${tripTitle} ${transfer.fromName}`)
   const [qr, setQr] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState<string | null>(null)
 
   useEffect(() => {
     if (!bank) return
@@ -70,65 +70,104 @@ function QrContent({
     }
   }, [bank, transfer.amount, content])
 
-  const copy = async (text: string) => {
+  const copy = async (key: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
+      setCopied(key)
+      window.setTimeout(() => setCopied((current) => (current === key ? null : current)), 1500)
     } catch {
       toast.error('Không copy được')
     }
   }
 
+  /** P3-CP-15: QR hiện trên chính điện thoại người trả nên cần lưu ảnh để "Quét từ ảnh" trong app ngân hàng. */
+  const saveQr = async () => {
+    if (!qr) return
+    const fileName = `vietqr-${toTransferContent(transfer.to.displayName).replace(/ /g, '-').toLowerCase() || 'chuyen-khoan'}.png`
+    try {
+      const blob = await (await fetch(qr)).blob()
+      const file = new File([blob], fileName, { type: 'image/png' })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: `QR chuyển cho ${transfer.to.displayName}` })
+        return
+      }
+    } catch (error) {
+      // Người dùng đóng bảng chia sẻ: không cần làm gì thêm
+      if (error instanceof DOMException && error.name === 'AbortError') return
+    }
+    const link = document.createElement('a')
+    link.href = qr
+    link.download = fileName
+    link.click()
+  }
+
+  const copyButton = (key: string, text: string, label: string) => (
+    <Button variant="ghost" size="icon-sm" aria-label={label} onClick={() => copy(key, text)} className="shrink-0">
+      {copied === key ? <Check className="text-success" /> : <Copy />}
+    </Button>
+  )
+
   return (
     <div className="grid gap-4">
       <DialogHeader>
         <DialogTitle>Chuyển cho {transfer.to.displayName}</DialogTitle>
-        <DialogDescription>Mở app ngân hàng → Quét QR. Số tiền và nội dung đã điền sẵn.</DialogDescription>
+        <DialogDescription>
+          Lưu ảnh QR rồi mở app ngân hàng → Quét QR → chọn ảnh. Số tiền và nội dung đã điền sẵn.
+        </DialogDescription>
       </DialogHeader>
 
       {bank ? (
         <>
-            <div className="relative mx-auto flex size-64 sm:size-72 items-center justify-center rounded-[28px] border-4 border-white bg-white p-3 shadow-clay-card-hover ring-1 ring-black/5 transition-transform hover:scale-102">
-              {qr ? <img src={qr} alt="Mã VietQR chuyển khoản" className="size-full rounded-2xl" /> : <p className="text-sm font-medium text-muted-foreground">Đang tạo mã…</p>}
+          <div className="mx-auto grid justify-items-center gap-2">
+            <div className="flex size-64 items-center justify-center rounded-item border border-border bg-white p-3 sm:size-72">
+              {qr ? (
+                <img src={qr} alt="Mã VietQR chuyển khoản" className="size-full" />
+              ) : (
+                <p className="text-sm font-medium text-muted-foreground">Đang tạo mã…</p>
+              )}
             </div>
+            <Button variant="outline" size="sm" disabled={!qr} onClick={saveQr}>
+              <Download />
+              Lưu ảnh QR
+            </Button>
+          </div>
 
-              <dl className="grid grid-cols-[5.5rem_1fr] gap-x-3 gap-y-2 rounded-[22px] border border-white/80 bg-muted/40 p-4 text-xs sm:text-sm shadow-clay-sunken">
-                <dt className="text-muted-foreground font-medium">Số tiền</dt>
-                <dd className="text-lg font-bold text-primary">{formatVnd(transfer.amount)}</dd>
-                  <dt className="text-muted-foreground font-medium">Ngân hàng</dt>
-                  <dd className="font-bold text-foreground">{bank.shortName}</dd>
-                  <dt className="text-muted-foreground font-medium">Số TK</dt>
-                  <dd className="flex items-center gap-1.5 font-mono font-bold text-foreground">
-                    {bank.accountNo}
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        aria-label="Copy số tài khoản"
-                        onClick={() => copy(bank.accountNo)}
-                        className="rounded-full border border-white/80 bg-white/90 shadow-clay-badge hover:bg-white active:scale-95"
-                      >
-                        {copied ? <Check className="size-3 text-emerald-600 stroke-[3]" /> : <Copy className="size-3" />}
-                      </Button>
-                  </dd>
-                  <dt className="text-muted-foreground font-medium">Chủ TK</dt>
-                  <dd className="font-bold text-foreground uppercase">{bank.accountName}</dd>
-                  <dt className="text-muted-foreground font-medium">Nội dung</dt>
-                  <dd className="font-mono text-foreground font-semibold">{content}</dd>
-              </dl>
-            </>
-            ) : (
-              <p className="rounded-[22px] border-2 border-amber-300 bg-amber-50/90 p-4 text-sm font-medium text-amber-950 shadow-clay-card">
-                {transfer.to.displayName} chưa thêm tài khoản nhận tiền. Nhắn bạn ấy thêm trong <b>Hồ sơ</b>, hoặc trả tiền mặt
-                rồi bấm "Tôi đã chuyển".
-              </p>
+          <dl className="grid grid-cols-[5.5rem_1fr] items-center gap-x-3 gap-y-1 rounded-item border border-border bg-muted/40 p-4 text-sm">
+            <dt className="text-muted-foreground">Số tiền</dt>
+            <dd className="flex min-w-0 items-center justify-between gap-1.5">
+              <span className="text-lg font-bold whitespace-nowrap text-foreground tabular-nums">
+                {formatVnd(transfer.amount)}
+              </span>
+              {copyButton('amount', String(transfer.amount), 'Copy số tiền')}
+            </dd>
+            <dt className="text-muted-foreground">Ngân hàng</dt>
+            <dd className="py-2 font-semibold text-foreground">{bank.shortName}</dd>
+            <dt className="text-muted-foreground">Số TK</dt>
+            <dd className="flex min-w-0 items-center justify-between gap-1.5">
+              <span className="font-mono font-semibold break-all text-foreground">{bank.accountNo}</span>
+              {copyButton('account', bank.accountNo, 'Copy số tài khoản')}
+            </dd>
+            <dt className="text-muted-foreground">Chủ TK</dt>
+            <dd className="py-2 font-semibold break-words text-foreground uppercase">{bank.accountName}</dd>
+            <dt className="text-muted-foreground">Nội dung</dt>
+            <dd className="flex min-w-0 items-center justify-between gap-1.5">
+              <span className="font-mono font-semibold break-all text-foreground">{content}</span>
+              {copyButton('content', content, 'Copy nội dung chuyển khoản')}
+            </dd>
+          </dl>
+        </>
+      ) : (
+        <p className="rounded-item bg-warning-soft p-4 text-sm font-medium text-warning-soft-foreground">
+          {transfer.to.displayName} chưa thêm tài khoản nhận tiền. Nhắn bạn ấy thêm trong <b>Hồ sơ</b>, hoặc trả tiền
+          mặt rồi bấm "Tôi đã chuyển".
+        </p>
       )}
 
-              <DialogFooter>
-                  <Button className="w-full rounded-full shadow-clay-btn-primary font-bold h-11 text-base" onClick={onMarkSent} disabled={pending}>
-                    {pending ? 'Đang ghi nhận…' : `Tôi đã chuyển ${formatVnd(transfer.amount)}`}
-                  </Button>
-              </DialogFooter>
-          </div>
-          )
+      <DialogFooter>
+        <Button className="h-11 w-full text-base" onClick={onMarkSent} disabled={pending}>
+          {pending ? 'Đang ghi nhận…' : `Tôi đã chuyển ${formatVnd(transfer.amount)}`}
+        </Button>
+      </DialogFooter>
+    </div>
+  )
 }

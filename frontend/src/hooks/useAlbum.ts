@@ -4,7 +4,8 @@ import type { AddPhotosRequest, AlbumResponse, UpdatePhotoRequest } from '@/type
 import { tripKeys } from './useTrips'
 
 export function useAlbum(tripId: number) {
-  return useQuery({ queryKey: tripKeys.album(tripId), queryFn: () => albumApi.get(tripId) })
+  // Album ít đổi và lưới ảnh nặng: poll thưa hơn mặc định 15 s (docs/ui-slop-audit.md P3-AL-04)
+  return useQuery({ queryKey: tripKeys.album(tripId), queryFn: () => albumApi.get(tripId), refetchInterval: 60_000 })
 }
 
 function useAlbumMutation<TVars>(tripId: number, fn: (vars: TVars) => Promise<AlbumResponse>) {

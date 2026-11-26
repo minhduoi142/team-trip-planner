@@ -136,6 +136,11 @@ class ExpenseIntegrationTest extends IntegrationTest {
         long settlementId = pending.get("settlements").get(0).get("id").asLong();
         assertThat(pending.get("settlements").get(0).get("status").asText()).isEqualTo("PENDING");
         assertThat(member(pending, ngoc).get("net").asLong()).isEqualTo(-100_000);
+        // Gợi ý Ngọc → Linh vẫn còn (chưa xác nhận) nhưng báo rõ 100k đang chờ, để FE không mời trả lần nữa
+        JsonNode ngocToLinh = transfer(pending, ngoc, linh);
+        assertThat(ngocToLinh.get("amount").asLong()).isEqualTo(100_000);
+        assertThat(ngocToLinh.get("pendingAmount").asLong()).isEqualTo(100_000);
+        assertThat(transfer(pending, mai, linh).get("pendingAmount").asLong()).isZero();
 
         // Chỉ người nhận xác nhận
         send(post("/api/v1/settlements/" + settlementId + "/confirm"), ngocToken, null, 400);
@@ -236,5 +241,14 @@ class ExpenseIntegrationTest extends IntegrationTest {
         String response = mvc.perform(builder).andExpect(status().is(expected)).andReturn().getResponse()
                 .getContentAsString();
         return response.isEmpty() ? null : read(response);
+    }
+
+    private static JsonNode transfer(JsonNode summary, long from, long to) {
+        for (JsonNode t : summary.get("transfers")) {
+            if (t.get("fromUserId").asLong() == from && t.get("toUserId").asLong() == to) {
+                return t;
+            }
+        }
+        throw new AssertionError("Không có gợi ý chuyển " + from + " → " + to);
     }
 }

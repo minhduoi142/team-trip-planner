@@ -1,6 +1,8 @@
 import { GoogleLogin } from '@react-oauth/google'
 import { CheckCircle2, Unlink } from 'lucide-react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { useLinkGoogle, useUnlinkGoogle } from '@/hooks/useAuthMutations'
 import { getErrorMessage } from '@/lib/api'
@@ -14,18 +16,19 @@ import type { UserResponse } from '@/types/auth'
 export function GoogleLinkSection({ user }: { user: UserResponse }) {
   const link = useLinkGoogle()
   const unlink = useUnlinkGoogle()
+  const [confirmUnlink, setConfirmUnlink] = useState(false)
 
   if (!googleLoginEnabled) return null
   const onError = (error: unknown) => toast.error(getErrorMessage(error))
 
   return (
-    <div className="grid gap-3 rounded-[24px] border-2 border-white/80 bg-card/90 p-4 shadow-clay-card sm:p-5">
-      <p className="text-sm font-bold text-foreground">Đăng nhập bằng Google</p>
+    <section className="grid gap-3 py-4">
+      <h3 className="text-sm font-semibold">Đăng nhập bằng Google</h3>
 
       {user.hasGoogle ? (
         <>
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+            <CheckCircle2 className="size-4 shrink-0 text-success" />
             <span className="min-w-0 truncate">Đã liên kết{user.email ? ` với ${user.email}` : ''}</span>
           </p>
           {user.hasPassword ? (
@@ -33,17 +36,15 @@ export function GoogleLinkSection({ user }: { user: UserResponse }) {
               type="button"
               variant="outline"
               size="sm"
-              className="justify-self-start"
+              className="justify-self-start text-destructive hover:bg-destructive/10"
               disabled={unlink.isPending}
-              onClick={() =>
-                unlink.mutate(undefined, { onSuccess: () => toast.success('Đã hủy liên kết Google'), onError })
-              }
+              onClick={() => setConfirmUnlink(true)}
             >
               <Unlink />
               Hủy liên kết
             </Button>
           ) : (
-            <p className="text-xs text-muted-foreground">Tài khoản này chỉ đăng nhập bằng Google.</p>
+            <p className="text-sm text-muted-foreground">Tài khoản này chỉ đăng nhập bằng Google.</p>
           )}
         </>
       ) : (
@@ -62,15 +63,34 @@ export function GoogleLinkSection({ user }: { user: UserResponse }) {
                   return
                 }
                 link.mutate(credential.credential, {
-                  onSuccess: () => toast.success('Đã liên kết Google 🎉'),
+                  onSuccess: () => toast.success('Đã liên kết Google'),
                   onError,
                 })
               }}
-              onError={() => toast.error('Liên kết Google thất bại, thử lại nhé')}
+              onError={() => toast.error('Liên kết Google thất bại, hãy thử lại')}
             />
           </div>
         </>
       )}
-    </div>
+
+      <ConfirmDialog
+        open={confirmUnlink}
+        onOpenChange={setConfirmUnlink}
+        title="Hủy liên kết Google?"
+        description={`Lần sau bạn phải đăng nhập bằng tài khoản ${user.username} và mật khẩu. "Tiếp tục với Google" sẽ không vào tài khoản này nữa.`}
+        confirmLabel="Hủy liên kết"
+        destructive
+        pending={unlink.isPending}
+        onConfirm={() =>
+          unlink.mutate(undefined, {
+            onSuccess: () => {
+              setConfirmUnlink(false)
+              toast.success('Đã hủy liên kết Google')
+            },
+            onError,
+          })
+        }
+      />
+    </section>
   )
 }

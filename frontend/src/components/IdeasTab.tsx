@@ -2,7 +2,7 @@ import { Lightbulb, Vote } from 'lucide-react'
 import { useState } from 'react'
 import { PollsTab } from '@/components/polls/PollsTab'
 import { ProposalsPanel } from '@/components/proposals/ProposalsPanel'
-import { cn } from '@/lib/utils'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { TripMemberResponse } from '@/types/trip'
 
 interface IdeasTabProps {
@@ -25,39 +25,22 @@ export function IdeasTab({ tripId, myUserId, canCreatePoll, members }: IdeasTabP
   const [view, setView] = useState<View>('wishlist')
 
   return (
-    <div className="grid gap-4 animate-cascade">
-      <div
-        role="tablist"
-        aria-label="Ý tưởng"
-        className="grid grid-cols-2 gap-1 justify-self-start rounded-full border border-border/60 bg-card/90 p-1 shadow-clay-card"
-      >
+    <Tabs value={view} onValueChange={(v) => setView(v as View)} className="gap-4">
+      <TabsList aria-label="Ý tưởng" className="justify-self-start">
         {VIEWS.map((v) => (
-          <button
-            key={v.value}
-            type="button"
-            role="tab"
-            aria-selected={view === v.value}
-            onClick={() => setView(v.value)}
-            className={cn(
-              'flex items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-200',
-              view === v.value
-                ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-clay-btn-primary'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            <v.icon className="size-4" />
+          <TabsTrigger key={v.value} value={v.value} className="min-h-10 px-4">
+            <v.icon />
             {v.label}
-          </button>
+          </TabsTrigger>
         ))}
-      </div>
+      </TabsList>
 
-      <div key={view} className="animate-cascade">
-        {view === 'wishlist' ? (
-          <ProposalsPanel tripId={tripId} myUserId={myUserId} members={members} />
-        ) : (
-          <PollsTab tripId={tripId} myUserId={myUserId} canCreate={canCreatePoll} members={members} />
-        )}
-      </div>
-    </div>
+      <TabsContent value="wishlist">
+        <ProposalsPanel tripId={tripId} myUserId={myUserId} members={members} />
+      </TabsContent>
+      <TabsContent value="polls">
+        <PollsTab tripId={tripId} myUserId={myUserId} canCreate={canCreatePoll} members={members} />
+      </TabsContent>
+    </Tabs>
   )
 }

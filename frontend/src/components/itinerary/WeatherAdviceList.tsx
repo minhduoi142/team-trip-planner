@@ -6,13 +6,20 @@ import { getErrorMessage } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import type { AdviceResponse, AdviceType } from '@/types/weather'
 
-const STYLES: Record<AdviceType, { icon: LucideIcon; className: string }> = {
-  STORM: { icon: CloudLightning, className: 'border-violet-200 bg-violet-50/90 text-violet-900' },
-  RAIN: { icon: Droplets, className: 'border-sky-200 bg-sky-50/90 text-sky-900' },
-  COLD: { icon: Snowflake, className: 'border-cyan-200 bg-cyan-50/90 text-cyan-900' },
-  HOT: { icon: Flame, className: 'border-orange-200 bg-orange-50/90 text-orange-900' },
-  UV: { icon: Sun, className: 'border-amber-200 bg-amber-50/90 text-amber-900' },
-  WIND: { icon: Wind, className: 'border-slate-200 bg-slate-50/90 text-slate-800' },
+/**
+ * Một kiểu chung cho mọi gợi ý, chỉ icon mang màu; STORM nổi hơn bằng nền warning (docs/ui-slop-audit.md P3-LT-15).
+ */
+const STYLES: Record<AdviceType, { icon: LucideIcon; iconClass: string; rowClass?: string }> = {
+  STORM: {
+    icon: CloudLightning,
+    iconClass: 'text-warning',
+    rowClass: 'bg-warning-soft text-warning-soft-foreground',
+  },
+  RAIN: { icon: Droplets, iconClass: 'text-info' },
+  COLD: { icon: Snowflake, iconClass: 'text-info' },
+  HOT: { icon: Flame, iconClass: 'text-warning' },
+  UV: { icon: Sun, iconClass: 'text-warning' },
+  WIND: { icon: Wind, iconClass: 'text-muted-foreground' },
 }
 
 const normalize = (name: string) => name.trim().toLocaleLowerCase('vi')
@@ -38,7 +45,7 @@ export function WeatherAdviceList({ tripId, advice, canEdit }: WeatherAdviceList
   return (
     <ul className="grid gap-2" aria-label="Gợi ý theo thời tiết">
       {advice.map((a) => {
-        const { icon: Icon, className } = STYLES[a.type]
+        const { icon: Icon, iconClass, rowClass } = STYLES[a.type]
         const item = a.checklistItem
         const added = item !== null && existing.has(normalize(item.itemName))
         const adding = createItem.isPending && createItem.variables?.itemName === item?.itemName
@@ -46,20 +53,23 @@ export function WeatherAdviceList({ tripId, advice, canEdit }: WeatherAdviceList
           <li
             key={a.type}
             className={cn(
-              'flex flex-wrap items-center justify-between gap-2 rounded-[20px] border-2 px-3.5 py-2 text-sm shadow-clay-badge',
-              className,
+              'flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-item bg-muted/60 px-3 py-2 text-sm text-foreground',
+              rowClass,
             )}
           >
-            <span className="flex min-w-0 items-center gap-2 font-medium">
-              <Icon className="size-4 shrink-0" />
-              {a.text}
+            <span className="flex min-w-0 flex-1 items-start gap-2">
+              <Icon className={cn('mt-0.5 size-4 shrink-0', iconClass)} aria-hidden="true" />
+              <span className="min-w-0 break-words">{a.text}</span>
             </span>
             {canEdit && item && (
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-7 rounded-full bg-white/80 px-3 text-xs"
+                className="h-9 max-w-full"
+                aria-label={
+                  added ? `"${item.itemName}" đã có trong checklist` : `Thêm "${item.itemName}" vào checklist`
+                }
                 disabled={added || adding || checklist.isLoading}
                 onClick={() =>
                   createItem.mutate(
@@ -72,7 +82,7 @@ export function WeatherAdviceList({ tripId, advice, canEdit }: WeatherAdviceList
                 }
               >
                 {added ? <Check /> : <ListPlus />}
-                {added ? 'Đã có trong checklist' : `Thêm "${item.itemName}" vào checklist`}
+                {added ? 'Đã có' : 'Checklist'}
               </Button>
             )}
           </li>

@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,10 +9,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import { COVER_PRESETS, presetValue } from '@/lib/covers'
 import type { TripDetailResponse, TripRequest } from '@/types/trip'
+import { FieldError } from './common/layout'
 import { CoverPicker } from './CoverPicker'
 import { FormField } from './FormField'
 import { PlacePicker, type PlaceLocation } from './PlacePicker'
@@ -72,7 +73,7 @@ function validate(form: FormState): Record<string, string> {
 export function TripFormDialog(props: TripFormDialogProps) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-h-[92svh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         {/* key: mở lại dialog thì form được dựng lại với dữ liệu mới nhất */}
         {props.open && <TripForm key={props.trip?.id ?? 'new'} {...props} />}
       </DialogContent>
@@ -83,6 +84,7 @@ export function TripFormDialog(props: TripFormDialogProps) {
 function TripForm({ trip, pending, onSubmit, onOpenChange }: TripFormDialogProps) {
   const [form, setForm] = useState<FormState>(() => initialState(trip))
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [formError, setFormError] = useState<string | null>(null)
   const isEdit = Boolean(trip)
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
@@ -99,6 +101,7 @@ function TripForm({ trip, pending, onSubmit, onOpenChange }: TripFormDialogProps
     event.preventDefault()
     const clientErrors = validate(form)
     setErrors(clientErrors)
+    setFormError(null)
     if (Object.keys(clientErrors).length > 0) return
 
     try {
@@ -116,16 +119,16 @@ function TripForm({ trip, pending, onSubmit, onOpenChange }: TripFormDialogProps
     } catch (error) {
       const fieldErrors = getFieldErrors(error)
       setErrors(fieldErrors)
-      if (Object.keys(fieldErrors).length === 0) toast.error(getErrorMessage(error))
+      if (Object.keys(fieldErrors).length === 0) setFormError(getErrorMessage(error))
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-5" noValidate>
       <DialogHeader>
-        <DialogTitle>{isEdit ? 'Sửa chuyến đi' : 'Tạo chuyến đi mới ✨'}</DialogTitle>
+        <DialogTitle>{isEdit ? 'Sửa chuyến đi' : 'Tạo chuyến đi mới'}</DialogTitle>
         <DialogDescription>
-          {isEdit ? 'Cập nhật thông tin cho cả nhóm.' : 'Đặt tên thật kêu, chọn ảnh bìa xinh rồi rủ cả nhóm vào nhé!'}
+          {isEdit ? 'Cập nhật thông tin cho cả nhóm.' : 'Đặt tên, chọn ảnh bìa rồi gửi link mời cho cả nhóm.'}
         </DialogDescription>
       </DialogHeader>
 
@@ -155,34 +158,48 @@ function TripForm({ trip, pending, onSubmit, onOpenChange }: TripFormDialogProps
         />
       </FormField>
 
-      <div className="grid gap-2">
-        <p className="text-sm font-medium">
+      <fieldset className="grid gap-2">
+        <legend className="mb-2 text-sm font-medium">
           Khoảng ngày dự kiến <span className="font-normal text-muted-foreground">(không bắt buộc)</span>
-        </p>
+        </legend>
         <div className="grid grid-cols-2 gap-3">
-          <Input
-            id="plannedStartDate"
-            type="date"
-            aria-label="Ngày bắt đầu dự kiến"
-            value={form.plannedStartDate}
-            onChange={(e) => set('plannedStartDate', e.target.value)}
-          />
-          <Input
-            id="plannedEndDate"
-            type="date"
-            aria-label="Ngày kết thúc dự kiến"
-            min={form.plannedStartDate || undefined}
-            value={form.plannedEndDate}
-            aria-invalid={Boolean(errors.plannedEndDate)}
-            onChange={(e) => set('plannedEndDate', e.target.value)}
-          />
+          <div className="grid gap-1.5">
+            <Label htmlFor="plannedStartDate" className="text-xs font-normal text-muted-foreground">
+              Bắt đầu
+            </Label>
+            <Input
+              id="plannedStartDate"
+              type="date"
+              aria-describedby="plannedDates-message"
+              value={form.plannedStartDate}
+              onChange={(e) => set('plannedStartDate', e.target.value)}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="plannedEndDate" className="text-xs font-normal text-muted-foreground">
+              Kết thúc
+            </Label>
+            <Input
+              id="plannedEndDate"
+              type="date"
+              min={form.plannedStartDate || undefined}
+              value={form.plannedEndDate}
+              aria-invalid={Boolean(errors.plannedEndDate)}
+              aria-describedby="plannedDates-message"
+              onChange={(e) => set('plannedEndDate', e.target.value)}
+            />
+          </div>
         </div>
         {errors.plannedEndDate ? (
-          <p className="text-sm text-destructive">{errors.plannedEndDate}</p>
+          <p id="plannedDates-message" role="alert" className="text-sm text-destructive">
+            {errors.plannedEndDate}
+          </p>
         ) : (
-          <p className="text-sm text-muted-foreground">Ngày chính thức sẽ chốt sau khi cả nhóm khai lịch rảnh.</p>
+          <p id="plannedDates-message" className="text-sm text-muted-foreground">
+            Ngày chính thức sẽ chốt sau khi cả nhóm khai lịch rảnh.
+          </p>
         )}
-      </div>
+      </fieldset>
 
       <FormField id="description" label="Mô tả" optional error={errors.description}>
         <Textarea
@@ -195,16 +212,18 @@ function TripForm({ trip, pending, onSubmit, onOpenChange }: TripFormDialogProps
         />
       </FormField>
 
-      <div className="grid gap-2">
-        <p className="text-sm font-medium">Ảnh bìa</p>
+      <fieldset className="grid gap-2">
+        <legend className="mb-2 text-sm font-medium">Ảnh bìa</legend>
         <CoverPicker
           value={form.coverImageUrl}
           onChange={(v) => set('coverImageUrl', v)}
           error={errors.coverImageUrl}
         />
-      </div>
+      </fieldset>
 
-      <DialogFooter>
+      {formError && <FieldError>{formError}</FieldError>}
+
+      <DialogFooter sticky>
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
           Hủy
         </Button>

@@ -81,6 +81,8 @@ export interface TransferResponse {
   fromUserId: number
   toUserId: number
   amount: number
+  /** Tổng các lần chuyển PENDING cùng chiều (≤ amount): phần này đang chờ người nhận xác nhận */
+  pendingAmount: number
 }
 
 /** com.tripplanner.expense.dto.ExpenseDtos.SettlementResponse */

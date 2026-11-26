@@ -1,5 +1,7 @@
 # SDD UI – Phase 4: Bình chọn & Chi tiêu Nhóm (Polls & Expenses + VietQR Bay bổng)
 
+> **Cập nhật 26/11/2026:** nhiều hiệu ứng trong tài liệu này (nhấc/nảy khi hover, nhấp nhô, gradient, emoji, bóng clay) đã được bỏ hoặc giảm theo `docs/ui-slop-audit.md` (các mục gắn nhãn `[Đổi SDD UI-4]`). Khi hai tài liệu khác nhau, theo audit.
+
 **Dự án:** Team Trip Planner  
 **Chuyên đề:** Tactile Clay & Pill UI (Mức độ 3D đậm + Bay bổng sống động)  
 **Phụ thuộc:** `docs/sdd-ui-phase-0.md`, `docs/sdd-ui-phase-1.md`  

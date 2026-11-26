@@ -3,7 +3,7 @@ import type { TripRole, TripStatus } from '@/types/trip'
 export const ROLE_LABEL: Record<TripRole, string> = {
   OWNER: 'Trưởng nhóm',
   EDITOR: 'Thành viên',
-  VIEWER: 'Chỉ xem',
+  VIEWER: 'Người xem',
 }
 
 export const ROLE_DESCRIPTION: Record<TripRole, string> = {

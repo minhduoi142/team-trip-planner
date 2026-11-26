@@ -4,6 +4,7 @@
 **Chuyên đề:** Thiết kế lại toàn bộ giao diện sang phong cách **Tactile Clay & Pill UI (Mức độ 3D đậm + Bay bổng sống động)**  
 **Phạm vi:** Frontend only (`frontend/src/index.css`, `frontend/src/components/ui/*`, `frontend/src/components/AppLayout.tsx`, `frontend/src/components/AuthShell.tsx`)  
 **Trạng thái:** Đã hoàn thành (Phase 0)  
+**Cập nhật 26/11/2026:** token, bóng, bo góc và animation đã được chuẩn hóa lại theo `docs/ui-slop-audit.md` (Phase 0): thêm `primary-strong`, màu ngữ nghĩa, bóng theo vai trò, bo góc theo vai trò, chỉ giao diện sáng. Các tên `shadow-clay-*` và giá trị ở §2 là bản cũ, giữ cho tới khi Phase 1–3 của audit chuyển xong.  
 
 ---
 

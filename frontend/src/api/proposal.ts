@@ -10,8 +10,7 @@ export const proposalApi = {
     api.put<ProposalListResponse>(`/proposals/${proposalId}`, body).then((r) => r.data),
   remove: (proposalId: number) => api.delete<ProposalListResponse>(`/proposals/${proposalId}`).then((r) => r.data),
   vote: (proposalId: number) => api.put<ProposalListResponse>(`/proposals/${proposalId}/vote`).then((r) => r.data),
-  unvote: (proposalId: number) =>
-    api.delete<ProposalListResponse>(`/proposals/${proposalId}/vote`).then((r) => r.data),
+  unvote: (proposalId: number) => api.delete<ProposalListResponse>(`/proposals/${proposalId}/vote`).then((r) => r.data),
   schedule: (proposalId: number, body: ScheduleProposalRequest) =>
     api.post<ProposalListResponse>(`/proposals/${proposalId}/schedule`, body).then((r) => r.data),
 }

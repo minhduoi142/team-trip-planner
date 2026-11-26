@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { UserAvatar } from '@/components/UserAvatar'
 import { formatShortDate, isWeekend, weekdayShort } from '@/lib/date'
 import { cn } from '@/lib/utils'
-import type { AvailabilityMatrixResponse, AvailabilityStatus } from '@/types/availability'
+import type { AvailabilityMatrixResponse, AvailabilityStatus, DaySummaryResponse } from '@/types/availability'
 import { cellStyle } from './statusStyle'
 
 interface AvailabilityGridProps {
@@ -11,17 +11,36 @@ interface AvailabilityGridProps {
   myUserId: number
   editable: boolean
   statusOf: (userId: number, date: string) => AvailabilityStatus | null
-  /** Gọi khi chạm hoặc kéo qua 1 ô của hàng mình */
+  /** Gọi khi chạm, kéo qua hoặc bấm Enter/Space trên 1 ô của hàng mình */
   onPaint: (date: string) => void
 }
 
+/** Nền + màu chữ của ô "Số người rảnh": tránh vùng giữa nơi cả chữ trắng lẫn chữ đậm đều dưới 4,5:1. */
+function summaryStyle(ratio: number) {
+  if (ratio <= 0) return { backgroundColor: 'var(--card)', color: 'var(--muted-foreground)' }
+  if (ratio >= 0.75) return { backgroundColor: 'var(--avail-yes)', color: 'var(--avail-yes-foreground)' }
+  const mix = Math.round(8 + (ratio / 0.75) * 37) // 8% → 45%
+  return {
+    backgroundColor: `color-mix(in oklch, var(--avail-yes) ${mix}%, var(--card))`,
+    color: 'var(--avail-yes-soft-foreground)',
+  }
+}
+
+function summaryText(date: string, summary: DaySummaryResponse | undefined) {
+  if (!summary) return formatShortDate(date)
+  return `${formatShortDate(date)}: ${summary.available} rảnh, ${summary.maybe} có thể, ${summary.busy} bận, ${summary.unknown} chưa khai`
+}
+
 /**
- * Bảng thành viên × ngày dạng ma trận viên sỏi đất sét 3D (Tactile Clay Pebbles).
- * Cột tên dính trái, ngày cuộn ngang. Hàng của mình nằm đầu và vẽ được
- * bằng chạm/kéo: pointerdown nhả pointer capture để pointerenter bắn trên các ô kế tiếp.
+ * Bảng thành viên × ngày. Cột tên dính trái, hàng ngày dính trên khi cuộn trong khung.
+ * Hàng của mình nằm đầu và vẽ được bằng chạm/kéo: pointerdown nhả pointer capture để
+ * pointerenter bắn trên các ô kế tiếp. Bàn phím: Tab vào hàng, mũi tên/Home/End để di chuyển,
+ * Enter hoặc Space tô bằng cọ hiện tại.
  */
 export function AvailabilityGrid({ matrix, dates, myUserId, editable, statusOf, onPaint }: AvailabilityGridProps) {
   const painting = useRef(false)
+  const myRowRef = useRef<HTMLTableRowElement>(null)
+  const [activeDate, setActiveDate] = useState<string | null>(null)
 
   useEffect(() => {
     const stop = () => {
@@ -35,140 +54,174 @@ export function AvailabilityGrid({ matrix, dates, myUserId, editable, statusOf, 
     }
   }, [])
 
-  const members = [...matrix.members].sort((a, b) =>
-    a.userId === myUserId ? -1 : b.userId === myUserId ? 1 : 0,
-  )
+  const members = [...matrix.members].sort((a, b) => (a.userId === myUserId ? -1 : b.userId === myUserId ? 1 : 0))
   const lockedStart = matrix.startDate
   const lockedEnd = matrix.endDate
   const inLocked = (date: string) => Boolean(lockedStart && lockedEnd && date >= lockedStart && date <= lockedEnd)
   const summaryByDate = new Map(matrix.days.map((d) => [d.date, d]))
   const total = matrix.members.length
+  const tabbableDate = activeDate && dates.includes(activeDate) ? activeDate : dates[0]
+
+  const focusDate = (index: number) => {
+    const date = dates[Math.max(0, Math.min(dates.length - 1, index))]
+    myRowRef.current?.querySelector<HTMLButtonElement>(`button[data-date="${date}"]`)?.focus()
+  }
+
+  const onCellKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const moves: Record<string, number> = {
+      ArrowLeft: index - 1,
+      ArrowRight: index + 1,
+      Home: 0,
+      End: dates.length - 1,
+    }
+    if (e.key in moves) {
+      e.preventDefault()
+      focusDate(moves[e.key])
+    }
+  }
+
+  const stickyCol = 'sticky left-0 z-10 bg-card'
 
   return (
-    <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-        <table className="border-separate border-spacing-1.5 text-sm select-none">
-          <thead>
-            <tr>
-              <th className="sticky left-0 z-10 bg-card/95 backdrop-blur-xs pr-2" />
-              {dates.map((date) => (
-                <th
-                  key={date}
-                  scope="col"
+    <div className="max-h-[70svh] overflow-auto overscroll-x-contain">
+      <table className="border-separate border-spacing-0 text-sm select-none">
+        <thead>
+          <tr>
+            <th className={cn(stickyCol, 'top-0 z-20')}>
+              <span className="sr-only">Thành viên</span>
+            </th>
+            {dates.map((date) => (
+              <th key={date} scope="col" className="sticky top-0 z-10 bg-card p-0.5 pb-1">
+                <div
                   className={cn(
-                    'min-w-10 rounded-2xl px-1 py-1.5 text-center text-xs font-semibold transition-all',
-                    isWeekend(date)
-                      ? 'bg-rose-50 text-rose-600 shadow-clay-badge border border-rose-200/60'
-                      : 'bg-muted/40 text-muted-foreground border border-border/50',
-                    inLocked(date) && 'bg-primary text-primary-foreground shadow-clay-btn-primary border-primary/50 animate-pulse-gentle',
+                    'min-w-9 rounded-lg px-1 py-1 text-center text-xs font-semibold',
+                    inLocked(date)
+                      ? 'bg-primary-strong text-primary-strong-foreground'
+                      : isWeekend(date)
+                        ? 'bg-muted text-primary-strong'
+                        : 'bg-muted/60 text-muted-foreground',
                   )}
                 >
-                  <div className="text-[11px] opacity-80">{weekdayShort(date)}</div>
+                  <div className="font-medium">{weekdayShort(date)}</div>
                   <div className="font-bold">{formatShortDate(date)}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((member) => {
-              const isMe = member.userId === myUserId
-              const canPaint = isMe && editable
-              return (
-                <tr key={member.userId}>
-                  <th
-                    scope="row"
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {members.map((member) => {
+            const isMe = member.userId === myUserId
+            const canPaint = isMe && editable
+            const name = isMe ? 'Bạn' : member.displayName
+            return (
+              <tr key={member.userId} ref={isMe ? myRowRef : undefined}>
+                <th scope="row" className={cn(stickyCol, 'p-0.5 pr-2 text-left font-normal')}>
+                  <div
                     className={cn(
-                      'sticky left-0 z-10 bg-card/95 backdrop-blur-xs pr-3 text-left font-normal py-1',
-                      isMe && 'font-bold',
+                      'flex w-12 items-center gap-2 rounded-item p-1 sm:w-40 sm:p-1.5',
+                      isMe && 'bg-primary/10',
                     )}
                   >
-                      <div
-                        className={cn(
-                          'flex w-32 sm:w-40 items-center gap-2.5 p-1.5 rounded-2xl transition-colors',
-                          isMe && 'bg-primary/10 border border-primary/20 shadow-clay-badge',
-                        )}
-                      >
-                        <UserAvatar userId={member.userId} name={member.displayName} avatarUrl={member.avatarUrl} size="sm" />
-                        <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold">
-                              {isMe ? 'Bạn' : member.displayName}
-                              {isMe && <span className="ml-1 text-xs text-primary font-normal">✨</span>}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground font-medium">
-                              {member.respondedDays}/{dates.length} ngày
-                            </p>
-                        </div>
-                      </div>
-                  </th>
-                  {dates.map((date) => {
-                    const status = statusOf(member.userId, date)
-                    const style = cellStyle(status)
-                    return (
-                      <td key={date} className="p-0">
-                        <div
-                          role={canPaint ? 'button' : undefined}
-                          aria-label={`${isMe ? 'Bạn' : member.displayName} ${formatShortDate(date)}: ${style.label}`}
+                    <UserAvatar
+                      userId={member.userId}
+                      name={member.displayName}
+                      avatarUrl={member.avatarUrl}
+                      size="sm"
+                    />
+                    <div className="sr-only min-w-0 sm:not-sr-only">
+                      <p className={cn('truncate text-sm', isMe ? 'font-bold' : 'font-semibold')}>{name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {member.respondedDays}/{dates.length} ngày
+                      </p>
+                    </div>
+                  </div>
+                </th>
+                {dates.map((date, index) => {
+                  const status = statusOf(member.userId, date)
+                  const style = cellStyle(status)
+                  const Icon = style.icon
+                  const label = `${name}, ${formatShortDate(date)}: ${style.label}`
+                  const cellClass = cn(
+                    'flex size-9 items-center justify-center rounded-lg',
+                    style.className,
+                    isMe && !editable && 'opacity-90',
+                  )
+                  const content = Icon ? <Icon className="size-4" strokeWidth={3} aria-hidden="true" /> : null
+                  return (
+                    <td key={date} className={cn('p-0.5', inLocked(date) && 'bg-primary/10')}>
+                      {canPaint ? (
+                        <button
+                          type="button"
+                          data-date={date}
+                          aria-label={label}
+                          tabIndex={date === tabbableDate ? 0 : -1}
                           className={cn(
-                            'flex size-10 items-center justify-center rounded-2xl text-sm font-bold transition-all duration-150 select-none',
-                            style.className,
-                            canPaint && 'cursor-pointer touch-none hover:scale-110 active:scale-95 active:shadow-clay-pressed',
-                            isMe && !editable && 'opacity-90',
+                            cellClass,
+                            'cursor-pointer touch-none outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
                           )}
-                          onPointerDown={
-                            canPaint
-                              ? (e) => {
-                                e.preventDefault()
-                                  ; (e.target as Element).releasePointerCapture?.(e.pointerId)
-                                painting.current = true
-                                onPaint(date)
-                              }
-                              : undefined
-                          }
-                          onPointerEnter={canPaint ? () => painting.current && onPaint(date) : undefined}
+                          onFocus={() => setActiveDate(date)}
+                          onKeyDown={(e) => onCellKeyDown(e, index)}
+                          // Chuột/chạm đã tô ở pointerdown; click chỉ xử lý khi kích hoạt bằng bàn phím (detail = 0)
+                          onClick={(e) => {
+                            if (e.detail === 0) onPaint(date)
+                          }}
+                          onPointerDown={(e) => {
+                            e.preventDefault()
+                            ;(e.target as Element).releasePointerCapture?.(e.pointerId)
+                            painting.current = true
+                            onPaint(date)
+                          }}
+                          onPointerEnter={() => painting.current && onPaint(date)}
                         >
-                          {style.symbol}
+                          {content}
+                        </button>
+                      ) : (
+                        <div role="img" aria-label={label} className={cellClass}>
+                          {content}
                         </div>
-                      </td>
-                    )
-                  })}
-                </tr>
+                      )}
+                    </td>
+                  )
+                })}
+              </tr>
+            )
+          })}
+          <tr>
+            <th
+              scope="row"
+              className={cn(
+                stickyCol,
+                'p-0.5 pt-2 pr-2 text-left text-xs leading-tight font-bold text-muted-foreground',
+              )}
+            >
+              <span className="sm:hidden" aria-hidden="true">
+                Rảnh
+              </span>
+              <span className="sr-only sm:not-sr-only">Số người rảnh</span>
+            </th>
+            {dates.map((date) => {
+              const summary = summaryByDate.get(date)
+              const available = summary?.available ?? 0
+              const ratio = total > 0 ? available / total : 0
+              const text = summaryText(date, summary)
+              return (
+                <td key={date} className={cn('p-0.5 pt-2', inLocked(date) && 'bg-primary/10')}>
+                  <div
+                    role="img"
+                    aria-label={text}
+                    title={text}
+                    className="flex size-9 items-center justify-center rounded-lg border border-border text-xs font-bold"
+                    style={summaryStyle(ratio)}
+                  >
+                    {available}
+                  </div>
+                </td>
               )
             })}
-            <tr>
-                <th
-                  scope="row"
-                  className="sticky left-0 z-10 bg-card/95 backdrop-blur-xs pr-3 pt-2 text-left text-xs font-bold text-muted-foreground"
-                >
-                  Số người rảnh
-                </th>
-                {dates.map((date) => {
-                  const summary = summaryByDate.get(date)
-                  const available = summary?.available ?? 0
-                  const ratio = total > 0 ? available / total : 0
-                  return (
-                      <td key={date} className="p-0 pt-2">
-                        <div
-                          className="flex size-10 flex-col items-center justify-center rounded-2xl text-xs font-bold shadow-clay-badge border border-border/50 transition-all"
-                          style={{
-                            backgroundColor: `rgb(16 185 129 / ${0.12 + ratio * 0.72})`,
-                            color: ratio > 0.5 ? 'white' : 'rgb(6 95 70)',
-                          }}
-                          title={
-                            summary
-                              ? `${summary.available} rảnh · ${summary.maybe} có thể · ${summary.busy} bận · ${summary.unknown} chưa khai`
-                              : undefined
-                          }
-                        >
-                          <span>{available}</span>
-                          {summary && summary.maybe > 0 && (
-                            <span className="text-[10px] font-medium opacity-90">+{summary.maybe}?</span>
-                          )}
-                        </div>
-                      </td>
-                      )
-            })}
-                    </tr>
+          </tr>
         </tbody>
-            </table>
-          </div>
-          )
+      </table>
+    </div>
+  )
 }

@@ -53,6 +53,7 @@ class ExpenseSummaryBuilder {
             sharesByExpense.getOrDefault(e.getId(), List.of())
                     .forEach(s -> share.merge(s.getId().getUserId(), s.getAmount(), Long::sum));
         }
+        Map<String, Long> pendingByPair = pendingByPair(settlements);
         List<BalanceCalculator.Transfer> confirmed = settlements.stream()
                 .filter(s -> s.getStatus() == SettlementStatus.CONFIRMED)
                 .map(s -> new BalanceCalculator.Transfer(s.getFromUser().getId(), s.getToUser().getId(), s.getAmount()))
@@ -90,13 +91,29 @@ class ExpenseSummaryBuilder {
                         .toList(),
                 memberRows,
                 balance.suggestions().stream()
-                        .map(t -> new TransferResponse(t.fromUserId(), t.toUserId(), t.amount()))
+                        .map(t -> new TransferResponse(t.fromUserId(), t.toUserId(), t.amount(),
+                                Math.min(t.amount(), pendingByPair.getOrDefault(pairKey(t.fromUserId(), t.toUserId()), 0L))))
                         .toList(),
                 settlements.stream()
                         .map(s -> new SettlementResponse(s.getId(), s.getFromUser().getId(), s.getToUser().getId(),
                                 s.getAmount(), s.getStatus(), s.getCreatedAt(), s.getConfirmedAt()))
                         .toList(),
                 expenseRows);
+    }
+
+    /** Tổng tiền các lần chuyển còn PENDING theo cặp (người chuyển, người nhận). */
+    static Map<String, Long> pendingByPair(List<Settlement> settlements) {
+        Map<String, Long> result = new HashMap<>();
+        for (Settlement s : settlements) {
+            if (s.getStatus() == SettlementStatus.PENDING) {
+                result.merge(pairKey(s.getFromUser().getId(), s.getToUser().getId()), s.getAmount(), Long::sum);
+            }
+        }
+        return result;
+    }
+
+    private static String pairKey(Long fromUserId, Long toUserId) {
+        return fromUserId + ">" + toUserId;
     }
 
     /** Sửa/xóa khoản chi: người tạo, người trả hoặc Trưởng nhóm (OWNER). EDITOR thường không sửa được khoản người khác. */

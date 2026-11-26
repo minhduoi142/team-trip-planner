@@ -79,6 +79,8 @@ export interface TripDetailResponse {
 
 /** com.tripplanner.trip.dto.InvitePreviewResponse */
 export interface InvitePreviewResponse {
+  /** Seed ảnh bìa mặc định, trùng với seed ở TripCard / trang chuyến (id chuyến) */
+  coverSeed: number
   title: string
   destination: string | null
   coverImageUrl: string | null

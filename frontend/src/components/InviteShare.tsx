@@ -1,4 +1,4 @@
-import { Check, Copy, RefreshCw, Share2 } from 'lucide-react'
+import { Check, Copy, Info, RefreshCw, Share2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -56,81 +56,78 @@ export function InviteShare({ tripId, tripTitle, inviteCode, canRegenerate }: In
     })
 
   return (
-      <Card className="rounded-[28px] shadow-clay-card border border-border/60 bg-gradient-to-br from-rose-50/70 via-card to-violet-50/70">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span>Mời bạn bè</span>
-            <span className="text-base animate-pulse-gentle">💌</span>
-          </CardTitle>
-          <CardDescription>Gửi link này cho bạn bè để cùng lên kế hoạch</CardDescription>
-        </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2 rounded-full border border-border/80 bg-input/20 px-3.5 py-1.5 shadow-clay-sunken">
-                  <input
-                    readOnly
-                    value={link}
-                    className="min-w-0 flex-1 bg-transparent text-xs sm:text-sm font-medium text-foreground outline-none select-all"
-                    onFocus={(e) => e.target.select()}
-                    aria-label="Link mời tham gia"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={copy}
-                    className="shrink-0 rounded-full"
-                    aria-label={copied ? 'Đã copy' : 'Copy link'}
-                  >
-                    {copied ? <Check className="size-3.5 text-emerald-100" /> : <Copy className="size-3.5" />}
-                    {copied ? 'Đã chép' : 'Chép'}
-                  </Button>
-                </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Mời bạn bè</CardTitle>
+        <CardDescription>Gửi link này cho bạn bè để cùng lên kế hoạch</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center gap-2 rounded-full border border-border/80 bg-input/20 py-1.5 pr-1.5 pl-3.5 shadow-sunken">
+          <input
+            readOnly
+            value={link}
+            className="min-w-0 flex-1 bg-transparent text-sm font-medium text-foreground outline-none select-all"
+            onFocus={(e) => e.target.select()}
+            aria-label="Link mời tham gia"
+          />
+          <Button
+            type="button"
+            onClick={copy}
+            className="shrink-0 rounded-full"
+            aria-label={copied ? 'Đã copy' : 'Copy link'}
+          >
+            {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+            {copied ? 'Đã chép' : 'Chép'}
+          </Button>
+        </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground">Mã mời:</span>
-                    <span className="rounded-full bg-primary/10 px-3 py-1 font-mono text-sm font-bold text-primary shadow-clay-badge border border-primary/20 tracking-wider">
-                      {inviteCode}
-                    </span>
-                  </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground">Mã mời:</span>
+            <span className="rounded-full bg-primary/10 px-3 py-1 font-mono text-sm font-bold tracking-wider text-primary-strong border border-primary/20">
+              {inviteCode}
+            </span>
+          </div>
 
-                  <div className="flex items-center gap-2">
-                    {canShare && (
-                      <Button type="button" variant="outline" size="sm" onClick={share}>
-                        <Share2 className="size-3.5" />
-                        Chia sẻ
-                      </Button>
-                    )}
+          <div className="flex items-center gap-2">
+            {canShare && (
+              <Button type="button" variant="outline" size="sm" onClick={share}>
+                <Share2 className="size-3.5" />
+                Chia sẻ
+              </Button>
+            )}
 
-                    {canRegenerate && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => setConfirmOpen(true)}
-                      >
-                        <RefreshCw className="size-3.5" />
-                        Đổi mã
-                      </Button>
-                    )}
-                  </div>
-                </div>
+            {canRegenerate && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => setConfirmOpen(true)}
+              >
+                <RefreshCw className="size-3.5" />
+                Đổi mã
+              </Button>
+            )}
+          </div>
+        </div>
 
-                  <p className="text-[11px] text-muted-foreground/80 italic">
-                    💡 Link có sẵn ảnh bìa và thông tin khi dán vào Zalo/Messenger.
-                  </p>
-              </CardContent>
+        <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+          <Info className="mt-px size-3.5 shrink-0" />
+          Link có sẵn ảnh bìa và thông tin khi dán vào Zalo/Messenger.
+        </p>
+      </CardContent>
 
-              <ConfirmDialog
-                open={confirmOpen}
-                onOpenChange={setConfirmOpen}
-                title="Đổi mã mời mới?"
-                description="Mã mời và link cũ sẽ không dùng được nữa. Người đã vào nhóm không bị ảnh hưởng."
-                confirmLabel="Đổi mã"
-                destructive
-                pending={regenerate.isPending}
-                onConfirm={doRegenerate}
-              />
-            </Card>
-            )
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Đổi mã mời mới?"
+        description="Mã mời và link cũ sẽ không dùng được nữa. Người đã vào nhóm không bị ảnh hưởng."
+        confirmLabel="Đổi mã"
+        destructive
+        pending={regenerate.isPending}
+        onConfirm={doRegenerate}
+      />
+    </Card>
+  )
 }

@@ -1,25 +1,32 @@
+import { Check, CircleHelp, X, type LucideIcon } from 'lucide-react'
 import type { AvailabilityStatus } from '@/types/availability'
 
-/** Màu + ký hiệu của từng trạng thái dạng viên sỏi đất sét 3D (3D Clay Pebble) */
-export const STATUS_CELL: Record<AvailabilityStatus | 'NONE', { className: string; symbol: string; label: string }> = {
+/**
+ * Màu + ký hiệu của từng trạng thái, lấy từ token `avail-*` trong index.css (mọi cặp chữ/nền ≥ 4,5:1).
+ * "Bận" là slate trung tính, cố ý không trùng hue với primary (docs/ui-slop-audit.md P3-NR-03).
+ */
+export const STATUS_CELL: Record<
+  AvailabilityStatus | 'NONE',
+  { className: string; icon: LucideIcon | null; label: string }
+> = {
   AVAILABLE: {
-    className: 'bg-emerald-400 text-white shadow-clay-badge border border-emerald-300/80',
-    symbol: '✓',
+    className: 'bg-avail-yes text-avail-yes-foreground',
+    icon: Check,
     label: 'Rảnh',
   },
   MAYBE: {
-    className: 'bg-amber-300 text-amber-950 shadow-clay-badge border border-amber-200/80',
-    symbol: '?',
+    className: 'bg-avail-maybe text-avail-maybe-foreground',
+    icon: CircleHelp,
     label: 'Có thể',
   },
   BUSY: {
-    className: 'bg-rose-200 text-rose-800 shadow-clay-badge border border-rose-300/80',
-    symbol: '✕',
+    className: 'bg-avail-no-soft text-avail-no-soft-foreground border border-avail-no/30',
+    icon: X,
     label: 'Bận',
   },
   NONE: {
-    className: 'border-2 border-dashed border-border/80 bg-input/10 text-muted-foreground/35 shadow-clay-sunken',
-    symbol: '',
+    className: 'border border-dashed border-border bg-card text-muted-foreground',
+    icon: null,
     label: 'Chưa khai',
   },
 }

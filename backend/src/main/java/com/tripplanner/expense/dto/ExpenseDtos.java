@@ -100,7 +100,11 @@ public final class ExpenseDtos {
     public record CategoryTotalResponse(Category category, long amount) {
     }
 
-    public record TransferResponse(Long fromUserId, Long toUserId, long amount) {
+    /**
+     * Gợi ý chuyển tiền (chỉ tính lần chuyển CONFIRMED). {@code pendingAmount} = tổng các lần chuyển PENDING cùng chiều
+     * from → to (tối đa bằng {@code amount}), để FE không mời trả/nhận lại khoản đang chờ xác nhận.
+     */
+    public record TransferResponse(Long fromUserId, Long toUserId, long amount, long pendingAmount) {
     }
 
     public record SettlementResponse(

@@ -128,6 +128,7 @@ public class TripService {
     public InvitePreviewResponse previewInvite(String code) {
         Trip trip = findByInviteCode(code);
         return new InvitePreviewResponse(
+                trip.getId(),
                 trip.getTitle(), trip.getDestination(), trip.getCoverImageUrl(), trip.statusOn(today()),
                 (int) memberRepository.countByIdTripId(trip.getId()),
                 trip.getPlannedStartDate(), trip.getPlannedEndDate(), trip.getStartDate(), trip.getEndDate());

@@ -29,7 +29,7 @@ export function TripCover({ coverImageUrl, seed, className, withOverlay = false,
         />
       ) : (
         <div className={cn('absolute inset-0 bg-gradient-to-br', cover.preset.gradient)}>
-          <cover.preset.icon className="absolute -right-4 -bottom-6 size-36 text-white/40" strokeWidth={1.25} />
+          <cover.preset.icon className="absolute -right-3 -bottom-4 size-24 text-white/25" strokeWidth={1.25} />
         </div>
       )}
       {withOverlay && <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />}

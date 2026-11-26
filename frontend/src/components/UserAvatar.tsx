@@ -1,15 +1,16 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
+/** Màu avatar chữ cái lấy từ token avatar-1..8 (index.css). */
 const FALLBACK_COLORS = [
-  'bg-rose-100 text-rose-700 shadow-clay-badge',
-  'bg-fuchsia-100 text-fuchsia-700 shadow-clay-badge',
-  'bg-violet-100 text-violet-700 shadow-clay-badge',
-  'bg-sky-100 text-sky-700 shadow-clay-badge',
-  'bg-teal-100 text-teal-700 shadow-clay-badge',
-  'bg-amber-100 text-amber-700 shadow-clay-badge',
-  'bg-orange-100 text-orange-700 shadow-clay-badge',
-  'bg-lime-100 text-lime-700 shadow-clay-badge',
+  'bg-avatar-1 text-avatar-1-foreground',
+  'bg-avatar-2 text-avatar-2-foreground',
+  'bg-avatar-3 text-avatar-3-foreground',
+  'bg-avatar-4 text-avatar-4-foreground',
+  'bg-avatar-5 text-avatar-5-foreground',
+  'bg-avatar-6 text-avatar-6-foreground',
+  'bg-avatar-7 text-avatar-7-foreground',
+  'bg-avatar-8 text-avatar-8-foreground',
 ]
 
 function initials(name: string): string {
@@ -29,17 +30,11 @@ interface UserAvatarProps {
 
 export function UserAvatar({ userId, name, avatarUrl, size = 'default', className }: UserAvatarProps) {
   return (
-      <Avatar
-        size={size}
-        className={cn(
-          'ring-2 ring-card shadow-clay-badge transition-transform duration-200 hover:scale-105 active:scale-95',
-          className
-        )}
-      >
-        {avatarUrl && <AvatarImage src={avatarUrl} alt={name} referrerPolicy="no-referrer" />}
-        <AvatarFallback className={cn('font-semibold', FALLBACK_COLORS[Math.abs(userId) % FALLBACK_COLORS.length])}>
-          {initials(name)}
-        </AvatarFallback>
-      </Avatar>
-      )
+    <Avatar size={size} className={cn('ring-2 ring-card', className)}>
+      {avatarUrl && <AvatarImage src={avatarUrl} alt={name} referrerPolicy="no-referrer" />}
+      <AvatarFallback className={cn('font-semibold', FALLBACK_COLORS[Math.abs(userId) % FALLBACK_COLORS.length])}>
+        {initials(name)}
+      </AvatarFallback>
+    </Avatar>
+  )
 }

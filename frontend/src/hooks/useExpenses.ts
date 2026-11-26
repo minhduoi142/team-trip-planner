@@ -20,9 +20,7 @@ export function useCreateExpense(tripId: number) {
 }
 
 export function useUpdateExpense(tripId: number) {
-  return useExpenseMutation(tripId, ({ id, body }: { id: number; body: ExpenseRequest }) =>
-    expenseApi.update(id, body),
-  )
+  return useExpenseMutation(tripId, ({ id, body }: { id: number; body: ExpenseRequest }) => expenseApi.update(id, body))
 }
 
 export function useDeleteExpense(tripId: number) {

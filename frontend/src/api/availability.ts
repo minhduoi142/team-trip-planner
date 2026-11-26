@@ -9,8 +9,7 @@ import type {
 import type { TripDetailResponse } from '@/types/trip'
 
 export const availabilityApi = {
-  get: (tripId: number) =>
-    api.get<AvailabilityMatrixResponse>(`/trips/${tripId}/availabilities`).then((r) => r.data),
+  get: (tripId: number) => api.get<AvailabilityMatrixResponse>(`/trips/${tripId}/availabilities`).then((r) => r.data),
   updateMine: (tripId: number, body: UpdateAvailabilityRequest) =>
     api.put<AvailabilityMatrixResponse>(`/trips/${tripId}/availabilities`, body).then((r) => r.data),
   setTripLength: (tripId: number, body: TripLengthRequest) =>

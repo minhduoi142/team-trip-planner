@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
+import { ChoiceChips } from '@/components/common/ChoiceChips'
 import { FormField } from '@/components/FormField'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,7 +15,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import { ITINERARY_CATEGORIES } from '@/lib/tripContent'
-import { cn } from '@/lib/utils'
 import type { ItineraryCategory, ItineraryItemRequest, ItineraryItemResponse } from '@/types/itinerary'
 
 interface ItemFormDialogProps {
@@ -96,29 +96,17 @@ function ItemForm({ item, dayLabel, pending, onSubmit, onOpenChange }: ItemFormD
     <form onSubmit={submit} className="grid gap-5" noValidate>
       <DialogHeader>
         <DialogTitle>{item ? 'Sửa hoạt động' : 'Thêm hoạt động'}</DialogTitle>
-        <DialogDescription>{dayLabel}. Có giờ thì tự xếp đúng vị trí, không có giờ thì đặt cuối ngày.</DialogDescription>
+        <DialogDescription>
+          {dayLabel}. Có giờ thì tự xếp đúng vị trí, không có giờ thì đặt cuối ngày.
+        </DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Loại hoạt động">
-        {ITINERARY_CATEGORIES.map((c) => (
-          <button
-            key={c.value}
-            type="button"
-            role="radio"
-            aria-checked={form.category === c.value}
-            onClick={() => set('category', c.value)}
-            className={cn(
-              'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 border-2',
-              form.category === c.value
-                ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white border-rose-300 shadow-clay-btn-primary -translate-y-0.5'
-                : 'bg-card text-foreground border-white/70 shadow-clay-card hover:-translate-y-0.5 hover:shadow-clay-card-hover',
-            )}
-          >
-            <c.icon className="size-4" />
-            {c.label}
-          </button>
-        ))}
-      </div>
+      <ChoiceChips
+        label="Loại hoạt động"
+        options={ITINERARY_CATEGORIES}
+        value={form.category}
+        onChange={(value) => set('category', value)}
+      />
 
       <FormField id="item-title" label="Tên hoạt động" error={errors.title}>
         <Input
@@ -134,7 +122,12 @@ function ItemForm({ item, dayLabel, pending, onSubmit, onOpenChange }: ItemFormD
 
       <div className="grid grid-cols-2 gap-3">
         <FormField id="item-start" label="Bắt đầu" optional error={errors.startTime}>
-          <Input id="item-start" type="time" value={form.startTime} onChange={(e) => set('startTime', e.target.value)} />
+          <Input
+            id="item-start"
+            type="time"
+            value={form.startTime}
+            onChange={(e) => set('startTime', e.target.value)}
+          />
         </FormField>
         <FormField id="item-end" label="Kết thúc" optional error={errors.endTime}>
           <Input id="item-end" type="time" value={form.endTime} onChange={(e) => set('endTime', e.target.value)} />

@@ -109,8 +109,7 @@ export function useJoinTrip() {
 export function useChangeRole(tripId: number) {
   const sync = useTripCacheSync()
   return useMutation({
-    mutationFn: ({ userId, role }: { userId: number; role: TripRole }) =>
-      tripsApi.changeRole(tripId, userId, { role }),
+    mutationFn: ({ userId, role }: { userId: number; role: TripRole }) => tripsApi.changeRole(tripId, userId, { role }),
     onSuccess: () => sync.refresh(tripId),
   })
 }

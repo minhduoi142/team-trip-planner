@@ -1,4 +1,4 @@
-import { LogOut, ShieldCheck } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from '@/auth/useAuth'
@@ -24,11 +24,8 @@ export function SessionSecuritySection() {
   }
 
   return (
-    <div className="grid gap-3 rounded-[24px] border-2 border-white/80 bg-card/90 p-4 shadow-clay-card sm:p-5">
-      <p className="flex items-center gap-2 text-sm font-bold text-foreground">
-        <ShieldCheck className="size-4 text-primary" />
-        Bảo mật
-      </p>
+    <section className="grid gap-3 pt-4">
+      <h3 className="text-sm font-semibold">Phiên đăng nhập</h3>
       <p className="text-sm text-muted-foreground">
         Lỡ đăng nhập trên máy lạ, hoặc thấy nghi ngờ? Đăng xuất khỏi mọi điện thoại và máy tính đang dùng tài khoản này.
       </p>
@@ -46,6 +43,6 @@ export function SessionSecuritySection() {
         pending={pending}
         onConfirm={() => void run()}
       />
-    </div>
+    </section>
   )
 }
