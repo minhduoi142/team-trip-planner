@@ -3,6 +3,7 @@ package com.tripplanner.tripday;
 import com.tripplanner.common.BusinessException;
 import com.tripplanner.common.ErrorCode;
 import com.tripplanner.itinerary.ItineraryItemRepository;
+import com.tripplanner.outfit.DayOutfitRepository;
 import com.tripplanner.trip.Trip;
 import com.tripplanner.trip.TripAccessService;
 import com.tripplanner.trip.TripRole;
@@ -34,6 +35,7 @@ public class TripDayService {
     private final TripDayRepository tripDayRepository;
     private final TripDayDressColorRepository colorRepository;
     private final ItineraryItemRepository itemRepository;
+    private final DayOutfitRepository outfitRepository;
     private final TripService tripService;
     private final Clock clock;
 
@@ -99,6 +101,7 @@ public class TripDayService {
     private boolean hasContent(TripDay day) {
         return day.hasOwnFields()
                 || itemRepository.countByDayId(day.getId()) > 0
-                || colorRepository.countByIdTripDayId(day.getId()) > 0;
+                || colorRepository.countByIdTripDayId(day.getId()) > 0
+                || outfitRepository.countByDayId(day.getId()) > 0;   // outfit của thành viên (V12)
     }
 }

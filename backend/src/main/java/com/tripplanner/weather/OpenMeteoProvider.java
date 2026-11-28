@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -151,6 +152,26 @@ public class OpenMeteoProvider implements WeatherProvider {
                     number(daily.path("uv_index_max").get(i))));
         }
         return days;
+    }
+
+    @Override
+    public ZoneId timezone(Coordinates point) {
+        String action = "lấy múi giờ " + point.cacheKey();
+        JsonNode root = get(action, config.forecastUrl(), new HashMap<>(), b -> b
+                .queryParam("latitude", point.lat().toPlainString())
+                .queryParam("longitude", point.lon().toPlainString())
+                .queryParam("daily", "sunrise")
+                .queryParam("timezone", "auto")
+                .queryParam("forecast_days", 1));
+        String zone = text(root.get("timezone"));
+        if (zone == null) {
+            throw unavailable(action, "thiếu timezone", null);
+        }
+        try {
+            return ZoneId.of(zone);
+        } catch (java.time.DateTimeException e) {
+            throw unavailable(action, "timezone lạ: " + zone, e);
+        }
     }
 
     // ---------------------------------------------------------------- helpers

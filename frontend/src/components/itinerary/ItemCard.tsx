@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { ReactNode } from 'react'
-import { ArrowRightLeft, GripVertical, MapPin, Pencil, StickyNote, Trash2 } from 'lucide-react'
+import { ArrowRightLeft, Camera, GripVertical, MapPin, Pencil, StickyNote, Trash2 } from 'lucide-react'
 import { RowMenuButton } from '@/components/common/layout'
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import type { GoldenSlot } from '@/lib/sunTimes'
 import { formatVnd, itineraryCategory, mapsHref } from '@/lib/tripContent'
 import { cn } from '@/lib/utils'
 import type { ItineraryDayResponse, ItineraryItemResponse } from '@/types/itinerary'
@@ -26,10 +27,12 @@ interface ItemCardProps {
   onEdit: () => void
   onDelete: () => void
   onMove: (dayId: number) => void
+  /** Giờ bắt đầu rơi vào giờ vàng (docs/sdd-golden-hour-outfit.md A.5) */
+  golden?: GoldenSlot | null
 }
 
 /** Thẻ hoạt động kéo thả được (dnd-kit sortable). Kéo bằng tay nắm ⋮⋮ để không cản cuộn trang. */
-export function ItemCard({ item, canEdit, otherDays, onEdit, onDelete, onMove }: ItemCardProps) {
+export function ItemCard({ item, canEdit, otherDays, onEdit, onDelete, onMove, golden }: ItemCardProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: itemDndId(item.id),
     disabled: !canEdit,
@@ -44,7 +47,7 @@ export function ItemCard({ item, canEdit, otherDays, onEdit, onDelete, onMove }:
         isDragging && 'z-20 opacity-40 outline-2 outline-dashed outline-primary',
       )}
     >
-      <ItemCardBody item={item}>
+      <ItemCardBody item={item} golden={golden}>
         {canEdit && (
           <div className="flex shrink-0 items-center gap-2">
             <DropdownMenu>
@@ -101,10 +104,12 @@ export function ItemCardBody({
   item,
   children,
   floating = false,
+  golden = null,
 }: {
   item: ItineraryItemResponse
   children?: ReactNode
   floating?: boolean
+  golden?: GoldenSlot | null
 }) {
   const category = itineraryCategory(item.category)
   const href = mapsHref(item.mapsUrl, item.locationName)
@@ -138,6 +143,12 @@ export function ItemCardBody({
 
       <div className="min-w-0 flex-1">
         <p className="leading-snug font-bold break-words text-foreground">{item.title}</p>
+        {golden && (
+          <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-2xs font-semibold whitespace-nowrap text-warning-soft-foreground">
+            <Camera className="size-3" aria-hidden="true" />
+            Giờ vàng {golden === 'morning' ? 'sáng' : 'chiều'}
+          </p>
+        )}
         {item.locationName &&
           (href ? (
             <a

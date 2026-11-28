@@ -25,3 +25,14 @@ const BY_KEY = new Map(DRESS_COLORS.map((c) => [c.key, c]))
 export function dressColor(key: string) {
   return BY_KEY.get(key)
 }
+
+/** Màu nền sáng (độ sáng tương đối > 0,5): chữ/biểu tượng đặt lên nên dùng màu tối. */
+export function isLightColor(hex: string): boolean {
+  const n = Number.parseInt(hex.slice(1), 16)
+  const channel = (v: number) => {
+    const c = v / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  }
+  const l = 0.2126 * channel((n >> 16) & 255) + 0.7152 * channel((n >> 8) & 255) + 0.0722 * channel(n & 255)
+  return l > 0.5
+}

@@ -8,7 +8,8 @@ public enum MediaPurpose {
     TRIP_COVER("cover"),
     AVATAR("avatar"),
     DRESS_CODE("dress-code"),
-    RECEIPT("receipt");
+    RECEIPT("receipt"),
+    OUTFIT("outfit");
 
     private final String folder;
 

@@ -1,5 +1,5 @@
 /** com.tripplanner.media.MediaPurpose */
-export type MediaPurpose = 'TRIP_COVER' | 'AVATAR' | 'DRESS_CODE' | 'RECEIPT'
+export type MediaPurpose = 'TRIP_COVER' | 'AVATAR' | 'DRESS_CODE' | 'RECEIPT' | 'OUTFIT'
 
 /** com.tripplanner.media.dto.MediaResponse — width/height null với WebP */
 export interface MediaResponse {

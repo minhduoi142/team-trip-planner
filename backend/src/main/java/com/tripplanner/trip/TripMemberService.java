@@ -8,6 +8,7 @@ import com.tripplanner.expense.ExpenseShareRepository;
 import com.tripplanner.expense.SettlementRepository;
 import com.tripplanner.notification.event.MemberLeft;
 import com.tripplanner.poll.PollVoteRepository;
+import com.tripplanner.outfit.DayOutfitRepository;
 import com.tripplanner.proposal.ProposalVoteRepository;
 import com.tripplanner.room.RoomAssignmentRepository;
 import com.tripplanner.trip.dto.TripMemberResponse;
@@ -28,6 +29,7 @@ public class TripMemberService {
     private final PollVoteRepository pollVoteRepository;
     private final ProposalVoteRepository proposalVoteRepository;
     private final RoomAssignmentRepository roomAssignmentRepository;
+    private final DayOutfitRepository outfitRepository;
     private final TripAccessService accessService;
     private final ApplicationEventPublisher events;
 
@@ -99,6 +101,7 @@ public class TripMemberService {
         pollVoteRepository.deleteAllForMemberInTrip(tripId, userId);
         proposalVoteRepository.deleteAllForMemberInTrip(tripId, userId);   // đề xuất họ tạo vẫn giữ
         roomAssignmentRepository.deleteAllForMemberInTrip(tripId, userId);
+        outfitRepository.deleteAllForMemberInTrip(tripId, userId);   // outfit từng ngày (V12)
         checklistRepository.unassignAllForMember(tripId, userId);
         memberRepository.delete(member);
     }

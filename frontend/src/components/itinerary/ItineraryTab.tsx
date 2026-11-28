@@ -41,9 +41,12 @@ import { formatVnd } from '@/lib/tripContent'
 import type { IsoDate } from '@/types/api'
 import type { ItineraryItemRequest, ItineraryItemResponse } from '@/types/itinerary'
 import { DayPills } from './DayPills'
+import { goldenSlot } from '@/lib/sunTimes'
 import { DayWeatherCard } from './DayWeatherCard'
 import { DressCodeCard } from './DressCodeCard'
+import { DayOutfits } from '@/components/outfits/DayOutfits'
 import { DressCodeDialog } from './DressCodeDialog'
+import { SunTimesRow } from './SunTimesRow'
 import { ItemCard, ItemCardBody } from './ItemCard'
 import { ItemFormDialog } from './ItemFormDialog'
 import { dayLabel } from './dayLabel'
@@ -75,9 +78,11 @@ interface ItineraryTabProps {
   canEdit: boolean
   /** Mở form sửa chuyến (gắn vị trí điểm đến để có thời tiết) */
   onEditTrip?: () => void
+  /** Số thành viên, cho dòng "Outfit của nhóm · 3/6 người" */
+  memberCount: number
 }
 
-export function ItineraryTab({ tripId, canEdit, onEditTrip }: ItineraryTabProps) {
+export function ItineraryTab({ tripId, canEdit, onEditTrip, memberCount }: ItineraryTabProps) {
   const itinerary = useItinerary(tripId)
   // Chỉ hỏi thời tiết khi đã chốt ngày (có ngày thật)
   const weather = useTripWeather(tripId, itinerary.data?.days.some((d) => d.date !== null) ?? false)
@@ -267,7 +272,9 @@ export function ItineraryTab({ tripId, canEdit, onEditTrip }: ItineraryTabProps)
                 onEditTrip={onEditTrip}
                 onEditDayPlace={() => setDayDialog('place')}
               />
+              <SunTimesRow sun={weatherByDay.get(day.id)?.sun} date={day.date} />
               <DressCodeCard day={day} canEdit={canEdit} onEdit={() => setDayDialog('info')} />
+              <DayOutfits tripId={tripId} day={day} days={data.days} memberCount={memberCount} />
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
@@ -313,6 +320,7 @@ export function ItineraryTab({ tripId, canEdit, onEditTrip }: ItineraryTabProps)
                       otherDays={otherDays}
                       onEdit={() => setItemDialog({ item })}
                       onDelete={() => setToDelete(item)}
+                      golden={goldenSlot(weatherByDay.get(day.id)?.sun, item.startTime)}
                       onMove={(dayId) => {
                         const target = data.days.find((d) => d.id === dayId)
                         moveItem.mutate(
@@ -350,6 +358,7 @@ export function ItineraryTab({ tripId, canEdit, onEditTrip }: ItineraryTabProps)
         onOpenChange={(open) => !open && setItemDialog(null)}
         item={itemDialog?.item}
         dayLabel={label}
+        sun={weatherByDay.get(day.id)?.sun}
         pending={addItem.isPending || updateItem.isPending}
         onSubmit={submitItem}
       />

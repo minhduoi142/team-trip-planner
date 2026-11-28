@@ -12,6 +12,7 @@ import com.tripplanner.tripday.TripDayRepository;
 import com.tripplanner.weather.dto.DayWeatherResponse;
 import com.tripplanner.weather.dto.ForecastResponse;
 import com.tripplanner.weather.dto.GeoPlaceResponse;
+import com.tripplanner.weather.dto.SunResponse;
 import com.tripplanner.weather.dto.TripWeatherResponse;
 import com.tripplanner.weather.model.ForecastSnapshot;
 import com.tripplanner.weather.model.GeoPlace;
@@ -19,6 +20,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,6 +54,7 @@ public class WeatherService {
     private final TransactionTemplate readOnlyTx;
     private final WeatherCache<ForecastSnapshot> forecasts;
     private final WeatherCache<List<GeoPlace>> places;
+    private final TimezoneResolver timezones;
 
     public WeatherService(WeatherProvider provider, AppProperties properties, Clock clock,
                           TripAccessService accessService, TripRepository tripRepository,
@@ -69,6 +72,7 @@ public class WeatherService {
                 Duration.ofHours(config.staleMaxHours()), negative, config.maxEntries());
         this.places = new WeatherCache<>(clock, Duration.ofHours(24), Duration.ofHours(48), negative,
                 config.maxEntries());
+        this.timezones = new TimezoneResolver(provider, config.enabled(), clock, negative, config.maxEntries());
     }
 
     public List<GeoPlaceResponse> search(String rawQuery) {
@@ -109,6 +113,7 @@ public class WeatherService {
     void clearCaches() {
         forecasts.clear();
         places.clear();
+        timezones.clear();
     }
 
     // ---------------------------------------------------------------- helpers
@@ -141,9 +146,24 @@ public class WeatherService {
             }
             result.add(new DayWeatherResponse(day.id(), day.dayIndex(), day.date(), day.placeName(),
                     decision.status(), decision.availableFrom(),
-                    decision.forecast() == null ? null : ForecastResponse.from(decision.forecast())));
+                    decision.forecast() == null ? null : ForecastResponse.from(decision.forecast()),
+                    decision.status() == WeatherStatus.PAST ? null : sun(day)));
         }
         return new TripWeatherResponse(TripWeatherResponse.SOURCE, oldest, result);
+    }
+
+    /** Giờ mặt trời của ngày; null khi chưa có ngày thực / vị trí, không biết múi giờ, hoặc vùng cực. */
+    private SunResponse sun(DayInfo day) {
+        if (day.date() == null || day.location() == null) {
+            return null;
+        }
+        ZoneId zone = timezones.resolve(day.location());
+        if (zone == null) {
+            return null;
+        }
+        return SunTimes.of(day.date(), day.location().lat().doubleValue(), day.location().lon().doubleValue(), zone)
+                .map(s -> SunResponse.from(s, zone))
+                .orElse(null);
     }
 
     /** null nếu không lấy được (các ngày đó → UNAVAILABLE). */

@@ -108,6 +108,26 @@ class OpenMeteoProviderTest {
     }
 
     @Test
+    void timezoneIsReadFromForecastApi() {
+        OpenMeteoProvider provider = provider("");
+        server.expect(requestTo(Matchers.startsWith(FORECAST)))
+                .andExpect(queryParam("timezone", "auto"))
+                .andExpect(queryParam("forecast_days", "1"))
+                .andRespond(withSuccess("""
+                        {"latitude":35.7,"longitude":139.7,"timezone":"Asia/Tokyo","utc_offset_seconds":32400}""",
+                        MediaType.APPLICATION_JSON));
+        assertThat(provider.timezone(new Coordinates(new BigDecimal("35.68"), new BigDecimal("139.69"))))
+                .isEqualTo(java.time.ZoneId.of("Asia/Tokyo"));
+
+        provider = provider("");
+        server.expect(requestTo(Matchers.startsWith(FORECAST)))
+                .andRespond(withSuccess("{\"timezone\":\"Mars/Olympus\"}", MediaType.APPLICATION_JSON));
+        OpenMeteoProvider bad = provider;
+        assertThatThrownBy(() -> bad.timezone(new Coordinates(BigDecimal.ONE, BigDecimal.ONE)))
+                .isInstanceOf(WeatherUnavailableException.class);
+    }
+
+    @Test
     void apiKeyIsSentWhenConfigured() {
         OpenMeteoProvider provider = provider("secret-key");
         server.expect(requestTo(Matchers.startsWith(FORECAST)))

@@ -40,6 +40,21 @@ export interface ForecastResponse {
   advice: AdviceResponse[]
 }
 
+/**
+ * com.tripplanner.weather.dto.SunResponse: giờ địa phương của điểm đến dạng "HH:mm".
+ * Giờ vàng = mặt trời ở độ cao −4°…+6° (docs/sdd-golden-hour-outfit.md phần A).
+ */
+export interface SunResponse {
+  sunrise: string
+  sunset: string
+  morningGoldenStart: string
+  morningGoldenEnd: string
+  eveningGoldenStart: string
+  eveningGoldenEnd: string
+  /** Múi giờ IANA của điểm đến */
+  timezone: string
+}
+
 /** com.tripplanner.weather.dto.DayWeatherResponse */
 export interface DayWeatherResponse {
   dayId: number
@@ -53,6 +68,8 @@ export interface DayWeatherResponse {
   availableFrom: IsoDate | null
   /** Chỉ có khi FORECAST */
   forecast: ForecastResponse | null
+  /** Có khi ngày có ngày thực + vị trí (mọi status trừ PAST); null nếu không biết múi giờ / vùng cực */
+  sun: SunResponse | null
 }
 
 /** com.tripplanner.weather.dto.TripWeatherResponse */

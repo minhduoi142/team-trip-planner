@@ -170,6 +170,61 @@ class WeatherIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    void sunTimesExistForEveryDatedDayEvenBeyondForecastRange() throws Exception {
+        // Mock múi giờ trả null = lỗi → tọa độ trong Việt Nam dùng Asia/Ho_Chi_Minh
+        long tripId = createTrip(TODAY.plusDays(30), TODAY.plusDays(31), "11.94646", "108.44193");
+        lock(tripId, TODAY.plusDays(30), TODAY.plusDays(31));
+        jdbc.update("INSERT INTO trip_days (trip_id, day_index) VALUES (?, 9)", tripId);   // ngày thừa
+
+        JsonNode days = weather(tripId, ownerToken).get("days");
+
+        JsonNode sun = days.get(0).get("sun");
+        assertThat(days.get(0).get("status").asText()).isEqualTo("TOO_FAR");
+        assertThat(sun.get("timezone").asText()).isEqualTo("Asia/Ho_Chi_Minh");
+        assertThat(sun.get("sunrise").asText()).matches("0[5-6]:[0-5][0-9]");
+        assertThat(sun.get("sunset").asText()).matches("1[7-8]:[0-5][0-9]");
+        assertThat(sun.get("eveningGoldenStart").asText()).isLessThan(sun.get("sunset").asText());
+        assertThat(days.get(2).get("status").asText()).isEqualTo("NO_DATE");
+        assertThat(days.get(2).get("sun").isNull()).isTrue();
+        verify(weatherProvider, never()).forecast(any());
+    }
+
+    @Test
+    void sunTimesFollowTheDayOwnPlaceAndItsTimezone() throws Exception {
+        when(weatherProvider.timezone(any())).thenAnswer(inv -> {
+            Coordinates c = inv.getArgument(0);
+            return c.lat().doubleValue() > 30 ? ZoneId.of("Asia/Tokyo") : ZoneId.of("Asia/Ho_Chi_Minh");
+        });
+        long tripId = createTrip(TODAY.plusDays(40), TODAY.plusDays(41), "11.94646", "108.44193");
+        lock(tripId, TODAY.plusDays(40), TODAY.plusDays(41));
+        jdbc.update("""
+                UPDATE trip_days SET place_name = 'Tokyo', place_lat = 35.68, place_lon = 139.69
+                WHERE trip_id = ? AND day_index = 2""", tripId);
+
+        JsonNode days = weather(tripId, ownerToken).get("days");
+
+        assertThat(days.get(0).at("/sun/timezone").asText()).isEqualTo("Asia/Ho_Chi_Minh");
+        assertThat(days.get(1).at("/sun/timezone").asText()).isEqualTo("Asia/Tokyo");
+        assertThat(days.get(1).get("placeName").asText()).isEqualTo("Tokyo");
+    }
+
+    @Test
+    void pastDaysAndForeignPlacesWithoutTimezoneHaveNoSun() throws Exception {
+        // Múi giờ lỗi + tọa độ ngoài Việt Nam → không đoán bừa
+        long tripId = createTrip(TODAY.plusDays(20), TODAY.plusDays(21), "35.68", "139.69");
+        lock(tripId, TODAY.plusDays(20), TODAY.plusDays(21));
+        weather(tripId, ownerToken).get("days").forEach(d -> assertThat(d.get("sun").isNull()).isTrue());
+
+        long past = createTrip(TODAY.plusDays(5), TODAY.plusDays(6), "11.94646", "108.44193");
+        lock(past, TODAY.plusDays(5), TODAY.plusDays(6));
+        jdbc.update("UPDATE trips SET start_date = ?, end_date = ? WHERE id = ?",
+                TODAY.minusDays(5), TODAY.minusDays(4), past);
+        JsonNode days = weather(past, ownerToken).get("days");
+        assertThat(days.get(0).get("status").asText()).isEqualTo("PAST");
+        assertThat(days.get(0).get("sun").isNull()).isTrue();
+    }
+
+    @Test
     void nonMemberIsForbidden() throws Exception {
         long tripId = createTrip(TODAY.plusDays(1), TODAY.plusDays(2), "10.77", "106.70");
         String stranger = register("mai", "Mai");

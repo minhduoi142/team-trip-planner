@@ -18,6 +18,8 @@ import com.tripplanner.poll.PollOptionRepository;
 import com.tripplanner.poll.PollRepository;
 import com.tripplanner.poll.PollVote;
 import com.tripplanner.poll.PollVoteRepository;
+import com.tripplanner.outfit.DayOutfit;
+import com.tripplanner.outfit.DayOutfitRepository;
 import com.tripplanner.proposal.ProposalVote;
 import com.tripplanner.proposal.ProposalVoteRepository;
 import com.tripplanner.proposal.TripProposal;
@@ -43,6 +45,7 @@ import com.tripplanner.tripday.TripDayRepository;
 import com.tripplanner.user.User;
 import com.tripplanner.user.UserRepository;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
@@ -90,6 +93,7 @@ public class DevDataSeeder implements ApplicationRunner {
     private final RoomAssignmentRepository roomAssignmentRepository;
     private final TripProposalRepository proposalRepository;
     private final ProposalVoteRepository proposalVoteRepository;
+    private final DayOutfitRepository outfitRepository;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
@@ -110,6 +114,43 @@ public class DevDataSeeder implements ApplicationRunner {
         seedPhuQuocExpenses();
         seedPhuQuocRooms();
         seedDalatProposals();
+        seedPhuQuocOutfits();
+    }
+
+    /**
+     * Outfit mẫu cho Phú Quốc Ngày 1 (docs/sdd-golden-hour-outfit.md B.5): chỉ màu + ghi chú, không có ảnh
+     * (seeder không upload ảnh). mai và linh cùng chọn Trắng để thấy dòng "cùng chọn".
+     */
+    private void seedPhuQuocOutfits() {
+        Trip trip = tripRepository.findByInviteCode("PHUQUOC27").orElse(null);
+        if (trip == null) {
+            return;
+        }
+        List<TripDay> days = tripDayRepository.findAllByTripId(trip.getId());
+        if (days.isEmpty() || outfitRepository.countByDayId(days.getFirst().getId()) > 0) {
+            return;
+        }
+        Map<String, User> u = membersByUsername(trip);
+        Map<String, List<String>> colors = new LinkedHashMap<>();
+        colors.put("mai", List.of("white", "beige"));
+        colors.put("linh", List.of("white", "sky"));
+        colors.put("thao", List.of("pastel-pink"));
+        Map<String, String> notes = Map.of(
+                "mai", "Váy maxi trắng + mũ cói",
+                "linh", "Áo sơ mi trắng, quần short xanh",
+                "thao", "Đầm hồng nhạt, sandal trắng");
+        colors.forEach((username, keys) -> {
+            User user = u.get(username);
+            if (user == null) {
+                return;
+            }
+            DayOutfit outfit = new DayOutfit(days.getFirst(), user);
+            outfit.getColors().addAll(keys);
+            outfit.setNote(notes.get(username));
+            outfit.setUpdatedAt(Instant.now(clock));
+            outfitRepository.save(outfit);
+        });
+        log.info("Đã tạo outfit mẫu cho Phú Quốc Ngày 1");
     }
 
     /** Phase 4: tài khoản nhận tiền MẪU (số tài khoản giả) để thử VietQR. */

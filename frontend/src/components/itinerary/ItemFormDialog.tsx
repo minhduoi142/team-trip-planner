@@ -14,8 +14,10 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
+import { roundDown5 } from '@/lib/sunTimes'
 import { ITINERARY_CATEGORIES } from '@/lib/tripContent'
 import type { ItineraryCategory, ItineraryItemRequest, ItineraryItemResponse } from '@/types/itinerary'
+import type { SunResponse } from '@/types/weather'
 
 interface ItemFormDialogProps {
   open: boolean
@@ -23,6 +25,8 @@ interface ItemFormDialogProps {
   /** Có item → chế độ sửa */
   item?: ItineraryItemResponse
   dayLabel: string
+  /** Giờ vàng của ngày: gợi ý giờ bắt đầu cho hoạt động chụp ảnh */
+  sun?: SunResponse | null
   pending: boolean
   onSubmit: (body: ItineraryItemRequest) => Promise<unknown>
 }
@@ -51,7 +55,7 @@ interface FormState {
 const orNull = (value: string) => (value.trim() ? value.trim() : null)
 const digitsOnly = (value: string) => value.replace(/\D/g, '')
 
-function ItemForm({ item, dayLabel, pending, onSubmit, onOpenChange }: ItemFormDialogProps) {
+function ItemForm({ item, dayLabel, sun, pending, onSubmit, onOpenChange }: ItemFormDialogProps) {
   const [form, setForm] = useState<FormState>(() => ({
     title: item?.title ?? '',
     category: item?.category ?? 'SIGHTSEEING',
@@ -133,6 +137,27 @@ function ItemForm({ item, dayLabel, pending, onSubmit, onOpenChange }: ItemFormD
           <Input id="item-end" type="time" value={form.endTime} onChange={(e) => set('endTime', e.target.value)} />
         </FormField>
       </div>
+      {sun && (
+        <div className="-mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>Giờ vàng để chụp ảnh:</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            onClick={() => set('startTime', roundDown5(sun.morningGoldenStart))}
+          >
+            Sáng {sun.morningGoldenStart}–{sun.morningGoldenEnd}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            onClick={() => set('startTime', roundDown5(sun.eveningGoldenStart))}
+          >
+            Chiều {sun.eveningGoldenStart}–{sun.eveningGoldenEnd}
+          </Button>
+        </div>
+      )}
 
       <FormField id="item-location" label="Địa điểm" optional error={errors.locationName}>
         <Input
