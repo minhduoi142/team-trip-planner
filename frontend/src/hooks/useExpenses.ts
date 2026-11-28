@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { expenseApi } from '@/api/expense'
-import type { ExpenseRequest, ExpenseSummaryResponse, SettlementRequest } from '@/types/expense'
+import type { ExpenseRequest, ExpenseSummaryResponse, FundRequest, SettlementRequest } from '@/types/expense'
 import { tripKeys } from './useTrips'
 
 export function useExpenses(tripId: number) {
@@ -37,4 +37,14 @@ export function useConfirmSettlement(tripId: number) {
 
 export function useDeleteSettlement(tripId: number) {
   return useExpenseMutation(tripId, (id: number) => expenseApi.deleteSettlement(id))
+}
+
+/** Bật / sửa quỹ chung (OWNER) */
+export function useUpsertFund(tripId: number) {
+  return useExpenseMutation(tripId, (body: FundRequest) => expenseApi.upsertFund(tripId, body))
+}
+
+/** Tắt quỹ chung (OWNER, chỉ khi chưa có giao dịch) */
+export function useDisableFund(tripId: number) {
+  return useExpenseMutation(tripId, () => expenseApi.disableFund(tripId))
 }

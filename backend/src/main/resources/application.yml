@@ -69,6 +69,8 @@ app:
     secret-key: ${MINIO_SECRET_KEY:}
     bucket: ${MINIO_BUCKET:trip-planner}
     public-url: ${MINIO_PUBLIC_URL:}
+    # Giấy tờ chuyến đi (vé, CCCD…): bucket RIÊNG TƯ, không bao giờ bật đọc công khai (docs/sdd-trip-documents.md)
+    private-bucket: ${MINIO_PRIVATE_BUCKET:trip-planner-private}
   mail:
     # Gmail: phải trùng MAIL_USERNAME, nếu không Gmail tự thay bằng địa chỉ đăng nhập
     from: ${MAIL_FROM:}

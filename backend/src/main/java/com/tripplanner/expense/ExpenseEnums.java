@@ -12,4 +12,7 @@ public final class ExpenseEnums {
 
     /** PENDING: người chuyển báo đã chuyển; CONFIRMED: người nhận xác nhận (mới tính vào số dư). */
     public enum SettlementStatus { PENDING, CONFIRMED }
+
+    /** DEBT: trả nợ theo gợi ý; FUND: nộp quỹ chung cho thủ quỹ (docs/sdd-trip-fund.md). Cả hai đều tính số dư. */
+    public enum SettlementKind { DEBT, FUND }
 }

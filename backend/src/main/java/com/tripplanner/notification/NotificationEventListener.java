@@ -120,6 +120,9 @@ public class NotificationEventListener {
             Map<String, Object> payload = payload(s, "fromName", s.name(event.fromUserId()));
             payload.put("toName", s.name(event.toUserId()));
             payload.put("amount", event.amount());
+            if (event.fund()) {
+                payload.put("fund", true);
+            }
             long from = event.fromUserId();
             long to = event.toUserId();
 

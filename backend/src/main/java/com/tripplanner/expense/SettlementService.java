@@ -2,6 +2,7 @@ package com.tripplanner.expense;
 
 import com.tripplanner.common.BusinessException;
 import com.tripplanner.common.ErrorCode;
+import com.tripplanner.expense.ExpenseEnums.SettlementKind;
 import com.tripplanner.expense.ExpenseEnums.SettlementStatus;
 import com.tripplanner.expense.dto.ExpenseDtos.ExpenseSummaryResponse;
 import com.tripplanner.expense.dto.ExpenseDtos.SettlementRequest;
@@ -31,6 +32,7 @@ public class SettlementService {
     private final UserRepository userRepository;
     private final ExpenseSummaryBuilder summaryBuilder;
     private final ApplicationEventPublisher events;
+    private final TripFundRepository fundRepository;
 
     @Transactional
     public ExpenseSummaryResponse create(Long tripId, Long userId, SettlementRequest request) {
@@ -46,12 +48,22 @@ public class SettlementService {
         if (memberRepository.findMember(tripId, from).isEmpty() || memberRepository.findMember(tripId, to).isEmpty()) {
             throw new BusinessException(ErrorCode.NOT_A_MEMBER);
         }
+        SettlementKind kind = request.kindOrDefault();
+        if (kind == SettlementKind.FUND) {
+            // Nộp quỹ: quỹ phải đang bật và người nhận phải là thủ quỹ (docs/sdd-trip-fund.md 3.2)
+            TripFund fund = fundRepository.findWithTreasurer(tripId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.FUND_NOT_ENABLED));
+            if (!fund.getTreasurer().getId().equals(to)) {
+                throw new BusinessException(ErrorCode.INVALID_TRANSFER_TARGET);
+            }
+        }
         boolean receiverRecords = userId.equals(to);
         Settlement saved = settlementRepository.save(Settlement.builder()
                 .trip(me.getTrip())
                 .fromUser(userRepository.getReferenceById(from))
                 .toUser(userRepository.getReferenceById(to))
                 .amount(request.amount())
+                .kind(kind)
                 .status(receiverRecords ? SettlementStatus.CONFIRMED : SettlementStatus.PENDING)
                 .confirmedAt(receiverRecords ? Instant.now() : null)
                 .build());
@@ -95,7 +107,7 @@ public class SettlementService {
     /** Email thông báo (docs/sdd-email-notifications.md §6): listener ghi outbox lúc commit. */
     private void publish(Long tripId, Settlement s, SettlementChanged.Kind kind) {
         events.publishEvent(new SettlementChanged(tripId, s.getId(), kind, s.getFromUser().getId(),
-                s.getToUser().getId(), s.getAmount()));
+                s.getToUser().getId(), s.getAmount(), s.getKind() == SettlementKind.FUND));
     }
 
     private record Access(Settlement settlement, Long tripId, TripMember me) {

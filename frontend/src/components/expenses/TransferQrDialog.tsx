@@ -19,6 +19,8 @@ export interface QrTransfer {
   amount: number
   to: MemberBalanceResponse
   fromName: string
+  /** Nộp quỹ chung cho thủ quỹ (docs/sdd-trip-fund.md) */
+  fund?: boolean
 }
 
 interface TransferQrDialogProps {
@@ -52,7 +54,7 @@ function QrContent({
   onMarkSent: () => void
 }) {
   const bank = transfer.to.bank
-  const content = toTransferContent(`${tripTitle} ${transfer.fromName}`)
+  const content = toTransferContent(`${transfer.fund ? 'Quy ' : ''}${tripTitle} ${transfer.fromName}`)
   const [qr, setQr] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
 
@@ -110,7 +112,9 @@ function QrContent({
   return (
     <div className="grid gap-4">
       <DialogHeader>
-        <DialogTitle>Chuyển cho {transfer.to.displayName}</DialogTitle>
+        <DialogTitle>
+          {transfer.fund ? 'Nộp quỹ cho' : 'Chuyển cho'} {transfer.to.displayName}
+        </DialogTitle>
         <DialogDescription>
           Lưu ảnh QR rồi mở app ngân hàng → Quét QR → chọn ảnh. Số tiền và nội dung đã điền sẵn.
         </DialogDescription>

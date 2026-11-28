@@ -28,7 +28,7 @@ class MinioStorageServiceRealTest {
         String secretKey = System.getenv("MINIO_TEST_SECRET_KEY");
         String bucket = System.getenv().getOrDefault("MINIO_TEST_BUCKET", "trip-planner");
         AppProperties properties = new AppProperties(null, null, null, null, "Asia/Ho_Chi_Minh",
-                new AppProperties.Storage(endpoint, accessKey, secretKey, bucket, endpoint), null, null, null, null, null);
+                new AppProperties.Storage(endpoint, accessKey, secretKey, bucket, endpoint, bucket + "-private"), null, null, null, null, null);
         MinioStorageService storage = new MinioStorageService(properties);
 
         byte[] png = TestImages.image("png", 12, 12);

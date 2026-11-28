@@ -1,5 +1,5 @@
 import { api } from '@/lib/api'
-import type { ExpenseRequest, ExpenseSummaryResponse, SettlementRequest } from '@/types/expense'
+import type { ExpenseRequest, ExpenseSummaryResponse, FundRequest, SettlementRequest } from '@/types/expense'
 
 /** Mọi thao tác ghi trả lại toàn bộ tổng hợp chi tiêu. */
 export const expenseApi = {
@@ -13,4 +13,7 @@ export const expenseApi = {
     api.post<ExpenseSummaryResponse>(`/trips/${tripId}/settlements`, body).then((r) => r.data),
   confirmSettlement: (id: number) => api.post<ExpenseSummaryResponse>(`/settlements/${id}/confirm`).then((r) => r.data),
   deleteSettlement: (id: number) => api.delete<ExpenseSummaryResponse>(`/settlements/${id}`).then((r) => r.data),
+  upsertFund: (tripId: number, body: FundRequest) =>
+    api.put<ExpenseSummaryResponse>(`/trips/${tripId}/fund`, body).then((r) => r.data),
+  disableFund: (tripId: number) => api.delete<ExpenseSummaryResponse>(`/trips/${tripId}/fund`).then((r) => r.data),
 }

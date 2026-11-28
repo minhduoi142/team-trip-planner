@@ -36,8 +36,10 @@ import {
   useCreateSettlement,
   useDeleteExpense,
   useDeleteSettlement,
+  useDisableFund,
   useExpenses,
   useUpdateExpense,
+  useUpsertFund,
 } from '@/hooks/useExpenses'
 import { tripKeys } from '@/hooks/useTrips'
 import { getErrorMessage } from '@/lib/api'
@@ -48,11 +50,14 @@ import type {
   ExpenseRequest,
   ExpenseResponse,
   MemberBalanceResponse,
+  SettlementKind,
   SettlementResponse,
   TransferResponse,
 } from '@/types/expense'
 import type { TripMemberResponse } from '@/types/trip'
 import { ExpenseFormDialog } from './ExpenseFormDialog'
+import { FundCard, FundPrompt } from './FundCard'
+import { FundDialog } from './FundDialog'
 import { TransferQrDialog, type QrTransfer } from './TransferQrDialog'
 
 interface ExpensesTabProps {
@@ -77,6 +82,9 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
   const createSettlement = useCreateSettlement(tripId)
   const confirmSettlement = useConfirmSettlement(tripId)
   const deleteSettlement = useDeleteSettlement(tripId)
+  const upsertFund = useUpsertFund(tripId)
+  const disableFund = useDisableFund(tripId)
+  const [fundOpen, setFundOpen] = useState(false)
   const [, setParams] = useSearchParams()
 
   const [formFor, setFormFor] = useState<{ expense?: ExpenseResponse } | null>(null)
@@ -136,13 +144,17 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
     setFormFor(null)
   }
 
-  const markSent = (toUserId: number, amount: number, onDone?: () => void) =>
+  const markSent = (toUserId: number, amount: number, kind: SettlementKind, onDone?: () => void) =>
     createSettlement.mutate(
-      { fromUserId: myUserId, toUserId, amount },
+      { fromUserId: myUserId, toUserId, amount, kind },
       {
         onSuccess: () => {
           onDone?.()
-          toast.success(`Đã báo chuyển, chờ ${nameOf(toUserId)} xác nhận`)
+          toast.success(
+            kind === 'FUND'
+              ? `Đã báo nộp quỹ, chờ ${nameOf(toUserId)} xác nhận`
+              : `Đã báo chuyển, chờ ${nameOf(toUserId)} xác nhận`,
+          )
         },
         onError,
       },
@@ -154,7 +166,7 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
     switch (action.kind) {
       case 'received':
         createSettlement.mutate(
-          { fromUserId: action.fromUserId, toUserId: myUserId, amount: action.amount },
+          { fromUserId: action.fromUserId, toUserId: myUserId, amount: action.amount, kind: 'DEBT' },
           {
             onSuccess: () => {
               setAction(null)
@@ -224,6 +236,7 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
         members={members}
         myUserId={myUserId}
         canChoosePayer={isOwner}
+        fund={data.fund}
         pending={create.isPending || update.isPending}
         onSubmit={submitExpense}
       />
@@ -232,7 +245,29 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
         tripTitle={tripTitle}
         pending={createSettlement.isPending}
         onOpenChange={(open) => !open && setQr(null)}
-        onMarkSent={() => qr && markSent(qr.to.userId, qr.amount, () => setQr(null))}
+        onMarkSent={() => qr && markSent(qr.to.userId, qr.amount, qr.fund ? 'FUND' : 'DEBT', () => setQr(null))}
+      />
+      <FundDialog
+        open={fundOpen}
+        onOpenChange={setFundOpen}
+        fund={data.fund}
+        members={members}
+        myUserId={myUserId}
+        pending={upsertFund.isPending || disableFund.isPending}
+        onSubmit={async (body) => {
+          await upsertFund.mutateAsync(body)
+          setFundOpen(false)
+          toast.success(data.fund ? 'Đã lưu quỹ chung' : 'Đã bật quỹ chung')
+        }}
+        onDisable={() =>
+          disableFund.mutate(undefined, {
+            onSuccess: () => {
+              setFundOpen(false)
+              toast.success('Đã tắt quỹ chung')
+            },
+            onError,
+          })
+        }
       />
       <ConfirmDialog
         open={toDelete !== null}
@@ -261,10 +296,28 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
     </>
   )
 
+  const fundSection = data.fund ? (
+    <FundCard
+      fund={data.fund}
+      byId={byId}
+      myUserId={myUserId}
+      busy={settlementBusy}
+      onContribute={(amount) => {
+        const to = data.fund ? byId.get(data.fund.treasurerId) : undefined
+        if (to) setQr({ amount, to, fromName: me?.displayName ?? '', fund: true })
+      }}
+      onManage={() => setFundOpen(true)}
+      onOpenBankProfile={openBankProfile}
+    />
+  ) : isOwner ? (
+    <FundPrompt onSetup={() => setFundOpen(true)} />
+  ) : null
+
   // P3-CP-14: chưa có gì thì chỉ hiện trạng thái rỗng, không hiện "0 ₫"
   if (data.expenses.length === 0 && data.settlements.length === 0) {
     return (
       <div className="grid gap-4">
+        {fundSection}
         <EmptyState
           icon={Wallet}
           title="Chưa có khoản chi nào"
@@ -292,6 +345,7 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
 
   return (
     <div className="grid gap-4">
+      {fundSection}
       {/* Số dư của tôi (P3-CP-02) */}
       <Card className="py-0">
         <CardContent className="grid gap-4 p-5 sm:p-6">
@@ -454,6 +508,11 @@ export function ExpensesTab({ tripId, tripTitle, myUserId, isOwner, members }: E
                       <span className="truncate font-semibold text-foreground">{nameOf(s.toUserId)}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
+                      {s.kind === 'FUND' && (
+                        <span className="mr-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 font-semibold text-primary-strong">
+                          Nộp quỹ
+                        </span>
+                      )}
                       {dayjs(s.confirmedAt ?? s.createdAt).format('DD/MM/YYYY HH:mm')}
                     </p>
                   </div>
@@ -598,7 +657,7 @@ function PendingRow({
     <li className={cn('flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3', (toMe || fromMe) && 'bg-primary/5')}>
       <div className="min-w-0 flex-1">
         <p className="text-sm text-foreground">
-          <b className="font-semibold">{nameOf(s.fromUserId)}</b> đã chuyển{' '}
+          <b className="font-semibold">{nameOf(s.fromUserId)}</b> {s.kind === 'FUND' ? 'đã nộp quỹ' : 'đã chuyển'}{' '}
           <b className="font-bold whitespace-nowrap tabular-nums">{formatVnd(s.amount)}</b> cho{' '}
           <b className="font-semibold">{nameOf(s.toUserId)}</b>
         </p>
@@ -706,8 +765,14 @@ function ExpenseRow({
         <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
           {payer && <UserAvatar userId={payer.userId} name={payer.displayName} avatarUrl={payer.avatarUrl} size="sm" />}
           <span className="truncate">
-            {payerName} trả · {e.shares.length} người{e.splitMode === 'CUSTOM' && ' · chia riêng'}
+            {e.fromFund ? 'Quỹ chung' : `${payerName} trả`} · {e.shares.length} người
+            {e.splitMode === 'CUSTOM' && ' · chia riêng'}
           </span>
+          {e.fromFund && (
+            <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-2xs font-semibold text-primary-strong">
+              Từ quỹ
+            </span>
+          )}
         </p>
       </div>
       <div className="text-right">

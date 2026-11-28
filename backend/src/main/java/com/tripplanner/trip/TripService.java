@@ -5,6 +5,7 @@ import com.tripplanner.common.BusinessException;
 import com.tripplanner.common.ErrorCode;
 import com.tripplanner.expense.ExpenseRepository;
 import com.tripplanner.expense.SettlementRepository;
+import com.tripplanner.expense.TripFundRepository;
 import com.tripplanner.notification.event.MemberJoined;
 import com.tripplanner.trip.dto.InviteCodeResponse;
 import com.tripplanner.trip.dto.InvitePreviewResponse;
@@ -17,6 +18,7 @@ import com.tripplanner.trip.dto.TripSummaryResponse;
 import com.tripplanner.user.User;
 import com.tripplanner.weather.Coordinates;
 import com.tripplanner.user.UserService;
+import com.tripplanner.document.DocumentService;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -45,6 +47,8 @@ public class TripService {
     private final ChecklistRepository checklistRepository;
     private final ExpenseRepository expenseRepository;
     private final SettlementRepository settlementRepository;
+    private final TripFundRepository fundRepository;
+    private final DocumentService documentService;
     private final TripAccessService accessService;
     private final InviteCodeGenerator inviteCodeGenerator;
     private final UserService userService;
@@ -110,8 +114,10 @@ public class TripService {
         // Các bảng có FK tổ hợp tới trip_members (không CASCADE) → xóa trước thành viên:
         // settlements, expenses (shares tự xóa theo), checklist. Polls/options/votes, trip_days → lịch trình/màu
         // và lịch rảnh tự xóa theo bằng CASCADE ở DB.
+        documentService.deleteFilesOfTripAfterCommit(tripId);   // giấy tờ: dòng CASCADE, file riêng tư xóa tay
         settlementRepository.deleteAllByTripId(tripId);
         expenseRepository.deleteAllByTripId(tripId);
+        fundRepository.deleteByTripId(tripId);   // quỹ chung: FK tổ hợp tới thủ quỹ (V14)
         checklistRepository.deleteAllByTripId(tripId);
         memberRepository.deleteAllByTripId(tripId);
         tripRepository.deleteById(trip.getId());

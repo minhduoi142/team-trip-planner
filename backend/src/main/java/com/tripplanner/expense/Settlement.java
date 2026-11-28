@@ -1,5 +1,6 @@
 package com.tripplanner.expense;
 
+import com.tripplanner.expense.ExpenseEnums.SettlementKind;
 import com.tripplanner.expense.ExpenseEnums.SettlementStatus;
 import com.tripplanner.trip.Trip;
 import com.tripplanner.user.User;
@@ -52,6 +53,13 @@ public class Settlement {
 
     @Column(name = "amount", nullable = false)
     private Long amount;
+
+    /** Nộp quỹ hay trả nợ (V14). */
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "kind", nullable = false, length = 10)
+    @Builder.Default
+    private SettlementKind kind = SettlementKind.DEBT;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)

@@ -60,6 +60,10 @@ public class Expense {
     @JoinColumn(name = "paid_by", nullable = false)
     private User paidBy;
 
+    /** Chi từ quỹ chung (V14): khi TRUE, người trả luôn là thủ quỹ. */
+    @Column(name = "from_fund", nullable = false)
+    private boolean fromFund;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "split_mode", nullable = false, length = 10)

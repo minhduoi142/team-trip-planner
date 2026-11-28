@@ -42,6 +42,7 @@ public class ExpenseService {
     private final UserRepository userRepository;
     private final ExpenseSummaryBuilder summaryBuilder;
     private final ApplicationEventPublisher events;
+    private final TripFundRepository fundRepository;
 
     @Transactional(readOnly = true)
     public ExpenseSummaryResponse summary(Long tripId, Long userId) {
@@ -50,9 +51,12 @@ public class ExpenseService {
     }
 
     @Transactional
-    public ExpenseSummaryResponse create(Long tripId, Long userId, ExpenseRequest request) {
+    public ExpenseSummaryResponse create(Long tripId, Long userId, ExpenseRequest original) {
         TripMember me = accessService.require(tripId, userId, TripRole.VIEWER);
-        requireCanSetPayer(me, request.paidBy());
+        ExpenseRequest request = forFund(tripId, me, original);
+        if (!request.fundExpense()) {
+            requireCanSetPayer(me, request.paidBy());
+        }
         Set<Long> memberIds = memberIds(tripId);
         Map<Long, Long> shares = computeShares(request, memberIds);
 
@@ -68,10 +72,12 @@ public class ExpenseService {
     }
 
     @Transactional
-    public ExpenseSummaryResponse update(Long expenseId, Long userId, ExpenseRequest request) {
+    public ExpenseSummaryResponse update(Long expenseId, Long userId, ExpenseRequest original) {
         Access access = requireEditable(expenseId, userId);
-        // Đổi người trả sang người khác = ghi hộ → cần OWNER; giữ nguyên người trả cũ thì được
-        if (!access.expense().getPaidBy().getId().equals(request.paidBy())) {
+        ExpenseRequest request = forFund(access.tripId(), access.me(), original);
+        // Đổi người trả sang người khác = ghi hộ → cần OWNER; giữ nguyên người trả cũ thì được.
+        // Chi từ quỹ: người trả luôn là thủ quỹ, quyền đã kiểm ở forFund.
+        if (!request.fundExpense() && !access.expense().getPaidBy().getId().equals(request.paidBy())) {
             requireCanSetPayer(access.me(), request.paidBy());
         }
         Map<Long, Long> shares = computeShares(request, memberIds(access.tripId()));
@@ -94,6 +100,24 @@ public class ExpenseService {
     }
 
     // ---------------------------------------------------------------- helpers
+
+    /**
+     * Chi từ quỹ chung (docs/sdd-trip-fund.md 3.2): quỹ phải đang bật, người gọi là thủ quỹ hoặc OWNER; người trả
+     * bị đặt lại là thủ quỹ. Khoản chi thường thì trả nguyên request.
+     */
+    private ExpenseRequest forFund(Long tripId, TripMember me, ExpenseRequest request) {
+        if (!request.fundExpense()) {
+            return request;
+        }
+        TripFund fund = fundRepository.findWithTreasurer(tripId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FUND_NOT_ENABLED));
+        Long treasurerId = fund.getTreasurer().getId();
+        if (me.getRole() != TripRole.OWNER && !treasurerId.equals(me.getId().getUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN,
+                    "Chỉ thủ quỹ hoặc Trưởng nhóm mới ghi được khoản chi từ quỹ chung");
+        }
+        return request.withPaidBy(treasurerId);
+    }
 
     /** userId → số tiền; kiểm tra người trả + người tham gia thuộc nhóm, tổng khớp. */
     private Map<Long, Long> computeShares(ExpenseRequest request, Set<Long> memberIds) {
@@ -154,6 +178,7 @@ public class ExpenseService {
         expense.setSpentOn(request.spentOn());
         expense.setNote(blankToNull(request.note()));
         expense.setReceiptUrl(blankToNull(request.receiptUrl()));
+        expense.setFromFund(request.fundExpense());
     }
 
     private static void requireCanSetPayer(TripMember me, Long paidBy) {

@@ -21,6 +21,8 @@ public enum ErrorCode {
     INVALID_SETTLEMENT(HttpStatus.BAD_REQUEST, "Thao tác thanh toán không hợp lệ"),
     INVALID_DRIVE_LINK(HttpStatus.BAD_REQUEST, "Link không phải link Google Drive hợp lệ"),
     PACKING_LIMIT_REACHED(HttpStatus.BAD_REQUEST, "Danh sách đã đủ 200 món"),
+    FUND_NOT_ENABLED(HttpStatus.BAD_REQUEST, "Chuyến này chưa bật quỹ chung"),
+    INVALID_TRANSFER_TARGET(HttpStatus.BAD_REQUEST, "Tiền nộp quỹ phải chuyển cho thủ quỹ"),
     INVALID_EMAIL_VERIFICATION(HttpStatus.BAD_REQUEST, "Liên kết xác minh không hợp lệ hoặc đã hết hạn"),
     NOTIFY_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "Bạn chưa có email nhận thông báo đã xác minh"),
     INVALID_UNSUBSCRIBE_TOKEN(HttpStatus.BAD_REQUEST, "Liên kết huỷ nhận không hợp lệ"),
@@ -51,6 +53,7 @@ public enum ErrorCode {
     ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy phòng"),
     PROPOSAL_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy đề xuất"),
     PACKING_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy món này"),
+    DOCUMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy giấy tờ"),
 
     CONFLICT(HttpStatus.CONFLICT, "Dữ liệu bị trùng hoặc xung đột, vui lòng thử lại"),
     USERNAME_TAKEN(HttpStatus.CONFLICT, "Tên đăng nhập đã có người dùng"),
@@ -67,6 +70,8 @@ public enum ErrorCode {
     ROOM_FULL(HttpStatus.CONFLICT, "Phòng đã đủ người"),
     DUPLICATE_ROOM(HttpStatus.CONFLICT, "Đã có phòng trùng tên trong chuyến"),
     PROPOSAL_ALREADY_SCHEDULED(HttpStatus.CONFLICT, "Đề xuất này đã được đưa vào lịch trình"),
+    FUND_IN_USE(HttpStatus.CONFLICT, "Quỹ đã có người nộp hoặc đã chi, không đổi thủ quỹ hay tắt quỹ được nữa"),
+    MEMBER_IS_TREASURER(HttpStatus.CONFLICT, "Người này đang giữ quỹ chung. Đổi thủ quỹ hoặc tắt quỹ trước"),
     GOOGLE_ALREADY_LINKED(HttpStatus.CONFLICT, "Tài khoản Google này đã gắn với một tài khoản khác trong hệ thống"),
     GOOGLE_UNLINK_NOT_ALLOWED(HttpStatus.CONFLICT, "Tài khoản chỉ đăng nhập bằng Google nên không hủy liên kết được"),
     MEMBER_HAS_EXPENSES(HttpStatus.CONFLICT, "Thành viên còn khoản chi hoặc thanh toán trong chuyến, hãy xử lý xong trước"),
@@ -78,6 +83,7 @@ public enum ErrorCode {
 
     FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "Ảnh quá lớn, tối đa 10 MB"),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Chỉ hỗ trợ ảnh JPG, PNG hoặc WebP"),
+    UNSUPPORTED_DOCUMENT_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Chỉ hỗ trợ ảnh JPG, PNG, WebP hoặc file PDF"),
     STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Kho lưu ảnh đang không hoạt động, thử lại sau"),
     GOOGLE_LOGIN_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "Đăng nhập Google chưa được cấu hình trên máy chủ"),
     MAIL_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "Máy chủ chưa cấu hình gửi email"),

@@ -30,12 +30,15 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: ${MINIO_BUCKET:-trip-planner}
+      MINIO_PRIVATE_BUCKET: ${MINIO_PRIVATE_BUCKET:-trip-planner-private}
     entrypoint: >
       sh -c '
       until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; do sleep 1; done;
       mc mb --ignore-existing "local/$$MINIO_BUCKET" &&
       mc anonymous set download "local/$$MINIO_BUCKET" &&
-      echo "Bucket $$MINIO_BUCKET sẵn sàng (đọc công khai)"
+      mc mb --ignore-existing "local/$$MINIO_PRIVATE_BUCKET" &&
+      echo "Bucket $$MINIO_BUCKET sẵn sàng (đọc công khai)" &&
+      echo "Bucket $$MINIO_PRIVATE_BUCKET sẵn sàng (riêng tư, KHÔNG đặt anonymous)"
       '
     restart: "no"
 

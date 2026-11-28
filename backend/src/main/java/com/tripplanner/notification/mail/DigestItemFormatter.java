@@ -34,10 +34,12 @@ public final class DigestItemFormatter {
                     text(p, "actorName") + " đã xoá khoản chi “" + text(p, "expenseTitle") + "”",
                     "Tổng " + FMT.money(p.path("amount").asLong()));
             case SETTLEMENT_PENDING -> new DigestItem(
-                    text(p, "fromName") + " báo đã chuyển cho bạn " + FMT.money(p.path("amount").asLong()),
+                    text(p, "fromName") + (p.path("fund").asBoolean(false) ? " báo đã nộp quỹ chung cho bạn "
+                            : " báo đã chuyển cho bạn ") + FMT.money(p.path("amount").asLong()),
                     "Vào mục Chi tiêu để xác nhận đã nhận tiền");
             case SETTLEMENT_CONFIRMED -> new DigestItem(
-                    text(p, "toName") + " đã xác nhận nhận " + FMT.money(p.path("amount").asLong()) + " từ bạn", null);
+                    text(p, "toName") + " đã xác nhận nhận " + FMT.money(p.path("amount").asLong())
+                            + (p.path("fund").asBoolean(false) ? " tiền nộp quỹ của bạn" : " từ bạn"), null);
             case SETTLEMENT_REJECTED -> new DigestItem(
                     text(p, "toName") + " đã huỷ khoản " + FMT.money(p.path("amount").asLong())
                             + " bạn ghi là đã chuyển", "Kiểm tra lại với " + text(p, "toName") + " nhé");

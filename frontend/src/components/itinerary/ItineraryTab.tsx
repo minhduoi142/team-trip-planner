@@ -44,6 +44,7 @@ import { DayPills } from './DayPills'
 import { goldenSlot } from '@/lib/sunTimes'
 import { DayWeatherCard } from './DayWeatherCard'
 import { DressCodeCard } from './DressCodeCard'
+import { DayDocuments } from '@/components/documents/DayDocuments'
 import { DayOutfits } from '@/components/outfits/DayOutfits'
 import { DressCodeDialog } from './DressCodeDialog'
 import { SunTimesRow } from './SunTimesRow'
@@ -273,6 +274,7 @@ export function ItineraryTab({ tripId, canEdit, onEditTrip, memberCount }: Itine
                 onEditDayPlace={() => setDayDialog('place')}
               />
               <SunTimesRow sun={weatherByDay.get(day.id)?.sun} date={day.date} />
+              <DayDocuments tripId={tripId} date={day.date} />
               <DressCodeCard day={day} canEdit={canEdit} onEdit={() => setDayDialog('info')} />
               <DayOutfits tripId={tripId} day={day} days={data.days} memberCount={memberCount} />
             </div>

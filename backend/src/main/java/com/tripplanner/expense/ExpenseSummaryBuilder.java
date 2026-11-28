@@ -1,10 +1,13 @@
 package com.tripplanner.expense;
 
 import com.tripplanner.bank.BankAccountResponse;
+import com.tripplanner.expense.ExpenseEnums.SettlementKind;
 import com.tripplanner.expense.ExpenseEnums.SettlementStatus;
 import com.tripplanner.expense.dto.ExpenseDtos.CategoryTotalResponse;
 import com.tripplanner.expense.dto.ExpenseDtos.ExpenseResponse;
 import com.tripplanner.expense.dto.ExpenseDtos.ExpenseSummaryResponse;
+import com.tripplanner.expense.dto.ExpenseDtos.FundMemberResponse;
+import com.tripplanner.expense.dto.ExpenseDtos.FundResponse;
 import com.tripplanner.expense.dto.ExpenseDtos.MemberBalanceResponse;
 import com.tripplanner.expense.dto.ExpenseDtos.SettlementResponse;
 import com.tripplanner.expense.dto.ExpenseDtos.ShareResponse;
@@ -12,6 +15,7 @@ import com.tripplanner.expense.dto.ExpenseDtos.TransferResponse;
 import com.tripplanner.trip.TripMember;
 import com.tripplanner.trip.TripMemberRepository;
 import com.tripplanner.trip.TripRole;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -30,6 +34,7 @@ class ExpenseSummaryBuilder {
     private final ExpenseRepository expenseRepository;
     private final ExpenseShareRepository shareRepository;
     private final SettlementRepository settlementRepository;
+    private final TripFundRepository fundRepository;
 
     ExpenseSummaryResponse build(Long tripId, TripMember me) {
         Long myId = me.getId().getUserId();
@@ -80,7 +85,8 @@ class ExpenseSummaryBuilder {
                         sharesByExpense.getOrDefault(e.getId(), List.of()).stream()
                                 .sorted(Comparator.comparing(s -> s.getId().getUserId()))
                                 .map(s -> new ShareResponse(s.getId().getUserId(), s.getAmount()))
-                                .toList()))
+                                .toList(),
+                        e.isFromFund()))
                 .toList();
 
         return new ExpenseSummaryResponse(
@@ -96,16 +102,57 @@ class ExpenseSummaryBuilder {
                         .toList(),
                 settlements.stream()
                         .map(s -> new SettlementResponse(s.getId(), s.getFromUser().getId(), s.getToUser().getId(),
-                                s.getAmount(), s.getStatus(), s.getCreatedAt(), s.getConfirmedAt()))
+                                s.getAmount(), s.getStatus(), s.getCreatedAt(), s.getConfirmedAt(), s.getKind()))
                         .toList(),
-                expenseRows);
+                expenseRows,
+                fundRepository.findWithTreasurer(tripId)
+                        .map(f -> fund(f, members, expenses, settlements, myId, isOwner))
+                        .orElse(null));
+    }
+
+    /**
+     * Tình trạng quỹ (docs/sdd-trip-fund.md 1.2): phần của thủ quỹ coi như đã nộp đủ (tiền nằm sẵn ở họ);
+     * số dư = đã thu (gồm phần thủ quỹ) − đã chi từ quỹ. Không lưu gì.
+     */
+    static FundResponse fund(TripFund fund, List<TripMember> members, List<Expense> expenses,
+                             List<Settlement> settlements, Long myId, boolean isOwner) {
+        Long treasurerId = fund.getTreasurer().getId();
+        long target = fund.getPerPersonTarget();
+        Map<Long, Long> confirmedBy = new HashMap<>();
+        Map<Long, Long> pendingBy = new HashMap<>();
+        for (Settlement s : settlements) {
+            if (s.getKind() != SettlementKind.FUND) {
+                continue;
+            }
+            Map<Long, Long> bucket = s.getStatus() == SettlementStatus.CONFIRMED ? confirmedBy : pendingBy;
+            bucket.merge(s.getFromUser().getId(), s.getAmount(), Long::sum);
+        }
+        long spent = expenses.stream().filter(Expense::isFromFund).mapToLong(Expense::getAmount).sum();
+
+        long totalContributed = 0;
+        long totalPending = 0;
+        List<FundMemberResponse> rows = new ArrayList<>();
+        for (TripMember m : members) {
+            Long id = m.getUser().getId();
+            boolean treasurer = id.equals(treasurerId);
+            long contributed = treasurer ? target : confirmedBy.getOrDefault(id, 0L);
+            long pending = treasurer ? 0 : pendingBy.getOrDefault(id, 0L);
+            totalContributed += contributed;
+            totalPending += pending;
+            rows.add(new FundMemberResponse(id, contributed, pending, Math.max(0, target - contributed - pending),
+                    treasurer));
+        }
+        boolean inUse = !confirmedBy.isEmpty() || !pendingBy.isEmpty() || spent > 0;
+        return new FundResponse(treasurerId, target, fund.getNote(), totalContributed, totalPending, spent,
+                totalContributed - spent, rows, inUse, isOwner, isOwner || treasurerId.equals(myId));
     }
 
     /** Tổng tiền các lần chuyển còn PENDING theo cặp (người chuyển, người nhận). */
     static Map<String, Long> pendingByPair(List<Settlement> settlements) {
         Map<String, Long> result = new HashMap<>();
         for (Settlement s : settlements) {
-            if (s.getStatus() == SettlementStatus.PENDING) {
+            // Nộp quỹ đang chờ không phải "đang trả nợ" theo gợi ý
+            if (s.getStatus() == SettlementStatus.PENDING && s.getKind() == SettlementKind.DEBT) {
                 result.merge(pairKey(s.getFromUser().getId(), s.getToUser().getId()), s.getAmount(), Long::sum);
             }
         }

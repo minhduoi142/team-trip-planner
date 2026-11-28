@@ -8,6 +8,9 @@ export type SplitMode = 'EQUAL' | 'CUSTOM'
 /** com.tripplanner.expense.ExpenseEnums.SettlementStatus */
 export type SettlementStatus = 'PENDING' | 'CONFIRMED'
 
+/** com.tripplanner.expense.ExpenseEnums.SettlementKind: DEBT trả nợ, FUND nộp quỹ chung */
+export type SettlementKind = 'DEBT' | 'FUND'
+
 /** com.tripplanner.expense.dto.ExpenseDtos.ShareInput */
 export interface ShareInput {
   userId: number
@@ -28,6 +31,8 @@ export interface ExpenseRequest {
   shares: ShareInput[] | null
   note: string | null
   receiptUrl: string | null
+  /** Chi từ quỹ chung: người trả bị đặt lại là thủ quỹ (null = false) */
+  fromFund: boolean | null
 }
 
 /** com.tripplanner.expense.dto.ExpenseDtos.SettlementRequest */
@@ -35,6 +40,48 @@ export interface SettlementRequest {
   fromUserId: number
   toUserId: number
   amount: number
+  /** null = DEBT. FUND: người nhận phải là thủ quỹ */
+  kind: SettlementKind | null
+}
+
+/** com.tripplanner.expense.dto.ExpenseDtos.FundRequest (OWNER) */
+export interface FundRequest {
+  treasurerId: number
+  /** Tổng số tiền mỗi người cần nộp */
+  perPersonTarget: number
+  note: string | null
+}
+
+/**
+ * com.tripplanner.expense.dto.ExpenseDtos.FundMemberResponse. Thủ quỹ: contributed = mức nộp (tiền nằm sẵn ở họ).
+ * remaining = max(0, mức nộp − đã nộp − đang chờ)
+ */
+export interface FundMemberResponse {
+  userId: number
+  contributed: number
+  pending: number
+  remaining: number
+  treasurer: boolean
+}
+
+/**
+ * com.tripplanner.expense.dto.ExpenseDtos.FundResponse. balance = đã thu (gồm phần thủ quỹ) − đã chi; âm = thủ quỹ
+ * đang ứng. inUse: đã có giao dịch quỹ → không đổi thủ quỹ / tắt quỹ.
+ */
+export interface FundResponse {
+  treasurerId: number
+  perPersonTarget: number
+  note: string | null
+  totalContributed: number
+  totalPending: number
+  totalSpent: number
+  balance: number
+  members: FundMemberResponse[]
+  inUse: boolean
+  /** OWNER */
+  canManage: boolean
+  /** Thủ quỹ hoặc OWNER: ghi được "Chi từ quỹ" */
+  canSpend: boolean
 }
 
 /** com.tripplanner.expense.dto.ExpenseDtos.ShareResponse */
@@ -57,6 +104,7 @@ export interface ExpenseResponse {
   createdByName: string | null
   canEdit: boolean
   shares: ShareResponse[]
+  fromFund: boolean
 }
 
 /** com.tripplanner.expense.dto.ExpenseDtos.MemberBalanceResponse — net > 0: được nhận, < 0: phải trả */
@@ -94,6 +142,7 @@ export interface SettlementResponse {
   status: SettlementStatus
   createdAt: IsoInstant
   confirmedAt: IsoInstant | null
+  kind: SettlementKind
 }
 
 /** com.tripplanner.expense.dto.ExpenseDtos.ExpenseSummaryResponse */
@@ -104,4 +153,6 @@ export interface ExpenseSummaryResponse {
   transfers: TransferResponse[]
   settlements: SettlementResponse[]
   expenses: ExpenseResponse[]
+  /** null = chưa bật quỹ chung */
+  fund: FundResponse | null
 }

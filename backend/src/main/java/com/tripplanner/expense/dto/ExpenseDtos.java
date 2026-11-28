@@ -2,6 +2,7 @@ package com.tripplanner.expense.dto;
 
 import com.tripplanner.bank.BankAccountResponse;
 import com.tripplanner.expense.ExpenseEnums.Category;
+import com.tripplanner.expense.ExpenseEnums.SettlementKind;
 import com.tripplanner.expense.ExpenseEnums.SettlementStatus;
 import com.tripplanner.expense.ExpenseEnums.SplitMode;
 import jakarta.validation.Valid;
@@ -56,7 +57,20 @@ public final class ExpenseDtos {
 
             @Size(max = 2000, message = "Link ảnh quá dài")
             @Pattern(regexp = "^$|^https?://.+", message = "Link ảnh hóa đơn phải bắt đầu bằng http:// hoặc https://")
-            String receiptUrl) {
+            String receiptUrl,
+
+            /** Chi từ quỹ chung (null = false): người trả bị đặt lại là thủ quỹ (docs/sdd-trip-fund.md). */
+            Boolean fromFund) {
+
+        public boolean fundExpense() {
+            return Boolean.TRUE.equals(fromFund);
+        }
+
+        /** Bản sao với người trả khác (chi từ quỹ → thủ quỹ). */
+        public ExpenseRequest withPaidBy(Long payer) {
+            return new ExpenseRequest(title, category, amount, payer, spentOn, splitMode, participantIds, shares, note,
+                    receiptUrl, fromFund);
+        }
     }
 
     public record SettlementRequest(
@@ -65,7 +79,49 @@ public final class ExpenseDtos {
             @NotNull(message = "Chưa nhập số tiền")
             @Min(value = 1, message = "Số tiền phải lớn hơn 0")
             @Max(value = 1_000_000_000L, message = "Số tiền tối đa 1 tỷ")
-            Long amount) {
+            Long amount,
+            /** null = DEBT (trả nợ). FUND: nộp quỹ, người nhận phải là thủ quỹ. */
+            SettlementKind kind) {
+
+        public SettlementKind kindOrDefault() {
+            return kind == null ? SettlementKind.DEBT : kind;
+        }
+    }
+
+    /** Bật hoặc sửa quỹ chung (OWNER). Mức nộp = tổng tiền mỗi người cần nộp, như nhau cho mọi người. */
+    public record FundRequest(
+            @NotNull(message = "Chưa chọn thủ quỹ") Long treasurerId,
+            @NotNull(message = "Chưa nhập mức nộp")
+            @Min(value = 1_000, message = "Mức nộp tối thiểu 1.000đ")
+            @Max(value = 100_000_000L, message = "Mức nộp tối đa 100 triệu")
+            Long perPersonTarget,
+            @Size(max = 300, message = "Ghi chú tối đa 300 ký tự") String note) {
+    }
+
+    /**
+     * Tình trạng nộp quỹ của 1 người. {@code contributed}: tổng nộp đã xác nhận (thủ quỹ: = mức nộp, vì tiền nằm sẵn
+     * ở họ); {@code pending}: đang chờ thủ quỹ xác nhận; {@code remaining} = max(0, mức nộp − đã nộp − đang chờ).
+     */
+    public record FundMemberResponse(Long userId, long contributed, long pending, long remaining, boolean treasurer) {
+    }
+
+    /**
+     * Quỹ chung. {@code totalContributed} đã gồm phần của thủ quỹ; {@code balance} = đã thu − đã chi (âm: thủ quỹ đang
+     * ứng tiền). {@code inUse}: đã có giao dịch quỹ → không đổi thủ quỹ / tắt quỹ được. {@code canManage}: OWNER;
+     * {@code canSpend}: thủ quỹ hoặc OWNER ghi được "Chi từ quỹ".
+     */
+    public record FundResponse(
+            Long treasurerId,
+            long perPersonTarget,
+            String note,
+            long totalContributed,
+            long totalPending,
+            long totalSpent,
+            long balance,
+            List<FundMemberResponse> members,
+            boolean inUse,
+            boolean canManage,
+            boolean canSpend) {
     }
 
     public record ShareResponse(Long userId, long amount) {
@@ -83,7 +139,8 @@ public final class ExpenseDtos {
             String receiptUrl,
             String createdByName,
             boolean canEdit,
-            List<ShareResponse> shares) {
+            List<ShareResponse> shares,
+            boolean fromFund) {
     }
 
     /** net > 0: được nhận lại; net < 0: còn phải trả. {@code bank} null nếu chưa khai báo. */
@@ -114,7 +171,8 @@ public final class ExpenseDtos {
             long amount,
             SettlementStatus status,
             Instant createdAt,
-            Instant confirmedAt) {
+            Instant confirmedAt,
+            SettlementKind kind) {
     }
 
     public record ExpenseSummaryResponse(
@@ -123,6 +181,8 @@ public final class ExpenseDtos {
             List<MemberBalanceResponse> members,
             List<TransferResponse> transfers,
             List<SettlementResponse> settlements,
-            List<ExpenseResponse> expenses) {
+            List<ExpenseResponse> expenses,
+            /** null = chuyến chưa bật quỹ chung */
+            FundResponse fund) {
     }
 }

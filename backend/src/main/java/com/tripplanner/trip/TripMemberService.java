@@ -6,12 +6,14 @@ import com.tripplanner.common.ErrorCode;
 import com.tripplanner.expense.ExpenseRepository;
 import com.tripplanner.expense.ExpenseShareRepository;
 import com.tripplanner.expense.SettlementRepository;
+import com.tripplanner.expense.TripFundRepository;
 import com.tripplanner.notification.event.MemberLeft;
 import com.tripplanner.poll.PollVoteRepository;
 import com.tripplanner.outfit.DayOutfitRepository;
 import com.tripplanner.proposal.ProposalVoteRepository;
 import com.tripplanner.room.RoomAssignmentRepository;
 import com.tripplanner.trip.dto.TripMemberResponse;
+import com.tripplanner.document.DocumentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,8 @@ public class TripMemberService {
     private final PollVoteRepository pollVoteRepository;
     private final ProposalVoteRepository proposalVoteRepository;
     private final RoomAssignmentRepository roomAssignmentRepository;
+    private final TripFundRepository fundRepository;
+    private final DocumentService documentService;
     private final DayOutfitRepository outfitRepository;
     private final TripAccessService accessService;
     private final ApplicationEventPublisher events;
@@ -93,6 +97,12 @@ public class TripMemberService {
     private void removeMembership(TripMember member) {
         Long tripId = member.getId().getTripId();
         Long userId = member.getId().getUserId();
+        boolean treasurer = fundRepository.findWithTreasurer(tripId)
+                .map(f -> f.getTreasurer().getId().equals(userId))
+                .orElse(false);
+        if (treasurer) {
+            throw new BusinessException(ErrorCode.MEMBER_IS_TREASURER);
+        }
         if (expenseRepository.existsPaidBy(tripId, userId)
                 || shareRepository.existsForMember(tripId, userId)
                 || settlementRepository.existsForMember(tripId, userId)) {
@@ -102,6 +112,7 @@ public class TripMemberService {
         proposalVoteRepository.deleteAllForMemberInTrip(tripId, userId);   // đề xuất họ tạo vẫn giữ
         roomAssignmentRepository.deleteAllForMemberInTrip(tripId, userId);
         outfitRepository.deleteAllForMemberInTrip(tripId, userId);   // outfit từng ngày (V12)
+        documentService.deletePrivateOfMember(tripId, userId);       // giấy tờ riêng của họ (V15), kèm file
         checklistRepository.unassignAllForMember(tripId, userId);
         memberRepository.delete(member);
     }

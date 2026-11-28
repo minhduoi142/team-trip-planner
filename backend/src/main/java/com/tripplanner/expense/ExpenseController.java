@@ -4,6 +4,7 @@ import com.tripplanner.auth.CurrentUser;
 import com.tripplanner.config.OpenApiConfig;
 import com.tripplanner.expense.dto.ExpenseDtos.ExpenseRequest;
 import com.tripplanner.expense.dto.ExpenseDtos.ExpenseSummaryResponse;
+import com.tripplanner.expense.dto.ExpenseDtos.FundRequest;
 import com.tripplanner.expense.dto.ExpenseDtos.SettlementRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -33,6 +34,7 @@ public class ExpenseController {
 
     private final ExpenseService expenseService;
     private final SettlementService settlementService;
+    private final FundService fundService;
 
     @GetMapping("/trips/{tripId}/expenses")
     @Operation(summary = "Tổng hợp: khoản chi, số dư, gợi ý chuyển khoản, thanh toán (thành viên)")
@@ -73,6 +75,19 @@ public class ExpenseController {
     @Operation(summary = "Người nhận xác nhận đã nhận tiền")
     public ExpenseSummaryResponse confirm(@AuthenticationPrincipal Jwt jwt, @PathVariable Long settlementId) {
         return settlementService.confirm(settlementId, CurrentUser.id(jwt));
+    }
+
+    @PutMapping("/trips/{tripId}/fund")
+    @Operation(summary = "Bật / sửa quỹ chung (OWNER). Đã có giao dịch quỹ thì không đổi thủ quỹ được (FUND_IN_USE)")
+    public ExpenseSummaryResponse upsertFund(@AuthenticationPrincipal Jwt jwt, @PathVariable Long tripId,
+                                             @Valid @RequestBody FundRequest request) {
+        return fundService.upsert(tripId, CurrentUser.id(jwt), request);
+    }
+
+    @DeleteMapping("/trips/{tripId}/fund")
+    @Operation(summary = "Tắt quỹ chung (OWNER), chỉ khi chưa có giao dịch quỹ")
+    public ExpenseSummaryResponse disableFund(@AuthenticationPrincipal Jwt jwt, @PathVariable Long tripId) {
+        return fundService.disable(tripId, CurrentUser.id(jwt));
     }
 
     @DeleteMapping("/settlements/{settlementId}")

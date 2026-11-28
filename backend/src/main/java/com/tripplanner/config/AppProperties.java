@@ -36,8 +36,12 @@ public record AppProperties(Jwt jwt, Auth auth, Google google, Cors cors, String
                           int maxEntries, int connectTimeoutMs, int readTimeoutMs) {
     }
 
-    /** Kho ảnh chuẩn S3. {@code publicUrl}: địa chỉ trình duyệt dùng để tải ảnh (mặc định = endpoint). */
-    public record Storage(String endpoint, String accessKey, String secretKey, String bucket, String publicUrl) {
+    /**
+     * Kho ảnh chuẩn S3. {@code publicUrl}: địa chỉ trình duyệt dùng để tải ảnh (mặc định = endpoint).
+     * {@code privateBucket}: bucket KHÔNG đọc công khai cho giấy tờ chuyến đi (docs/sdd-trip-documents.md).
+     */
+    public record Storage(String endpoint, String accessKey, String secretKey, String bucket, String publicUrl,
+                          String privateBucket) {
 
         public boolean isConfigured() {
             return endpoint != null && !endpoint.isBlank();

@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { Check } from 'lucide-react'
+import { Check, PiggyBank } from 'lucide-react'
 import { useLayoutEffect, useRef, useState, type ComponentProps, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { FormField } from '@/components/FormField'
@@ -17,11 +17,12 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import { EXPENSE_CATEGORIES, formatVnd } from '@/lib/tripContent'
 import { cn } from '@/lib/utils'
-import type { ExpenseCategory, ExpenseRequest, ExpenseResponse, SplitMode } from '@/types/expense'
+import type { ExpenseCategory, ExpenseRequest, ExpenseResponse, FundResponse, SplitMode } from '@/types/expense'
 import type { TripMemberResponse } from '@/types/trip'
 
 interface ExpenseFormDialogProps {
@@ -32,6 +33,8 @@ interface ExpenseFormDialogProps {
   myUserId: number
   /** Chỉ Trưởng nhóm được chọn người trả khác mình (ghi hộ) */
   canChoosePayer: boolean
+  /** Quỹ chung đang bật (docs/sdd-trip-fund.md): thủ quỹ / OWNER thấy công tắc "Chi từ quỹ chung" */
+  fund?: FundResponse | null
   pending: boolean
   onSubmit: (body: ExpenseRequest) => Promise<unknown>
 }
@@ -58,7 +61,7 @@ const SPLIT_MODES: { value: SplitMode; label: string }[] = [
  * Ô nhập tiền VND: hiển thị "1.200.000" nhưng giữ đúng vị trí con trỏ khi format lại (P3-CP-19).
  * `value` là chuỗi chữ số thô.
  */
-function MoneyInput({
+export function MoneyInput({
   value,
   onValueChange,
   ...props
@@ -107,10 +110,13 @@ function ExpenseForm({
   members,
   myUserId,
   canChoosePayer,
+  fund,
   pending,
   onSubmit,
   onOpenChange,
 }: ExpenseFormDialogProps) {
+  const canUseFund = Boolean(fund?.canSpend)
+  const [fromFund, setFromFund] = useState(expense?.fromFund ?? false)
   const [title, setTitle] = useState(expense?.title ?? '')
   const [category, setCategory] = useState<ExpenseCategory>(expense?.category ?? 'FOOD')
   const [amount, setAmount] = useState(expense ? String(expense.amount) : '')
@@ -134,6 +140,9 @@ function ExpenseForm({
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const total = Number(amount || 0)
+  /** Số dư quỹ có thể dùng cho khoản này (sửa khoản đã chi từ quỹ thì cộng lại chính nó) */
+  const fundAvailable = fund ? fund.balance + (expense?.fromFund ? expense.amount : 0) : 0
+  const effectivePayer = fromFund && fund ? String(fund.treasurerId) : paidBy
   const customSum = Object.values(custom).reduce((sum, v) => sum + Number(v || 0), 0)
   const diff = total - customSum
 
@@ -161,7 +170,7 @@ function ExpenseForm({
         title: title.trim(),
         category,
         amount: total,
-        paidBy: Number(paidBy),
+        paidBy: Number(effectivePayer),
         spentOn: spentOn || null,
         splitMode: mode,
         participantIds: mode === 'EQUAL' ? participants : null,
@@ -173,6 +182,7 @@ function ExpenseForm({
             : null,
         note: note.trim() || null,
         receiptUrl: receiptUrl || null,
+        fromFund: fromFund && Boolean(fund),
       })
     } catch (error) {
       const fieldErrors = getFieldErrors(error)
@@ -216,13 +226,38 @@ function ExpenseForm({
         <ChoiceChips label="Loại chi" options={EXPENSE_CATEGORIES} value={category} onChange={setCategory} />
       </div>
 
+      {fund && (canUseFund || expense?.fromFund) && (
+        <div className="grid gap-1.5 rounded-item border border-border bg-muted/40 p-3">
+          <label htmlFor="exp-from-fund" className="flex cursor-pointer items-center justify-between gap-3">
+            <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <PiggyBank className="size-4 text-primary-strong" aria-hidden="true" />
+              Chi từ quỹ chung
+            </span>
+            <Switch id="exp-from-fund" checked={fromFund} disabled={!canUseFund} onCheckedChange={setFromFund} />
+          </label>
+          {fromFund && (
+            <p className="text-xs text-muted-foreground">
+              Quỹ còn <b className="text-foreground tabular-nums">{formatVnd(fundAvailable)}</b>. Người trả là thủ quỹ.
+              {total > fundAvailable && (
+                <span className="font-medium text-warning-soft-foreground">
+                  {' '}
+                  Khoản này vượt số dư, thủ quỹ sẽ ứng trước {formatVnd(total - Math.max(0, fundAvailable))}.
+                </span>
+              )}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2">
         <FormField
           id="exp-payer"
           label="Người trả"
-          hint={canChoosePayer ? undefined : 'Chỉ trưởng nhóm ghi hộ được người khác'}
+          hint={
+            fromFund ? 'Chi từ quỹ: thủ quỹ trả' : canChoosePayer ? undefined : 'Chỉ trưởng nhóm ghi hộ được người khác'
+          }
         >
-          <Select value={paidBy} onValueChange={setPaidBy} disabled={!canChoosePayer}>
+          <Select value={effectivePayer} onValueChange={setPaidBy} disabled={!canChoosePayer || fromFund}>
             <SelectTrigger id="exp-payer" className="w-full">
               <SelectValue />
             </SelectTrigger>
