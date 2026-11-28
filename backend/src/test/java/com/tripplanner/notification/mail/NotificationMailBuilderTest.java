@@ -125,6 +125,24 @@ class NotificationMailBuilderTest {
     }
 
     @Test
+    void countdownShowsMyUnpackedItemsWithLinkToMyList() {
+        OutgoingEmail mail = builder.group(new GroupMail(5, "lan@example.com", 3L, "Phú Quốc 2026",
+                NotificationChannel.COUNTDOWN, List.of(new GroupRow(NotificationType.COUNTDOWN, """
+                        {"tripTitle":"Phú Quốc 2026","daysLeft":1,"startDate":"2026-12-05","endDate":"2026-12-08",
+                         "coverImageUrl":"preset:ocean","day1":null,"myChecklist":[],"myChecklistMore":0,
+                         "myPacking":[{"itemName":"Sạc dự phòng","quantity":2},{"itemName":"Đồ bơi","quantity":1}],
+                         "myPackingMore":4}"""))));
+
+        assertThat(mail.html())
+                .contains("Hành lý của bạn còn 6 món chưa xếp", "Sạc dự phòng", " × 2", "Đồ bơi", "và 4 món khác")
+                .contains(FE + "/trips/3?tab=checklist&amp;view=mine")
+                .doesNotContain("Bạn nhận mang");
+        assertThat(mail.text())
+                .contains("HÀNH LÝ CỦA BẠN CÒN 6 MÓN CHƯA XẾP", "- Sạc dự phòng × 2", "- Đồ bơi",
+                        FE + "/trips/3?tab=checklist&view=mine");
+    }
+
+    @Test
     void countdownWithoutDay1OrChecklistHidesThoseBlocks() {
         OutgoingEmail mail = builder.group(new GroupMail(5, "lan@example.com", 3L, "Đà Lạt",
                 NotificationChannel.COUNTDOWN, List.of(new GroupRow(NotificationType.COUNTDOWN, """
@@ -133,7 +151,7 @@ class NotificationMailBuilderTest {
 
         assertThat(mail.subject()).isEqualTo("Hôm nay khởi hành: Đà Lạt 🎒");
         assertThat(mail.html()).contains("#7dd3fc")
-                .doesNotContain("Ngày 1", "Dress code", "Bạn nhận mang", "Thời tiết dự kiến", "Open-Meteo");
+                .doesNotContain("Ngày 1", "Dress code", "Bạn nhận mang", "Thời tiết dự kiến", "Open-Meteo", "Hành lý");
         assertThat(mail.text()).doesNotContain("THỜI TIẾT");
     }
 

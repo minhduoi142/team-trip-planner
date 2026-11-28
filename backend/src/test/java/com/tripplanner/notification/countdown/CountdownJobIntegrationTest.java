@@ -57,6 +57,11 @@ class CountdownJobIntegrationTest extends IntegrationTest {
     void milestoneCreatesOneRowPerMemberAndIsIdempotent() throws Exception {
         lock(TODAY.plusDays(3));
         seedDay1();
+        // Hành lý cá nhân: chỉ món chưa xếp của đúng người nhận vào email
+        jdbc.update("""
+                INSERT INTO packing_items (trip_id, user_id, category, item_name, quantity, is_packed, created_at)
+                VALUES (?, ?, 'ELECTRONICS', 'Sạc dự phòng', 2, FALSE, UTC_TIMESTAMP(6)),
+                       (?, ?, 'CLOTHES', 'Đồ bơi', 1, TRUE, UTC_TIMESTAMP(6))""", tripId, mai, tripId, mai);
 
         assertThat(job.runFor(TODAY)).isEqualTo(2);
         assertThat(job.runFor(TODAY)).isZero();   // chạy lại (gửi bù) không trùng
@@ -75,6 +80,11 @@ class CountdownJobIntegrationTest extends IntegrationTest {
         assertThat(forMai.get("myChecklist")).hasSize(1);
         assertThat(forMai.get("myChecklist").get(0).get("itemName").asText()).isEqualTo("Kem chống nắng");
         assertThat(payload(linh).get("myChecklist")).isEmpty();   // checklist riêng từng người
+        assertThat(forMai.get("myPacking")).hasSize(1);
+        assertThat(forMai.get("myPacking").get(0).get("itemName").asText()).isEqualTo("Sạc dự phòng");
+        assertThat(forMai.get("myPacking").get(0).get("quantity").asInt()).isEqualTo(2);
+        assertThat(forMai.get("myPackingMore").asInt()).isZero();
+        assertThat(payload(linh).get("myPacking")).isEmpty();   // hành lý riêng tư
 
         assertThat(jdbc.queryForObject("SELECT send_after <= UTC_TIMESTAMP(6) FROM notifications LIMIT 1",
                 Boolean.class)).isTrue();   // gửi ngay ở lượt dispatcher kế tiếp

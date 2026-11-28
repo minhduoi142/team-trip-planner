@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRef } from 'react'
 import { checklistApi } from '@/api/checklist'
+import { applyLatest, revertLatest } from '@/lib/overlapSafe'
 import type { ChecklistItemRequest, ChecklistResponse } from '@/types/checklist'
 import { tripKeys } from './useTrips'
 
@@ -42,7 +44,10 @@ export function useUnclaimItem(tripId: number) {
 export function useCheckItem(tripId: number) {
   const qc = useQueryClient()
   const key = tripKeys.checklist(tripId)
+  const mutationKey = [...key, 'check']
+  const overlapped = useRef(false)
   return useMutation({
+    mutationKey,
     mutationFn: ({ itemId, checked }: { itemId: number; checked: boolean }) => checklistApi.check(itemId, checked),
     onMutate: async ({ itemId, checked }) => {
       await qc.cancelQueries({ queryKey: key })
@@ -57,9 +62,8 @@ export function useCheckItem(tripId: number) {
       }
       return { previous }
     },
-    onError: (_error, _vars, context) => {
-      if (context?.previous) qc.setQueryData(key, context.previous)
-    },
-    onSuccess: (data) => qc.setQueryData(key, data),
+    onError: (_error, _vars, context) => revertLatest(qc, mutationKey, key, context?.previous, overlapped),
+    // Bấm nhanh nhiều món: phản hồi về không theo thứ tự không được ghi đè (lib/overlapSafe.ts)
+    onSuccess: (data) => applyLatest(qc, mutationKey, key, data, overlapped),
   })
 }

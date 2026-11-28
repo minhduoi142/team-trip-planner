@@ -29,6 +29,8 @@ public class CountdownContentBuilder {
 
     static final int MAX_ITEMS = 8;
     static final int MAX_CHECKLIST = 10;
+    /** Số món hành lý chưa xếp hiện trong email (docs/sdd-packing-list.md 3.5). */
+    static final int MAX_PACKING = 8;
     static final int MAX_WEATHER_DAYS = 3;
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -106,9 +108,24 @@ public class CountdownContentBuilder {
                     item.put("quantity", rs.getInt("quantity"));
                     return item;
                 });
+        // Hành lý cá nhân chưa xếp (docs/sdd-packing-list.md 3.5): riêng tư, chỉ vào email của chính chủ
+        List<Map<String, Object>> packing = jdbc.query("""
+                        SELECT item_name, quantity FROM packing_items
+                        WHERE trip_id = :tripId AND user_id = :userId AND is_packed = FALSE
+                        ORDER BY id
+                        """,
+                new MapSqlParameterSource("tripId", tripId).addValue("userId", userId),
+                (rs, i) -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("itemName", rs.getString("item_name"));
+                    item.put("quantity", rs.getInt("quantity"));
+                    return item;
+                });
         Map<String, Object> payload = new LinkedHashMap<>(shared);
         payload.put("myChecklist", items.subList(0, Math.min(items.size(), MAX_CHECKLIST)));
         payload.put("myChecklistMore", Math.max(0, items.size() - MAX_CHECKLIST));
+        payload.put("myPacking", packing.subList(0, Math.min(packing.size(), MAX_PACKING)));
+        payload.put("myPackingMore", Math.max(0, packing.size() - MAX_PACKING));
         return payload;
     }
 

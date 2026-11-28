@@ -22,5 +22,10 @@ BẠN NHẬN MANG
 [# th:each="line : ${myChecklist}"]- [(${line.itemName()})][# th:if="${line.quantity() > 1}"] × [(${line.quantity()})][/]
 [/][# th:if="${myChecklistMore > 0}"]  và [(${myChecklistMore})] món khác
 [/][# th:if="${checklistUrl != null}"]Danh sách chuẩn bị: [(${checklistUrl})]
+[/][/][# th:if="${!myPacking.isEmpty()}"]
+HÀNH LÝ CỦA BẠN CÒN [(${myPackingTotal})] MÓN CHƯA XẾP
+[# th:each="line : ${myPacking}"]- [(${line.itemName()})][# th:if="${line.quantity() > 1}"] × [(${line.quantity()})][/]
+[/][# th:if="${myPackingMore > 0}"]  và [(${myPackingMore})] món khác
+[/][# th:if="${packingUrl != null}"]Hành lý của bạn: [(${packingUrl})]
 [/][/][# th:if="${buttonUrl != null}"]
 Xem lịch trình: [(${buttonUrl})][/]

@@ -15,7 +15,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { AlbumTab } from '@/components/album/AlbumTab'
 import { AvailabilityTab } from '@/components/availability/AvailabilityTab'
-import { ChecklistTab } from '@/components/checklist/ChecklistTab'
+import { PrepareTab } from '@/components/checklist/PrepareTab'
 import { ExpensesTab } from '@/components/expenses/ExpensesTab'
 import { RoomsTab } from '@/components/rooms/RoomsTab'
 import { ItineraryTab } from '@/components/itinerary/ItineraryTab'
@@ -284,7 +284,7 @@ export function TripDetailPage() {
         </TabsContent>
 
         <TabsContent value="checklist" className="mt-4">
-          {user && <ChecklistTab tripId={data.id} myUserId={user.id} canEdit={canEdit} members={data.members} />}
+          {user && <PrepareTab tripId={data.id} myUserId={user.id} canEdit={canEdit} members={data.members} />}
         </TabsContent>
 
         <TabsContent value="expenses" className="mt-4">

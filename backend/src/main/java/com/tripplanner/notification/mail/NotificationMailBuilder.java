@@ -158,7 +158,8 @@ public class NotificationMailBuilder {
         vars.put("dateRange", dateRange);
         vars.put("destination", destination);
         vars.put("buttonUrl", mail.tripId() == null ? null : tripUrl(mail.tripId(), "itinerary"));
-        vars.put("checklistUrl", mail.tripId() == null ? null : tripUrl(mail.tripId(), "checklist"));
+        vars.put("checklistUrl", mail.tripId() == null ? null : tripUrl(mail.tripId(), "checklist") + "&view=shared");
+        vars.put("packingUrl", mail.tripId() == null ? null : tripUrl(mail.tripId(), "checklist") + "&view=mine");
         putCover(vars, p.path("coverImageUrl").asText(null), mail.tripId());
         putDay1(vars, p.path("day1"));
         putWeather(vars, p.path("weather"), destination);
@@ -238,6 +239,13 @@ public class NotificationMailBuilder {
                 new ChecklistLine(item.path("itemName").asText(""), item.path("quantity").asInt(1))));
         vars.put("myChecklist", lines);
         vars.put("myChecklistMore", p.path("myChecklistMore").asInt(0));
+        List<ChecklistLine> packing = new ArrayList<>();
+        p.path("myPacking").forEach(item -> packing.add(
+                new ChecklistLine(item.path("itemName").asText(""), item.path("quantity").asInt(1))));
+        int packingMore = p.path("myPackingMore").asInt(0);
+        vars.put("myPacking", packing);
+        vars.put("myPackingMore", packingMore);
+        vars.put("myPackingTotal", packing.size() + packingMore);
     }
 
     private static String textOrNull(JsonNode node, String field) {

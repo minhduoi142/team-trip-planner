@@ -20,6 +20,7 @@ public enum ErrorCode {
     INVALID_BANK_ACCOUNT(HttpStatus.BAD_REQUEST, "Thông tin tài khoản ngân hàng không hợp lệ"),
     INVALID_SETTLEMENT(HttpStatus.BAD_REQUEST, "Thao tác thanh toán không hợp lệ"),
     INVALID_DRIVE_LINK(HttpStatus.BAD_REQUEST, "Link không phải link Google Drive hợp lệ"),
+    PACKING_LIMIT_REACHED(HttpStatus.BAD_REQUEST, "Danh sách đã đủ 200 món"),
     INVALID_EMAIL_VERIFICATION(HttpStatus.BAD_REQUEST, "Liên kết xác minh không hợp lệ hoặc đã hết hạn"),
     NOTIFY_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "Bạn chưa có email nhận thông báo đã xác minh"),
     INVALID_UNSUBSCRIBE_TOKEN(HttpStatus.BAD_REQUEST, "Liên kết huỷ nhận không hợp lệ"),
@@ -49,6 +50,7 @@ public enum ErrorCode {
     PHOTO_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy ảnh trong album"),
     ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy phòng"),
     PROPOSAL_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy đề xuất"),
+    PACKING_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy món này"),
 
     CONFLICT(HttpStatus.CONFLICT, "Dữ liệu bị trùng hoặc xung đột, vui lòng thử lại"),
     USERNAME_TAKEN(HttpStatus.CONFLICT, "Tên đăng nhập đã có người dùng"),

@@ -60,6 +60,7 @@ public abstract class IntegrationTest {
         jdbc.update("DELETE FROM trip_day_dress_colors");
         jdbc.update("DELETE FROM member_availabilities");
         jdbc.update("DELETE FROM trip_days");
+        jdbc.update("DELETE FROM packing_items");
         jdbc.update("DELETE FROM trip_members");
         jdbc.update("DELETE FROM trips");
         jdbc.update("DELETE FROM users");

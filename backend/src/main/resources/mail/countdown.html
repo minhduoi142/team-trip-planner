@@ -83,6 +83,22 @@
   </p>
 </th:block>
 
+<!--/* Hành lý cá nhân chưa xếp (riêng tư, chỉ trong email của chính chủ) */-->
+<th:block th:if="${!myPacking.isEmpty()}">
+  <p style="margin:0 0 8px 0;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#e25c72;"
+     th:text="'Hành lý của bạn còn ' + ${myPackingTotal} + ' món chưa xếp'">Hành lý của bạn còn 5 món chưa xếp</p>
+  <ul style="margin:0 0 8px 0;padding-left:20px;">
+    <li th:each="line : ${myPacking}" style="margin:0 0 4px 0;">
+      <span th:text="${line.itemName()}">Sạc dự phòng</span><span th:if="${line.quantity() > 1}"
+          style="color:#8a7380;" th:text="' × ' + ${line.quantity()}"> × 2</span>
+    </li>
+  </ul>
+  <p style="margin:0 0 20px 0;font-size:13px;color:#8a7380;">
+    <span th:if="${myPackingMore > 0}" th:text="'và ' + ${myPackingMore} + ' món khác · '">và 3 món khác · </span>
+    <a th:if="${packingUrl != null}" th:href="${packingUrl}" style="color:#e25c72;">Mở hành lý của bạn</a>
+  </p>
+</th:block>
+
 <p style="margin:0;" th:if="${buttonUrl != null}">
   <a th:href="${buttonUrl}"
      style="display:inline-block;background:#e25c72;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 24px;border-radius:999px;">
